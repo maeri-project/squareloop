@@ -9,20 +9,19 @@ namespace layout
 // Parses a mapping string (e.g., "C:0, M:1, R:2, S:3, N:4, P:5, Q:6")
 // into an unordered_map from char to int.
 //------------------------------------------------------------------------------
-std::unordered_map<char,int> parseOrderMapping(const std::string &s) {
-  std::unordered_map<char,int> m;
-  std::istringstream iss(s);
+std::map<std::string, unsigned> ParseOrderMapping(const std::string &mappingString) {
+  std::map<std::string, unsigned> orderMapping;
+  std::istringstream iss(mappingString);
   std::string token;
-  while(std::getline(iss, token, ',')) {
+  while (std::getline(iss, token, ',')) {
     token.erase(std::remove_if(token.begin(), token.end(), ::isspace), token.end());
-    if(token.empty()) continue;
+    if (token.empty()) continue;
     size_t pos = token.find(':');
-    if(pos != std::string::npos)
-      m[token[0]] = std::stoi(token.substr(pos+1));
+    if (pos != std::string::npos)
+      orderMapping[token.substr(0,1)] = static_cast<unsigned>(std::stoi(token.substr(pos+1)));
   }
-  return m;
+  return orderMapping;
 }
-
 
 //------------------------------------------------------------------------------
 // ParseAndConstruct()
@@ -44,7 +43,8 @@ std::unordered_map<char,int> parseOrderMapping(const std::string &s) {
 // Finally, the function returns a std::vector<Layout> containing one Layout per unique target.
 std::vector<Layout> ParseAndConstruct(config::CompoundConfigNode layoutArray,
                       const std::map<std::string, unsigned>& externalMapping,
-                            const std::vector<std::int32_t>& dimension_bound) {
+                            const std::vector<std::int32_t>& dimension_bound,
+                            std::map<std::string, std::pair<uint64_t,uint64_t>>& externalPortMapping){
   std::unordered_map<std::string, Layout> layoutMap;
   int numEntries = layoutArray.getLength();
   for (int i = 0; i < numEntries; i++) {
@@ -55,41 +55,37 @@ std::vector<Layout> ParseAndConstruct(config::CompoundConfigNode layoutArray,
         !entry.lookupValue("factors", factorsStr) ||
         !entry.lookupValue("permutation", permutationStr))
       continue;
-    int nr = 1, nw = 1;
-    if (layoutType == "interline") {
-      entry.lookupValue("num_read_ports", nr);
-      entry.lookupValue("num_write_ports", nw);
-    }
-    // Build a mapping from factor letter to its loop bound.
+    // Build mapping from factor letter to loop bound.
     std::unordered_map<char,int> factorValues;
     {
       std::istringstream facStream(factorsStr);
       std::string token;
       while (facStream >> token) {
-        size_t eqPos = token.find('=');
-        if (eqPos != std::string::npos)
-          factorValues[token[0]] = std::stoi(token.substr(eqPos+1));
+        size_t pos = token.find('=');
+        if (pos != std::string::npos)
+          factorValues[token[0]] = std::stoi(token.substr(pos+1));
       }
     }
-    // Remove all whitespace from permutation string.
+    // Remove whitespace from permutation string.
     std::string cleanPermutation;
     for (char c : permutationStr)
       if (!std::isspace(static_cast<unsigned char>(c)))
         cleanPermutation.push_back(c);
-    // (Interpret cleanPermutation left-to-right as outer-most to inner-most.)
+    // Modification: process permutation left-to-right as innermost to outermost,
+    // so reverse the cleanPermutation.
+    std::reverse(cleanPermutation.begin(), cleanPermutation.end());
     loop::Nest parsedNest;
     loop::Nest::SkewDescriptor skewDescriptor;
-    for (char factorChar : cleanPermutation) {
+    for (char f : cleanPermutation) {
       loop::Nest::SkewDescriptor::Term term;
-      term.constant = (factorValues.find(factorChar) != factorValues.end()) ? factorValues[factorChar] : 1;
-      // Lookup the external mapping: convert factorChar to string.
-      std::string factorKey(1, factorChar);
+      term.constant = (factorValues.find(f) != factorValues.end()) ? factorValues[f] : 1;
+      std::string factorKey(1, f);
       if (externalMapping.find(factorKey) != externalMapping.end()) {
         term.variable.dimension = externalMapping.at(factorKey);
         term.bound.dimension = externalMapping.at(factorKey);
       } else {
-        term.variable.dimension = factorChar - 'A';
-        term.bound.dimension = factorChar - 'A';
+        term.variable.dimension = f - 'A';
+        term.bound.dimension = f - 'A';
       }
       if (layoutType == "intraline") {
         term.variable.is_spatial = (term.constant > 1);
@@ -101,7 +97,6 @@ std::vector<Layout> ParseAndConstruct(config::CompoundConfigNode layoutArray,
       skewDescriptor.terms.push_back(term);
     }
     parsedNest.skew_descriptors.insert({0, skewDescriptor});
-    // Group by target.
     if (layoutMap.find(targetName) == layoutMap.end()) {
       Layout newLayout;
       newLayout.target = targetName;
@@ -111,8 +106,13 @@ std::vector<Layout> ParseAndConstruct(config::CompoundConfigNode layoutArray,
     if (layoutType == "interline") {
       if (layoutMap[targetName].interline.skew_descriptors.empty()) {
         layoutMap[targetName].interline = parsedNest;
-        layoutMap[targetName].num_read_ports = nr;
-        layoutMap[targetName].num_write_ports = nw;
+        if (externalPortMapping.find(targetName) != externalPortMapping.end()) {
+          layoutMap[targetName].num_read_ports = static_cast<int>(externalPortMapping.at(targetName).first);
+          layoutMap[targetName].num_write_ports = static_cast<int>(externalPortMapping.at(targetName).second);
+        } else {
+          layoutMap[targetName].num_read_ports = 1;
+          layoutMap[targetName].num_write_ports = 1;
+        }
       }
     } else if (layoutType == "intraline") {
       if (layoutMap[targetName].intraline.skew_descriptors.empty())
@@ -120,8 +120,13 @@ std::vector<Layout> ParseAndConstruct(config::CompoundConfigNode layoutArray,
     } else {
       if (layoutMap[targetName].interline.skew_descriptors.empty()) {
         layoutMap[targetName].interline = parsedNest;
-        layoutMap[targetName].num_read_ports = nr;
-        layoutMap[targetName].num_write_ports = nw;
+        if (externalPortMapping.find(targetName) != externalPortMapping.end()) {
+          layoutMap[targetName].num_read_ports = static_cast<int>(externalPortMapping.at(targetName).first);
+          layoutMap[targetName].num_write_ports = static_cast<int>(externalPortMapping.at(targetName).second);
+        } else {
+          layoutMap[targetName].num_read_ports = 1;
+          layoutMap[targetName].num_write_ports = 1;
+        }
       }
     }
   } // end for each layout entry
@@ -135,7 +140,6 @@ std::vector<Layout> ParseAndConstruct(config::CompoundConfigNode layoutArray,
   std::vector<char> globalFactorOrder;
   for (const auto &pair : sortedFactorPairs)
     globalFactorOrder.push_back(pair.second[0]);
-  // Check that dimension_bound has the same size.
   if (dimension_bound.size() != globalFactorOrder.size()) {
     std::cerr << "Error: dimension_bound size (" << dimension_bound.size() 
               << ") does not match external mapping size (" << globalFactorOrder.size() << ").\n";
@@ -143,8 +147,8 @@ std::vector<Layout> ParseAndConstruct(config::CompoundConfigNode layoutArray,
   }
   // Create default nests if missing and assign factor_order.
   for (auto &entry : layoutMap) {
-    Layout &layoutConfig = entry.second;
-    if (layoutConfig.intraline.skew_descriptors.empty()) {
+    Layout &l = entry.second;
+    if (l.intraline.skew_descriptors.empty()) {
       loop::Nest defaultIntraline;
       loop::Nest::SkewDescriptor defaultSkew;
       for (const auto &pf : sortedFactorPairs) {
@@ -155,9 +159,9 @@ std::vector<Layout> ParseAndConstruct(config::CompoundConfigNode layoutArray,
         defaultSkew.terms.push_back(term);
       }
       defaultIntraline.skew_descriptors.insert({0, defaultSkew});
-      layoutConfig.intraline = defaultIntraline;
+      l.intraline = defaultIntraline;
     }
-    if (layoutConfig.interline.skew_descriptors.empty()) {
+    if (l.interline.skew_descriptors.empty()) {
       loop::Nest defaultInterline;
       loop::Nest::SkewDescriptor defaultSkew;
       for (const auto &pf : sortedFactorPairs) {
@@ -168,58 +172,49 @@ std::vector<Layout> ParseAndConstruct(config::CompoundConfigNode layoutArray,
         defaultSkew.terms.push_back(term);
       }
       defaultInterline.skew_descriptors.insert({0, defaultSkew});
-      layoutConfig.interline = defaultInterline;
+      l.interline = defaultInterline;
     }
-    layoutConfig.factor_order = globalFactorOrder;
-    // Compute max_dim_perline as the product of interline and intraline factors.
+    l.factor_order = globalFactorOrder;
+    // Compute max_dim_perline as product of interline and intraline factors.
     std::vector<int> computedMaxDims(globalFactorOrder.size(), 1);
-    // For each dimension, search for the term in interline and intraline.
-    // We assume each nest's SkewDescriptor is stored with key 0.
-    const auto &interlineTerms = layoutConfig.interline.skew_descriptors.at(0).terms;
-    const auto &intralineTerms = layoutConfig.intraline.skew_descriptors.at(0).terms;
+    const auto &interlineTerms = l.interline.skew_descriptors.at(0).terms;
+    const auto &intralineTerms = l.intraline.skew_descriptors.at(0).terms;
     for (size_t i = 0; i < sortedFactorPairs.size(); i++) {
       unsigned expectedOrder = sortedFactorPairs[i].first;
       int interFactor = 1, intraFactor = 1;
       for (const auto &term : interlineTerms) {
-        if (term.variable.dimension == expectedOrder) {
-          interFactor = term.constant;
-          break;
-        }
+        if (term.variable.dimension == expectedOrder) { interFactor = term.constant; break; }
       }
       for (const auto &term : intralineTerms) {
-        if (term.variable.dimension == expectedOrder) {
-          intraFactor = term.constant;
-          break;
-        }
+        if (term.variable.dimension == expectedOrder) { intraFactor = term.constant; break; }
       }
       int product = interFactor * intraFactor;
       if (product < static_cast<int>(dimension_bound[i])) {
-        std::cerr << "Warning: For target " << entry.first << ", the product of interline (" 
+        std::cerr << "Warning: For target " << entry.first << ", the product of interline ("
                   << interFactor << ") and intraline (" << intraFactor 
                   << ") factors for dimension " << globalFactorOrder[i]
-                  << " is " << product << ", which is below the required bound " << dimension_bound[i] << ".\n";
+                  << " is " << product << ", below the required bound " << dimension_bound[i] << ".\n";
       }
       computedMaxDims[i] = product;
     }
-    layoutConfig.max_dim_perline = computedMaxDims;
+    l.max_dim_perline = computedMaxDims;
   }
-  // Convert layoutMap to vector.
+  // Convert layoutMap into vector.
   std::vector<Layout> layoutVector;
-  for (const auto &l : layoutMap)
-    layoutVector.push_back(l.second);
+  for (const auto &p : layoutMap)
+    layoutVector.push_back(p.second);
   return layoutVector;
 }
-
 
 
 //------------------------------------------------------------------------------
 // Helper function to print a Nest's loop order.
 //------------------------------------------------------------------------------
-void printNestLoopOrder(const loop::Nest &nest, const std::vector<char>& factor_order) {
-  for (auto &p : nest.skew_descriptors) {
-    for (auto &term : p.second.terms) {
+void PrintNestLoopOrder(const loop::Nest &nest, const std::vector<char>& factorOrder) {
+  for (const auto &descPair : nest.skew_descriptors) {
+    for (const auto &term : descPair.second.terms) {
       int ord = term.variable.dimension;
-      char f = (ord >= 0 && static_cast<size_t>(ord) < factor_order.size()) ? factor_order[ord] : '?';
+      char f = (ord < static_cast<int>(factorOrder.size())) ? factorOrder[ord] : '?';
       std::cout << "    iter->dimension=" << ord << "-" << f
                 << " in [0, " << term.constant << ", 1) iter->residual_end=" << term.constant << "\n";
     }

@@ -191,8 +191,19 @@ Model::Model(config::CompoundConfig* config,
   config::CompoundConfigNode compound_config_node_layout;
   bool existing_layout = rootNode.lookup("layout", compound_config_node_layout);
   // ToDo: 
+  std::cout << "buffer level = " << arch_specs_.topology.NumStorageLevels() << std::endl;
+  for (auto i: arch_specs_.topology.LevelNames())
+    std::cout << i << std::endl;
+  for (auto i: arch_specs_.topology.LevelNames())
+    std::cout << "num_ports=" <<  arch_specs_.topology.GetStorageLevel(i)->num_ports << "  num_banks=" << arch_specs_.topology.GetStorageLevel(i)->num_banks  << std::endl;
+  
+  
   if (existing_layout){
-    layout_ = layout::ParseAndConstruct(compound_config_node_layout, workload_.GetShape()->FactorizedDimensionNameToID, workload_.GetFactorizedBounds().GetCoordinates());//, arch_specs_, workload_);
+    std::map<std::string, std::pair<uint64_t, uint64_t>> externalPortMapping;
+    for (auto i: arch_specs_.topology.LevelNames())
+        externalPortMapping[i] = {arch_specs_.topology.GetStorageLevel(i)->num_ports.Get(), arch_specs_.topology.GetStorageLevel(i)->num_ports.Get()};
+
+    layout_ = layout::ParseAndConstruct(compound_config_node_layout, workload_.GetShape()->FactorizedDimensionNameToID, workload_.GetFactorizedBounds().GetCoordinates(), externalPortMapping);//, arch_specs_, workload_);
     
     layout_initialized_ = true;
 
@@ -204,9 +215,9 @@ Model::Model(config::CompoundConfig* config,
       std::cout << "}\n  Factor order: { ";
       for (char f : l.factor_order) std::cout << f << " ";
       std::cout << "}\n  Interline nest:\n";
-      layout::printNestLoopOrder(l.interline, l.factor_order);
+      layout::PrintNestLoopOrder(l.interline, l.factor_order);
       std::cout << "  Intraline nest:\n";
-      layout::printNestLoopOrder(l.intraline, l.factor_order);
+      layout::PrintNestLoopOrder(l.intraline, l.factor_order);
       std::cout << "\n";
     }
   }

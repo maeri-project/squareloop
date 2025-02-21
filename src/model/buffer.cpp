@@ -913,9 +913,9 @@ BufferLevel::ComputeBankConflictSlowdown(
       std::cout << f << " ";
     std::cout << "}\n";
     std::cout << "  Interline nest:\n";
-    layout::printNestLoopOrder(layout.interline, layout.factor_order);
+    layout::PrintNestLoopOrder(layout.interline, layout.factor_order);
     std::cout << "  Intraline nest:\n";
-    layout::printNestLoopOrder(layout.intraline, layout.factor_order);
+    layout::PrintNestLoopOrder(layout.intraline, layout.factor_order);
     std::cout << "\n";
   }
 

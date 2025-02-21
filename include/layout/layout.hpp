@@ -36,7 +36,7 @@ typedef std::vector<Layout> Layouts;
 // Parses a mapping string (e.g., "C:0, M:1, R:2, S:3, N:4, P:5, Q:6")
 // into an unordered_map from char to int.
 //------------------------------------------------------------------------------
-std::unordered_map<char, int> parseOrderMapping(const std::string &mappingStr);
+std::map<std::string, unsigned> parseOrderMapping(const std::string &mappingString);
 
 //------------------------------------------------------------------------------
 // ParseAndConstruct()
@@ -55,11 +55,12 @@ std::unordered_map<char, int> parseOrderMapping(const std::string &mappingStr);
   
 std::vector<Layout> ParseAndConstruct(config::CompoundConfigNode layoutArray,
                       const std::map<std::string, unsigned>& externalMapping,
-                            const std::vector<std::int32_t>& dimension_bound);
+                            const std::vector<std::int32_t>& dimension_bound,
+                            std::map<std::string, std::pair<uint64_t,uint64_t>>& externalPortMapping);
 
 //------------------------------------------------------------------------------
 // Helper function to print a Nest's loop order.
 //------------------------------------------------------------------------------
-void printNestLoopOrder(const loop::Nest &nest, const std::vector<char>& factor_order);
+void PrintNestLoopOrder(const loop::Nest &nest, const std::vector<char>& factorOrder);
 
 } // namespace layout
