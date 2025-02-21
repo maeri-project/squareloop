@@ -1,0 +1,33 @@
+layout:
+  - target: MainMemory
+    type: interline
+    factors: R=1 S=1 P=1 Q=1 C=1 M=1 N=1
+    permutation: SRCQPMN
+    num_read_ports: 2
+    num_write_ports: 2
+
+  - target: MainMemory
+    type: intraline
+    factors: R=3 S=3 P=24 Q=24 C=4 M=1 N=1
+    permutation: SRCQPMN
+    num_read_ports: 2
+    num_write_ports: 2
+
+  - target: GlobalBuffer
+    type: interline
+    factors: R=3 S=3 P=24 Q=6 C=2 M=1 N=1
+    permutation: SRCQPMN
+    num_read_ports: 2
+    num_write_ports: 2
+
+  - target: GlobalBuffer
+    type: intraline
+    factors: R=1 S=1 P=1 Q=4 C=2 M=1 N=1
+    permutation: SRCQPMN
+
+  - target: RegisterFile
+    type: interline
+    factors: R=1 S=1 P=1 Q=1 C=1 M=1 N=1
+    permutation: SRCQPMN
+    num_read_ports: 2
+    num_write_ports: 2

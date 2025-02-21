@@ -1,0 +1,20 @@
+layout:
+  - target: MainMemory
+    type: interline
+    factors: R=7 S=7 P=232 Q=232 C=3 M=1 N=1
+    permutation: SR CQP MN
+
+  - target: GlobalBuffer
+    type: interline
+    factors: R=1 S=1 P=58 Q=116 C=1 M=1 N=1
+    permutation: SR CQP MN
+
+  - target: GlobalBuffer
+    type: intraline
+    factors: R=1 S=1 P=1 Q=2 C=4 M=1 N=1
+    permutation: SR CQP MN
+
+  - target: RegisterFile
+    type: interline
+    factors: R=1 S=1 P=1 Q=1 C=4 M=1 N=1
+    permutation: SR CQP MN
