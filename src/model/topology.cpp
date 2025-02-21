@@ -1444,9 +1444,9 @@ std::vector<EvalStatus> Topology::Evaluate(Mapping& mapping,
       }
     }
     
-    std::cout << "Evaluate Storage Level " << storage_level_id << " -- " << layout[storage_level_id].target << std::endl;
     // if analysis
     if(analysis->IsLayoutInitialized()){
+      std::cout << "Evaluate Storage Level " << storage_level_id << " -- " << layout[storage_level_id].target << std::endl;
       assert(layout.size() > storage_level_id);
       auto s = storage_level->Evaluate(tiles[storage_level_id], keep_masks[storage_level_id], layout[storage_level_id], 
                                      workload,

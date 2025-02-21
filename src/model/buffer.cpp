@@ -864,56 +864,6 @@ EvalStatus BufferLevel::PreEvaluationCheck(
   return eval_status;  
 }
 
-
-// // Compute buffer access number.
-// void BufferLevel::ComputeBankConflictSlowdown(const tiling::CompoundDataMovementInfo& tile, layout::Layout layout) {
-//   overall_slowdown_ = 1.0; // Initialization
-//   // unsigned iacts_data_id=0; 
-//   // for (unsigned i=0; i<problem::GetShape()->NumDataSpaces; i++){
-//   //   if(problem::GetShape()->DataSpaceIDToName.at(i) == "Inputs"){
-//   //     iacts_data_id=i;
-//   //   }
-//   // }
-
-//   auto dim_id_to_name = problem::GetShape()->FlattenedDimensionIDToName;
-//   {
-//     // Print out tile information
-//     for (auto i: tile){
-//       std::cout << "i.GetDataSpaceName()=" << i.GetDataSpaceName() << std::endl;
-//       std::cout << "i.GetHasMetaData()=" << i.GetHasMetaData() << std::endl;
-//       std::cout << "i.GetNumMetaDataRanks()=" << i.GetNumMetaDataRanks() << std::endl;
-//       for(auto j: i.subnest){
-//         std::ostringstream str;
-//         str.str("");
-//         str << j.PrintCompact(dim_id_to_name);
-//         std::cout << str.str() << " ";
-//       }
-//       std::cout << std::endl;
-//     }
-//   }
-
-//   {
-//     // Print out layout related information
-//     std::cout << "layout at a Buffer level - = " << std::endl;
-//     std::cout << "Target: " << layout.target << "\n";
-//     std::cout << "  num_read_ports: " << layout.num_read_ports
-//               << ", num_write_ports: " << layout.num_write_ports << "\n";
-//     std::cout << "  max_dim_perline: { ";
-//     for (int d : layout.max_dim_perline)
-//       std::cout << d << " ";
-//     std::cout << "}\n";
-//     std::cout << "  Factor order: { ";
-//     for (char f : layout.factor_order)
-//       std::cout << f << " ";
-//     std::cout << "}\n";
-//     std::cout << "  Interline nest:\n";
-//     layout::printNestLoopOrder(layout.interline, layout.factor_order);
-//     std::cout << "  Intraline nest:\n";
-//     layout::printNestLoopOrder(layout.intraline, layout.factor_order);
-//     std::cout << "\n";
-//   }
-// }
-
 void
 BufferLevel::ComputeBankConflictSlowdown(
     const tiling::CompoundDataMovementInfo& tile, layout::Layout layout)
@@ -996,23 +946,26 @@ BufferLevel::ComputeBankConflictSlowdown(
     }
 
   // utilization computation
+  double overall_average_rows_accessed = 1;
   for (auto p : dim_id_to_shape_mapping)
     {
-      int access_limit = p.second;
-      int layout_limit = dim_id_to_shape_layout[p.first];
+      int spatial_data_requirement = p.second;
+      int avail_layout_spatial = dim_id_to_shape_layout[p.first];
       double average_rows_accessed
           = (1.0
-             + ((double)access_limit - std::gcd(access_limit, layout_limit))
-                   / layout_limit);
-      overall_slowdown_
-          *= std::min(1.0, layout.num_read_ports / average_rows_accessed);
+             + ((double)spatial_data_requirement - std::gcd(spatial_data_requirement, avail_layout_spatial))
+                   / avail_layout_spatial);
+      overall_average_rows_accessed *= average_rows_accessed;
 
     // Introduced new layout modeling
-      std::cout << "dimension: " << p.first << " access_limit: " << access_limit
-                << " layout_limit: " << layout_limit
-                << " average_rows_accessed: " << average_rows_accessed
-                << " overall_slowdown_: " << overall_slowdown_ << std::endl;
+      std::cout << "dimension: " << p.first << " spatial_data_requirement: " << spatial_data_requirement
+                << " avail_layout_spatial: " << avail_layout_spatial
+                << " average_rows_accessed: " << average_rows_accessed << std::endl;
     }
+  overall_slowdown_
+    *= std::min(1.0, layout.num_read_ports / overall_average_rows_accessed);
+
+  std::cout << " overall_slowdown_: " << overall_slowdown_ << std::endl;
 }
 
 
