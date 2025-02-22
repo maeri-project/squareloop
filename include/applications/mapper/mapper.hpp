@@ -40,6 +40,8 @@
 #include "applications/mapper/mapper-thread.hpp"
 #include "model/sparse-optimization-parser.hpp"
 #include "layout/layout.hpp"
+#include "crypto/crypto.hpp"
+
 
 //--------------------------------------------//
 //                Application                 //
@@ -74,7 +76,8 @@ class Mapper
   problem::Workload workload_;
   layout::Layouts layout_; // layout modeling
   bool layout_initialized_ = false;
-  
+  crypto::CryptoConfig* crypto_; // authentication engines
+
   model::Engine::Specs arch_specs_;
   mapspace::MapSpace* mapspace_;
   std::vector<mapspace::MapSpace*> split_mapspaces_;

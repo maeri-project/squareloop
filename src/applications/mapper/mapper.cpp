@@ -35,6 +35,7 @@
 
 #include "applications/mapper/mapper.hpp"
 #include "layout/layout.hpp"
+#include "crypto/crypto.hpp"
 
 //--------------------------------------------//
 //                Application                 //
@@ -367,6 +368,36 @@ Mapper::Mapper(config::CompoundConfig* config,
     cfg_string_ = nullptr;
   }
 
+  // crypto modeling
+  std::cout << "Start Parsering Crypto" << std::endl;
+  config::CompoundConfigNode compound_config_node_crypto;
+  bool existing_crypto = rootNode.lookup("crypto", compound_config_node_crypto);
+  crypto_ = new crypto::CryptoConfig();
+
+  if (existing_crypto){
+    crypto_ = crypto::ParseAndConstruct(compound_config_node_crypto);//, arch_specs_, workload_);
+    
+    crypto_->crypto_initialized_ = true;
+
+    std::cout << "Crypto Configuration:\n";
+    std::cout << "  Name: " << crypto_->name << "\n";
+    std::cout << "  Family: " << crypto_->family << "\n";
+    std::cout << "  Datapath: " << crypto_->datapath << "\n";
+    std::cout << "  Auth Additional Cycle Per Block: " << crypto_->auth_additional_cycle_per_block << "\n";
+    std::cout << "  Auth Additional Energy Per Block: " << crypto_->auth_additional_energy_per_block << "\n";
+    std::cout << "  Auth Cycle Per Datapath: " << crypto_->auth_cycle_per_datapath << "\n";
+    std::cout << "  Auth Enc Parallel: " << (crypto_->auth_enc_parallel ? "true" : "false") << "\n";
+    std::cout << "  Auth Energy Per Datapath: " << crypto_->auth_energy_per_datapath << "\n";
+    std::cout << "  Enc Cycle Per Datapath: " << crypto_->enc_cycle_per_datapath << "\n";
+    std::cout << "  Enc Energy Per Datapath: " << crypto_->enc_energy_per_datapath << "\n";
+    std::cout << "  Hash Size: " << crypto_->hash_size << "\n";
+    std::cout << "  Xor Cycle: " << crypto_->xor_cycle << "\n";
+    std::cout << "  Xor Energy Per Datapath: " << crypto_->xor_energy_per_datapath << "\n";
+  }
+  else{
+    std::cout << "No Crypto specified" << std::endl;
+  }
+  
   // layout modeling
   std::cout << "Start Parsering Layout" << std::endl;
   config::CompoundConfigNode compound_config_node_layout;
@@ -506,6 +537,7 @@ Mapper::Result Mapper::Run()
                                         layout_,
                                         layout_initialized_,
                                         sparse_optimizations_,
+                                        crypto_,
                                         &best_));
   }
 
@@ -604,9 +636,9 @@ Mapper::Result Mapper::Run()
         engine.Spec(arch_specs_);
 
         if (layout_initialized_){ // ToDo: @Jianming modify here
-          engine.Evaluate(mapping, workload_, layout_, sparse_optimizations_, false);
+          engine.Evaluate(mapping, workload_, layout_, sparse_optimizations_, crypto_, false);
         }else
-          engine.Evaluate(mapping, workload_, sparse_optimizations_, false);
+          engine.Evaluate(mapping, workload_, sparse_optimizations_, crypto_, false);
 
         mapping.PrettyPrint(std::cout, arch_specs_.topology.StorageLevelNames(),
                             engine.GetTopology().GetStats().utilized_capacities,
@@ -659,9 +691,9 @@ Mapper::Result Mapper::Run()
     engine.Spec(arch_specs_);
     
     if (layout_initialized_){
-      engine.Evaluate(global_best_.mapping, workload_, layout_, sparse_optimizations_);
+      engine.Evaluate(global_best_.mapping, workload_, layout_, sparse_optimizations_, crypto_);
     }else
-      engine.Evaluate(global_best_.mapping, workload_, sparse_optimizations_);
+      engine.Evaluate(global_best_.mapping, workload_, sparse_optimizations_, crypto_);
 
     stats_str << engine << std::endl;
 

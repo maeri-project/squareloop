@@ -292,8 +292,9 @@ MapperThread::MapperThread(
   layout::Layouts layout,
   bool layout_initialized,
   sparse::SparseOptimizationInfo* sparse_optimizations,
+  crypto::CryptoConfig* crypto,
   EvaluationResult* best
-  ) :
+  ):
     thread_id_(thread_id),
     search_(search),
     mapspace_(mapspace),
@@ -322,6 +323,7 @@ MapperThread::MapperThread(
     layout_(layout),
     layout_initialized_(layout_initialized),
     sparse_optimizations_(sparse_optimizations),
+    crypto_(crypto),
     best_(best),
     thread_(),
     stats_()
@@ -452,9 +454,9 @@ void MapperThread::Run()
 
         // Re-evaluate the mapping
         if (layout_initialized_){
-          engine.Evaluate(index_factor_best.mapping, workload_, layout_, sparse_optimizations_, !diagnostics_on_);
+          engine.Evaluate(index_factor_best.mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
         }else
-          engine.Evaluate(index_factor_best.mapping, workload_, sparse_optimizations_, !diagnostics_on_);
+          engine.Evaluate(index_factor_best.mapping, workload_, sparse_optimizations_, crypto_, !diagnostics_on_);
           
         if (index_factor_best.valid) {
             auto topology = engine.GetTopology();
@@ -605,12 +607,12 @@ void MapperThread::Run()
 
     // Stage 3: Heavyweight evaluation.
     if (layout_initialized_){ // ToDo: @Jianming modify here
-      status_per_level = engine.Evaluate(mapping, workload_, layout_, sparse_optimizations_, !diagnostics_on_);
+      status_per_level = engine.Evaluate(mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
       success &= std::accumulate(status_per_level.begin(), status_per_level.end(), true,
                                [](bool cur, const model::EvalStatus& status)
                                { return cur && status.success; });
     }else{
-      status_per_level = engine.Evaluate(mapping, workload_, sparse_optimizations_, !diagnostics_on_);
+      status_per_level = engine.Evaluate(mapping, workload_, sparse_optimizations_, crypto_, !diagnostics_on_);
       success &= std::accumulate(status_per_level.begin(), status_per_level.end(), true,
                                [](bool cur, const model::EvalStatus& status)
                                { return cur && status.success; });
@@ -658,9 +660,9 @@ void MapperThread::Run()
 
         // Re-evaluate the mapping
         if (layout_initialized_){
-          engine.Evaluate(index_factor_best.mapping, workload_, layout_, sparse_optimizations_, !diagnostics_on_);
+          engine.Evaluate(index_factor_best.mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
         }else
-          engine.Evaluate(index_factor_best.mapping, workload_, sparse_optimizations_, !diagnostics_on_);
+          engine.Evaluate(index_factor_best.mapping, workload_, sparse_optimizations_, crypto_, !diagnostics_on_);
 
         auto topology = engine.GetTopology();
 

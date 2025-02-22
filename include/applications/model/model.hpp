@@ -43,6 +43,7 @@
 #include "model/sparse-optimization-parser.hpp"
 
 #include "layout/layout.hpp"
+#include "crypto/crypto.hpp"
 //--------------------------------------------//
 //                Application                 //
 //--------------------------------------------//
@@ -74,6 +75,10 @@ class Model
   // Many of the following submodules are dynamic objects because
   // we can only instantiate them after certain config files have
   // been parsed.
+
+  // The layout modeling
+  crypto::CryptoConfig* crypto_; 
+  bool crypto_initialized_ = false;
 
   // The layout modeling
   layout::Layouts layout_; 

@@ -71,8 +71,23 @@ std::vector<EvalStatus> Engine::PreEvaluationCheck(const Mapping& mapping, probl
   return topology_.PreEvaluationCheck(mapping, &nest_analysis_, sparse_optimizations, break_on_failure);
 }
 
-std::vector<EvalStatus> Engine::Evaluate(Mapping& mapping, problem::Workload& workload, layout::Layouts layout, sparse::SparseOptimizationInfo* sparse_optimizations, bool break_on_failure)
+std::vector<EvalStatus> Engine::Evaluate(Mapping& mapping, problem::Workload& workload, layout::Layouts layout, sparse::SparseOptimizationInfo* sparse_optimizations, crypto::CryptoConfig* crypto_config, bool break_on_failure)
 {
+  std::cout << "Crypto Configuration:\n";
+  std::cout << "  Name: " << crypto_config->name << "\n";
+  std::cout << "  Family: " << crypto_config->family << "\n";
+  std::cout << "  Datapath: " << crypto_config->datapath << "\n";
+  std::cout << "  Auth Additional Cycle Per Block: " << crypto_config->auth_additional_cycle_per_block << "\n";
+  std::cout << "  Auth Additional Energy Per Block: " << crypto_config->auth_additional_energy_per_block << "\n";
+  std::cout << "  Auth Cycle Per Datapath: " << crypto_config->auth_cycle_per_datapath << "\n";
+  std::cout << "  Auth Enc Parallel: " << (crypto_config->auth_enc_parallel ? "true" : "false") << "\n";
+  std::cout << "  Auth Energy Per Datapath: " << crypto_config->auth_energy_per_datapath << "\n";
+  std::cout << "  Enc Cycle Per Datapath: " << crypto_config->enc_cycle_per_datapath << "\n";
+  std::cout << "  Enc Energy Per Datapath: " << crypto_config->enc_energy_per_datapath << "\n";
+  std::cout << "  Hash Size: " << crypto_config->hash_size << "\n";
+  std::cout << "  Xor Cycle: " << crypto_config->xor_cycle << "\n";
+  std::cout << "  Xor Energy Per Datapath: " << crypto_config->xor_energy_per_datapath << "\n";
+
   nest_analysis_.Init(&workload, &mapping.loop_nest, layout, mapping.fanoutX_map, mapping.fanoutY_map);
     
   auto eval_status = topology_.Evaluate(mapping, &nest_analysis_, sparse_optimizations, break_on_failure);
@@ -83,6 +98,35 @@ std::vector<EvalStatus> Engine::Evaluate(Mapping& mapping, problem::Workload& wo
 
   return eval_status;
 }
+
+std::vector<EvalStatus> Engine::Evaluate(Mapping& mapping, problem::Workload& workload, sparse::SparseOptimizationInfo* sparse_optimizations, crypto::CryptoConfig* crypto_config, bool break_on_failure)
+{
+  std::cout << "Crypto Configuration:\n";
+  std::cout << "  Name: " << crypto_config->name << "\n";
+  std::cout << "  Family: " << crypto_config->family << "\n";
+  std::cout << "  Datapath: " << crypto_config->datapath << "\n";
+  std::cout << "  Auth Additional Cycle Per Block: " << crypto_config->auth_additional_cycle_per_block << "\n";
+  std::cout << "  Auth Additional Energy Per Block: " << crypto_config->auth_additional_energy_per_block << "\n";
+  std::cout << "  Auth Cycle Per Datapath: " << crypto_config->auth_cycle_per_datapath << "\n";
+  std::cout << "  Auth Enc Parallel: " << (crypto_config->auth_enc_parallel ? "true" : "false") << "\n";
+  std::cout << "  Auth Energy Per Datapath: " << crypto_config->auth_energy_per_datapath << "\n";
+  std::cout << "  Enc Cycle Per Datapath: " << crypto_config->enc_cycle_per_datapath << "\n";
+  std::cout << "  Enc Energy Per Datapath: " << crypto_config->enc_energy_per_datapath << "\n";
+  std::cout << "  Hash Size: " << crypto_config->hash_size << "\n";
+  std::cout << "  Xor Cycle: " << crypto_config->xor_cycle << "\n";
+  std::cout << "  Xor Energy Per Datapath: " << crypto_config->xor_energy_per_datapath << "\n";
+
+  nest_analysis_.Init(&workload, &mapping.loop_nest, mapping.fanoutX_map, mapping.fanoutY_map);
+    
+  auto eval_status = topology_.Evaluate(mapping, &nest_analysis_, sparse_optimizations, break_on_failure);
+
+  is_evaluated_ = std::accumulate(eval_status.begin(), eval_status.end(), true,
+                                  [](bool cur, const EvalStatus& status)
+                                  { return cur && status.success; });
+
+  return eval_status;
+}
+
 
 std::vector<EvalStatus> Engine::Evaluate(Mapping& mapping, problem::Workload& workload, sparse::SparseOptimizationInfo* sparse_optimizations, bool break_on_failure)
 {
@@ -96,6 +140,7 @@ std::vector<EvalStatus> Engine::Evaluate(Mapping& mapping, problem::Workload& wo
 
   return eval_status;
 }
+  
   
 double Engine::Energy() const
 {

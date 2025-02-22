@@ -32,6 +32,7 @@
 
 #include "applications/model/model.hpp"
 #include "layout/layout.hpp"
+#include "crypto/crypto.hpp"
 
 //--------------------------------------------//
 //                Application                 //
@@ -186,17 +187,25 @@ Model::Model(config::CompoundConfig* config,
     exit(1);
   }
 
+  // crypto modeling
+  std::cout << "Start Parsering Crypto" << std::endl;
+  config::CompoundConfigNode compound_config_node_crypto;
+  bool existing_crypto = rootNode.lookup("crypto", compound_config_node_crypto);
+  crypto_ = new crypto::CryptoConfig();
+
+  if (existing_crypto){
+    crypto_ = crypto::ParseAndConstruct(compound_config_node_crypto);//, arch_specs_, workload_);
+    
+    crypto_->crypto_initialized_ = true;
+  }
+  else{
+    std::cout << "No Crypto specified" << std::endl;
+  }
+
   // layout modeling
   std::cout << "Start Parsering Layout" << std::endl;
   config::CompoundConfigNode compound_config_node_layout;
   bool existing_layout = rootNode.lookup("layout", compound_config_node_layout);
-  // ToDo: 
-  std::cout << "buffer level = " << arch_specs_.topology.NumStorageLevels() << std::endl;
-  for (auto i: arch_specs_.topology.LevelNames())
-    std::cout << i << std::endl;
-  for (auto i: arch_specs_.topology.LevelNames())
-    std::cout << "num_ports=" <<  arch_specs_.topology.GetStorageLevel(i)->num_ports << "  num_banks=" << arch_specs_.topology.GetStorageLevel(i)->num_banks  << std::endl;
-  
   
   if (existing_layout){
     std::map<std::string, std::pair<uint64_t, uint64_t>> externalPortMapping;
@@ -279,7 +288,7 @@ Model::Stats Model::Run()
   }
   
   if (layout_initialized_){ 
-    auto eval_status = engine.Evaluate(mapping, workload_, layout_, sparse_optimizations_);
+    auto eval_status = engine.Evaluate(mapping, workload_, layout_, sparse_optimizations_, crypto_);
     for (unsigned level = 0; level < eval_status.size(); level++)
     {
       if (!eval_status[level].success)
@@ -290,7 +299,7 @@ Model::Stats Model::Run()
       }
     }
   }else{
-    auto eval_status = engine.Evaluate(mapping, workload_, sparse_optimizations_);    
+    auto eval_status = engine.Evaluate(mapping, workload_, sparse_optimizations_, crypto_);    
     for (unsigned level = 0; level < eval_status.size(); level++)
     {
       if (!eval_status[level].success)

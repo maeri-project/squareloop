@@ -183,6 +183,7 @@ model/sparse-optimization-info.cpp
 model/sparse-optimization-parser.cpp
 model/util.cpp
 layout/layout.cpp
+crypto/crypto.cpp
 util/banner.cpp
 util/args.cpp
 util/numeric.cpp
