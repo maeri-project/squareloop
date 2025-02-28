@@ -42,9 +42,10 @@ std::map<std::string, unsigned> ParseOrderMapping(const std::string &mappingStri
 // intraline factors is >= the corresponding bound in dimension_bound.
 // Finally, the function returns a std::vector<Layout> containing one Layout per unique target.
 std::vector<Layout> ParseAndConstruct(config::CompoundConfigNode layoutArray,
-                      const std::map<std::string, unsigned>& externalMapping,
-                            const std::vector<std::int32_t>& dimension_bound,
-                            std::map<std::string, std::pair<uint64_t,uint64_t>>& externalPortMapping){
+  problem::Workload& workload,
+std::map<std::string, std::pair<uint64_t,uint64_t>>& externalPortMapping){
+  const std::map<std::string, unsigned> externalMapping = workload.GetShape()->FactorizedDimensionNameToID;
+  const std::vector<std::int32_t> dimension_bound = workload.GetFactorizedBounds().GetCoordinates();
   std::unordered_map<std::string, Layout> layoutMap;
   int numEntries = layoutArray.getLength();
   for (int i = 0; i < numEntries; i++) {

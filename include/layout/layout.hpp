@@ -54,9 +54,8 @@ std::map<std::string, unsigned> parseOrderMapping(const std::string &mappingStri
 // Finally, max_dim_perline is computed from the intraline nest.
   
 std::vector<Layout> ParseAndConstruct(config::CompoundConfigNode layoutArray,
-                      const std::map<std::string, unsigned>& externalMapping,
-                            const std::vector<std::int32_t>& dimension_bound,
-                            std::map<std::string, std::pair<uint64_t,uint64_t>>& externalPortMapping);
+                                                 problem::Workload& workload,
+      std::map<std::string, std::pair<uint64_t,uint64_t>>& externalPortMapping);
 
 //------------------------------------------------------------------------------
 // Helper function to print a Nest's loop order.

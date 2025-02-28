@@ -408,7 +408,8 @@ Mapper::Mapper(config::CompoundConfig* config,
     for (auto i: arch_specs_.topology.LevelNames())
         externalPortMapping[i] = {arch_specs_.topology.GetStorageLevel(i)->num_ports.Get(), arch_specs_.topology.GetStorageLevel(i)->num_ports.Get()};
 
-    layout_ = layout::ParseAndConstruct(compound_config_node_layout, workload_.GetShape()->FactorizedDimensionNameToID, workload_.GetFactorizedBounds().GetCoordinates(), externalPortMapping);//, arch_specs_, workload_);
+    layout_ = layout::ParseAndConstruct(compound_config_node_layout, workload_, externalPortMapping);
+    // layout_ = layout::ParseAndConstruct(compound_config_node_layout, workload_.GetShape()->FactorizedDimensionNameToID, workload_.GetFactorizedBounds().GetCoordinates(), externalPortMapping);//, arch_specs_, workload_);
     
     layout_initialized_ = true;
     for (const auto &l : layout_) {

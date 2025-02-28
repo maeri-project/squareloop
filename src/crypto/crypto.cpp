@@ -5,15 +5,8 @@ namespace crypto {
   // ParseAndConstruct
   // Reads the "crypto" node from the configuration and populates a CryptoConfig struct.
   //------------------------------------------------------------------------------
-  CryptoConfig* ParseAndConstruct(config::CompoundConfigNode rootNode) {
+  CryptoConfig* ParseAndConstruct(config::CompoundConfigNode cryptoNode) {
     CryptoConfig* cryptoCfg = new CryptoConfig;
-
-    if (!rootNode.exists("crypto")) {
-      std::cerr << "Error: No 'crypto' node found in configuration.\n";
-      return cryptoCfg;
-    }
-
-    config::CompoundConfigNode cryptoNode = rootNode.lookup("crypto");
 
     if (!cryptoNode.lookupValue("auth-additional-cycle-per-block", cryptoCfg->auth_additional_cycle_per_block))
       std::cerr << "Warning: 'auth-additional-cycle-per-block' not found. Using default value.\n";

@@ -95,6 +95,74 @@ Model::Model(config::CompoundConfig* config,
   if (verbose_)
     std::cout << "Problem configuration complete." << std::endl;
 
+  std::cout << "CoefficientIDToName " << std::endl;
+  for (auto &key_pair: workload_.GetShape()->CoefficientIDToName)
+  {
+    std::cout << key_pair.first << ": " << key_pair.second  << "=" <<  workload_.GetCoefficient(key_pair.first) << std::endl;
+  }
+  std::cout << std::endl;
+
+  std::cout << "FlattenedDimensionNameToID " << std::endl;
+  for (auto & key_pair: workload_.GetShape()->FlattenedDimensionNameToID){
+    std::cout << key_pair.first << " " << key_pair.second << " ";//.first << " " << key_pair.second.second << " ";
+  };
+  std::cout << std::endl;
+
+  for(auto Name_RankName_Pair: workload_.GetShape()->DataSpaceNameToRankNames){
+    std::cout << Name_RankName_Pair.first << " ";
+    for(auto in_vec: Name_RankName_Pair.second)
+      std::cout << in_vec << " ";
+    std::cout << std::endl;
+  }
+  std::cout << std::endl;
+
+  std::cout << " RankNameToFactorizedDimensionID " << std::endl;
+  for(auto Name_RankName_Pair: workload_.GetShape()->RankNameToFactorizedDimensionID){
+    std::cout << Name_RankName_Pair.first << " ";
+    for(auto in_vec: Name_RankName_Pair.second)
+      std::cout << in_vec << " ";
+    std::cout << std::endl;
+  }
+  std::cout << std::endl;
+
+  std::cout << "GetCoefficientID " << std::endl;
+  for (unsigned i = 0; i < workload_.GetShape()->NumFactorizedDimensions; ++i) { 
+    std::cout << i << " ";//.first << " " << key_pair.second.second << " ";
+  };
+  std::cout << std::endl;
+
+  std::cout << "GetFactorizedBound " << std::endl;
+  for (unsigned i = 0; i < workload_.GetShape()->NumFactorizedDimensions; ++i) { 
+    std::cout << workload_.GetFactorizedBound(i) << " ";//.first << " " << key_pair.second.second << " ";
+  };
+  std::cout << std::endl;
+
+  std::cout << "GetFlattenedBound " << std::endl;
+  for (unsigned i = 0; i <  workload_.GetShape()->NumFactorizedDimensions; ++i) { 
+    std::cout << workload_.GetFlattenedBound(i) << " ";//.first << " " << key_pair.second.second << " ";
+  };
+  std::cout << std::endl;
+
+  std::cout << "RankNameToCoefficient " << std::endl;
+  for (auto & key_pair: workload_.GetShape()->RankNameToCoefficient){
+    std::cout << key_pair.first << ": (";//.first << " " << key_pair.second.second << " ";
+    for(auto in_vec: key_pair.second)
+      std::cout << in_vec << ", ";
+    std::cout << ")" << std::endl;
+  };
+  std::cout << std::endl;
+
+  std::cout << "RankNameToDimension " << std::endl;
+  for (auto & key_pair: workload_.GetShape()->RankNameToDimension){
+    std::cout << key_pair.first << ": (";//.first << " " << key_pair.second.second << " ";
+    for(auto in_vec: key_pair.second)
+      std::cout << in_vec << ", ";
+    std::cout << ")" <<  std::endl;
+  };
+  std::cout << std::endl;
+
+
+
   // Architecture configuration.
   config::CompoundConfigNode arch;
   if (rootNode.exists("arch"))
@@ -194,7 +262,7 @@ Model::Model(config::CompoundConfig* config,
   crypto_ = new crypto::CryptoConfig();
 
   if (existing_crypto){
-    crypto_ = crypto::ParseAndConstruct(compound_config_node_crypto);//, arch_specs_, workload_);
+    crypto_ = crypto::ParseAndConstruct(compound_config_node_crypto);
     
     crypto_->crypto_initialized_ = true;
   }
@@ -212,7 +280,7 @@ Model::Model(config::CompoundConfig* config,
     for (auto i: arch_specs_.topology.LevelNames())
         externalPortMapping[i] = {arch_specs_.topology.GetStorageLevel(i)->num_ports.Get(), arch_specs_.topology.GetStorageLevel(i)->num_ports.Get()};
 
-    layout_ = layout::ParseAndConstruct(compound_config_node_layout, workload_.GetShape()->FactorizedDimensionNameToID, workload_.GetFactorizedBounds().GetCoordinates(), externalPortMapping);//, arch_specs_, workload_);
+    layout_ = layout::ParseAndConstruct(compound_config_node_layout, workload_, externalPortMapping);
     
     layout_initialized_ = true;
 

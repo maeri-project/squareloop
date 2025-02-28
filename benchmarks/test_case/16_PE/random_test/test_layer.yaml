@@ -23,29 +23,26 @@ problem:
       name: Hdilation
     data_spaces:
     - name: Weights
+      ranks: [C, M, R, S]
       projection:
-      - - - C
-      - - - M
-      - - - R
-      - - - S
+        - [ [C] ]
+        - [ [M] ]
+        - [ [R] ]
+        - [ [S] ]
     - name: Inputs
+      ranks: [N, C, W, H]
       projection:
-      - - - N
-      - - - C
-      - - - R
-          - Wdilation
-        - - P
-          - Wstride
-      - - - S
-          - Hdilation
-        - - Q
-          - Hstride
+        - [ [N] ]
+        - [ [C] ]
+        - [ [R, Wdilation], [P, Wstride] ] # SOP form: R*Wdilation + P*Wstride
+        - [ [S, Hdilation], [Q, Hstride] ] # SOP form: S*Hdilation + Q*Hstride 
     - name: Outputs
+      ranks: [N, M, Q, P]
       projection:
-      - - - N
-      - - - M
-      - - - Q
-      - - - P
+        - [ [N] ]
+        - [ [M] ]
+        - [ [Q] ]
+        - [ [P] ]
       read_write: true
     dimensions:
     - C
