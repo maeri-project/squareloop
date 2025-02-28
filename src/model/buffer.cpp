@@ -866,7 +866,9 @@ EvalStatus BufferLevel::PreEvaluationCheck(
 
 void
 BufferLevel::ComputeBankConflictSlowdown(
-    const tiling::CompoundDataMovementInfo& tile, layout::Layout layout)
+  const tiling::CompoundTile& tile, 
+  layout::Layout layout, 
+  const std::uint64_t compute_cycles)
 {
   overall_slowdown_ = 1.0; // Initialization
   // unsigned iacts_data_id=0;
@@ -879,7 +881,7 @@ BufferLevel::ComputeBankConflictSlowdown(
   auto dim_id_to_name = problem::GetShape()->FlattenedDimensionIDToName;
   {
     // Print out tile information
-    for (auto i : tile)
+    for (auto i : tile.data_movement_info)
       {
         std::cout << "i.GetDataSpaceName()=" << i.GetDataSpaceName()
                   << std::endl;
@@ -919,51 +921,139 @@ BufferLevel::ComputeBankConflictSlowdown(
     std::cout << "\n";
   }
 
-  // get mapping access pattern
-  std::unordered_map<problem::Shape::FlattenedDimensionID, int>
-      dim_id_to_shape_mapping;
-  auto first_tile = tile[0];
-  for (auto j : first_tile.subnest)
+
+  if (specs_.technology.Get() == Technology::DRAM)
+  {
+    // get mapping access pattern
+    std::unordered_map<problem::Shape::FlattenedDimensionID, int> 
+        dim_id_to_shape_mapping;
+    for (auto level_ptr = &tile.data_movement_info[1]; 
+        level_ptr->child_level != std::numeric_limits<unsigned>::max();
+        level_ptr = level_ptr->child_level_ptr)
     {
-      if (loop::IsSpatial(j.spacetime_dimension))
-        {
-          dim_id_to_shape_mapping[j.dimension] = j.residual_end;
-        }
+      for (auto j : level_ptr->child_level_ptr->subnest)
+      {
+        std::cout << j.PrintCompact(dim_id_to_name) << " ";
+        if(dim_id_to_shape_mapping[j.dimension] == 0)
+          dim_id_to_shape_mapping[j.dimension] = 1;
+        dim_id_to_shape_mapping[j.dimension] *= j.residual_end;
+      }
+      std::cout << std::endl;
     }
 
-  // get layout pattern
-  std::unordered_map<problem::Shape::FlattenedDimensionID, int>
-      dim_id_to_shape_layout;
-  for (auto p : layout.intraline.skew_descriptors)
+    // get layout pattern
+    std::unordered_map<problem::Shape::FlattenedDimensionID, int>
+        dim_id_to_shape_layout;
+    for (auto p : layout.intraline.skew_descriptors)
     {
       for (auto t : p.second.terms)
         {
           // idk what the different layers are
           assert(dim_id_to_shape_layout.find(t.variable.dimension)
-                 == dim_id_to_shape_layout.end());
+                == dim_id_to_shape_layout.end());
           dim_id_to_shape_layout[t.variable.dimension] = t.constant;
         }
     }
 
-  // utilization computation
-  double overall_average_rows_accessed = 1;
-  for (auto p : dim_id_to_shape_mapping)
+    // utilization computation
+    // for any single dimension each tile intersects either x or x+1 lines
+    // accesses_needed stores the value of x
+    // accesses_cnt stores the proportion of x and x+1 tiles
+    std::unordered_map<problem::Shape::FlattenedDimensionID, int>
+        accesses_needed;
+    std::unordered_map<problem::Shape::FlattenedDimensionID, std::pair<int,int>>
+        accesses_cnt;
+    // is this necessary? are dim_id guaranteed to be consecutive integers?
+    std::vector<problem::Shape::FlattenedDimensionID> dim_list;
+    for (auto [dim_id, tile_req] : dim_id_to_shape_mapping)
     {
-      int spatial_data_requirement = p.second;
-      int avail_layout_spatial = dim_id_to_shape_layout[p.first];
-      double average_rows_accessed
-          = (1.0
-             + ((double)spatial_data_requirement - std::gcd(spatial_data_requirement, avail_layout_spatial))
-                   / avail_layout_spatial);
-      overall_average_rows_accessed *= average_rows_accessed;
-
-    // Introduced new layout modeling
-      std::cout << "dimension: " << p.first << " spatial_data_requirement: " << spatial_data_requirement
-                << " avail_layout_spatial: " << avail_layout_spatial
-                << " average_rows_accessed: " << average_rows_accessed << std::endl;
+      dim_list.push_back(dim_id);
+      int layout_avail = dim_id_to_shape_layout[dim_id];
+      std::cout << "dim_id " << dim_id << " tile_req=" << tile_req << " layout_avail=" << layout_avail << std::endl;
+      accesses_needed[dim_id] = std::ceil((double)tile_req / layout_avail);
+      int gcd = std::gcd(layout_avail, tile_req);
+      accesses_cnt[dim_id].second = (tile_req/gcd - 1) % (layout_avail/gcd);
+      accesses_cnt[dim_id].first = (layout_avail/gcd) - accesses_cnt[dim_id].second;
     }
-  overall_slowdown_
-    *= std::min(1.0, layout.num_read_ports / overall_average_rows_accessed);
+    // maybe these could be long long? not sure if they would fit
+    long double total_cnt = 0;
+    long double total_latency = 0;
+    // iterate over all possible tile types (all combinations of x or x+1 across dimensions)
+    for (int bitmask = 0; bitmask < (1<<dim_list.size()); bitmask++)
+    {
+      long double lines = 1;
+      long double cnt = 1;
+      for (unsigned idx = 0; idx < dim_list.size(); idx++)
+      {
+        auto dim_id = dim_list[idx];
+        if (bitmask & (1<<dim_id)) // tile instersects x+1 lines in dimension dim_id
+        {
+          lines *= (accesses_needed[dim_id]+1);
+          cnt *= accesses_cnt[dim_id].second;
+        }
+        else // tile instersects x lines in dimension dim_id
+        {
+          lines *= accesses_needed[dim_id];
+          cnt *= accesses_cnt[dim_id].first;
+        }
+      }
+      total_cnt += cnt;
+      total_latency += cnt * std::max((long double)compute_cycles,
+                                      std::ceil(lines / layout.num_read_ports));
+    }
+    std::cout << " total_cnt: " << total_cnt << std::endl;
+    std::cout << " total_latency: " << total_latency << std::endl;
+    std::cout << " compute_cycles: " << compute_cycles << std::endl;
+    overall_slowdown_ *= (total_cnt * compute_cycles) / total_latency;
+  }
+  else
+  {
+    // get mapping access pattern
+    std::unordered_map<problem::Shape::FlattenedDimensionID, int>
+        dim_id_to_shape_mapping;
+    auto first_tile = tile.data_movement_info[0];
+    for (auto j : first_tile.subnest)
+      {
+        if (loop::IsSpatial(j.spacetime_dimension))
+          {
+            dim_id_to_shape_mapping[j.dimension] = j.residual_end;
+          }
+      }
+
+    // get layout pattern
+    std::unordered_map<problem::Shape::FlattenedDimensionID, int>
+        dim_id_to_shape_layout;
+    for (auto p : layout.intraline.skew_descriptors)
+      {
+        for (auto t : p.second.terms)
+          {
+            // idk what the different layers are
+            assert(dim_id_to_shape_layout.find(t.variable.dimension)
+                  == dim_id_to_shape_layout.end());
+            dim_id_to_shape_layout[t.variable.dimension] = t.constant;
+          }
+      }
+
+    // utilization computation
+    double overall_average_rows_accessed = 1;
+    for (auto p : dim_id_to_shape_mapping)
+      {
+        int spatial_data_requirement = p.second;
+        int avail_layout_spatial = dim_id_to_shape_layout[p.first];
+        double average_rows_accessed
+            = (1.0
+              + ((double)spatial_data_requirement - std::gcd(spatial_data_requirement, avail_layout_spatial))
+                    / avail_layout_spatial);
+        overall_average_rows_accessed *= average_rows_accessed;
+
+      // Introduced new layout modeling
+        std::cout << "dimension: " << p.first << " spatial_data_requirement: " << spatial_data_requirement
+                  << " avail_layout_spatial: " << avail_layout_spatial
+                  << " average_rows_accessed: " << average_rows_accessed << std::endl;
+      }
+    overall_slowdown_
+      *= std::min(1.0, layout.num_read_ports / overall_average_rows_accessed);
+  }
 
   std::cout << " overall_slowdown_: " << overall_slowdown_ << std::endl;
 }
@@ -986,7 +1076,7 @@ EvalStatus BufferLevel::Evaluate(const tiling::CompoundTile& tile,
   // Layout Modeling
   std::cout << "start layout evaluation" << std::endl;
 
-  ComputeBankConflictSlowdown(tile.data_movement_info, layout);
+  ComputeBankConflictSlowdown(tile, layout, compute_cycles);
 
   auto eval_status = ComputeScalarAccesses(tile.data_movement_info,
                                            mask,
