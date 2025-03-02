@@ -41,184 +41,343 @@ std::map<std::string, unsigned> ParseOrderMapping(const std::string &mappingStri
 // (as defined by the external order mapping) the product of the interline and
 // intraline factors is >= the corresponding bound in dimension_bound.
 // Finally, the function returns a std::vector<Layout> containing one Layout per unique target.
-std::vector<Layout> ParseAndConstruct(config::CompoundConfigNode layoutArray,
+Layouts ParseAndConstruct(config::CompoundConfigNode layoutArray,
   problem::Workload& workload,
-std::map<std::string, std::pair<uint64_t,uint64_t>>& externalPortMapping){
-  const std::map<std::string, unsigned> externalMapping = workload.GetShape()->FactorizedDimensionNameToID;
+  std::map<std::string, std::pair<uint32_t,uint32_t>>& targetToPortValue){
+  std::map<std::string, std::vector<std::uint32_t>> rankToFactorizedDimensionID = workload.GetShape()->RankNameToFactorizedDimensionID;
+  std::map<std::string, std::vector<std::string>> rankToDimensionName = workload.GetShape()->RankNameToDimensionName;
+  std::map<std::string, std::vector<std::string>> rankToCoefficent = workload.GetShape()->RankNameToCoefficient;
+  std::map<std::string, std::vector<std::string>> dataSpaceToRank = workload.GetShape()->DataSpaceNameToRankName;
+
+  std::unordered_map<std::string, std::uint32_t> coefficentToValue;
+  for (auto &key_pair: workload.GetShape()->CoefficientIDToName){
+    coefficentToValue[key_pair.second] = workload.GetCoefficient(key_pair.first);
+  }
+
+  std::map<std::string, std::vector<std::uint32_t>> rankToCoefficentValue;
+  for (auto map_pair: rankToCoefficent){
+    std::vector<std::uint32_t> coefficentValue;
+    for (auto coefName: rankToCoefficent.at(map_pair.first)){
+      coefficentValue.push_back(coefficentToValue.at(coefName));
+    }
+    rankToCoefficentValue[map_pair.first] = coefficentValue;
+  }
+
+  std::map<std::string, unsigned> dimensionToDimID = workload.GetShape()->FactorizedDimensionNameToID;
   const std::vector<std::int32_t> dimension_bound = workload.GetFactorizedBounds().GetCoordinates();
+
   std::unordered_map<std::string, Layout> layoutMap;
-  int numEntries = layoutArray.getLength();
-  for (int i = 0; i < numEntries; i++) {
-    config::CompoundConfigNode entry = layoutArray[i];
-    std::string targetName, layoutType, factorsStr, permutationStr;
-    if (!entry.lookupValue("target", targetName) ||
-        !entry.lookupValue("type", layoutType) ||
-        !entry.lookupValue("factors", factorsStr) ||
-        !entry.lookupValue("permutation", permutationStr))
-      continue;
-    // Build mapping from factor letter to loop bound.
-    std::unordered_map<char,int> factorValues;
-    {
-      std::istringstream facStream(factorsStr);
-      std::string token;
-      while (facStream >> token) {
-        size_t pos = token.find('=');
-        if (pos != std::string::npos)
-          factorValues[token[0]] = std::stoi(token.substr(pos+1));
-      }
-    }
-    // Remove whitespace from permutation string.
-    std::string cleanPermutation;
-    for (char c : permutationStr)
-      if (!std::isspace(static_cast<unsigned char>(c)))
-        cleanPermutation.push_back(c);
-    // Modification: process permutation left-to-right as innermost to outermost,
-    // so reverse the cleanPermutation.
-    std::reverse(cleanPermutation.begin(), cleanPermutation.end());
-    loop::Nest parsedNest;
-    loop::Nest::SkewDescriptor skewDescriptor;
-    for (char f : cleanPermutation) {
-      loop::Nest::SkewDescriptor::Term term;
-      term.constant = (factorValues.find(f) != factorValues.end()) ? factorValues[f] : 1;
-      std::string factorKey(1, f);
-      if (externalMapping.find(factorKey) != externalMapping.end()) {
-        term.variable.dimension = externalMapping.at(factorKey);
-        term.bound.dimension = externalMapping.at(factorKey);
-      } else {
-        term.variable.dimension = f - 'A';
-        term.bound.dimension = f - 'A';
-      }
-      if (layoutType == "intraline") {
-        term.variable.is_spatial = (term.constant > 1);
-        term.bound.is_spatial = (term.constant > 1);
-      } else {
-        term.variable.is_spatial = false;
-        term.bound.is_spatial = false;
-      }
-      skewDescriptor.terms.push_back(term);
-    }
-    parsedNest.skew_descriptors.insert({0, skewDescriptor});
-    if (layoutMap.find(targetName) == layoutMap.end()) {
-      Layout newLayout;
-      newLayout.target = targetName;
-      newLayout.initialize = true;
-      layoutMap[targetName] = newLayout;
-    }
-    if (layoutType == "interline") {
-      if (layoutMap[targetName].interline.skew_descriptors.empty()) {
-        layoutMap[targetName].interline = parsedNest;
-        if (externalPortMapping.find(targetName) != externalPortMapping.end()) {
-          layoutMap[targetName].num_read_ports = static_cast<int>(externalPortMapping.at(targetName).first);
-          layoutMap[targetName].num_write_ports = static_cast<int>(externalPortMapping.at(targetName).second);
-        } else {
-          layoutMap[targetName].num_read_ports = 1;
-          layoutMap[targetName].num_write_ports = 1;
-        }
-      }
-    } else if (layoutType == "intraline") {
-      if (layoutMap[targetName].intraline.skew_descriptors.empty())
-        layoutMap[targetName].intraline = parsedNest;
-    } else {
-      if (layoutMap[targetName].interline.skew_descriptors.empty()) {
-        layoutMap[targetName].interline = parsedNest;
-        if (externalPortMapping.find(targetName) != externalPortMapping.end()) {
-          layoutMap[targetName].num_read_ports = static_cast<int>(externalPortMapping.at(targetName).first);
-          layoutMap[targetName].num_write_ports = static_cast<int>(externalPortMapping.at(targetName).second);
-        } else {
-          layoutMap[targetName].num_read_ports = 1;
-          layoutMap[targetName].num_write_ports = 1;
-        }
-      }
-    }
-  } // end for each layout entry
 
-  // Build sorted factor order from externalMapping.
-  std::vector<std::pair<unsigned, std::string>> sortedFactorPairs;
-  for (const auto &p : externalMapping)
-    sortedFactorPairs.push_back({p.second, p.first});
-  std::sort(sortedFactorPairs.begin(), sortedFactorPairs.end(),
-            [](auto a, auto b){ return a.first < b.first; });
-  std::vector<char> globalFactorOrder;
-  for (const auto &pair : sortedFactorPairs)
-    globalFactorOrder.push_back(pair.second[0]);
-  if (dimension_bound.size() != globalFactorOrder.size()) {
-    std::cerr << "Error: dimension_bound size (" << dimension_bound.size() 
-              << ") does not match external mapping size (" << globalFactorOrder.size() << ").\n";
-    return {};
-  }
-  // Create default nests if missing and assign factor_order.
-  for (auto &entry : layoutMap) {
-    Layout &l = entry.second;
-    if (l.intraline.skew_descriptors.empty()) {
-      loop::Nest defaultIntraline;
-      loop::Nest::SkewDescriptor defaultSkew;
-      for (const auto &pf : sortedFactorPairs) {
-        loop::Nest::SkewDescriptor::Term term;
-        term.constant = 1;
-        term.variable.dimension = pf.first;
-        term.bound.dimension = pf.first;
-        defaultSkew.terms.push_back(term);
-      }
-      defaultIntraline.skew_descriptors.insert({0, defaultSkew});
-      l.intraline = defaultIntraline;
+  int layoutCount = layoutArray.getLength();
+    std::string samplePermutation;
+    bool foundPermutation = false;
+    for (int i = 0; i < layoutCount; i++) {
+        config::CompoundConfigNode entry = layoutArray[i];
+        if (entry.exists("permutation")) {
+            entry.lookupValue("permutation", samplePermutation);
+            foundPermutation = true;
+            break;
+        }
     }
-    if (l.interline.skew_descriptors.empty()) {
-      loop::Nest defaultInterline;
-      loop::Nest::SkewDescriptor defaultSkew;
-      for (const auto &pf : sortedFactorPairs) {
-        loop::Nest::SkewDescriptor::Term term;
-        term.constant = 1;
-        term.variable.dimension = pf.first;
-        term.bound.dimension = pf.first;
-        defaultSkew.terms.push_back(term);
-      }
-      defaultInterline.skew_descriptors.insert({0, defaultSkew});
-      l.interline = defaultInterline;
+    if (!foundPermutation) {
+        std::cerr << "No permutation key found in any layout entry." << std::endl;
+        exit(1);
     }
-    l.factor_order = globalFactorOrder;
-    // Compute max_dim_perline as product of interline and intraline factors.
-    std::vector<int> computedMaxDims(globalFactorOrder.size(), 1);
-    const auto &interlineTerms = l.interline.skew_descriptors.at(0).terms;
-    const auto &intralineTerms = l.intraline.skew_descriptors.at(0).terms;
-    for (size_t i = 0; i < sortedFactorPairs.size(); i++) {
-      unsigned expectedOrder = sortedFactorPairs[i].first;
-      int interFactor = 1, intraFactor = 1;
-      for (const auto &term : interlineTerms) {
-        if (term.variable.dimension == expectedOrder) { interFactor = term.constant; break; }
+    
+    // load targets
+    std::unordered_set<std::string> targets_unique;
+    for (int i = 0; i < layoutCount; i++) {
+      config::CompoundConfigNode entry = layoutArray[i];
+      if (entry.exists("target")) {
+          std::string cur_target;
+          entry.lookupValue("target", cur_target);
+          targets_unique.insert(cur_target);
       }
-      for (const auto &term : intralineTerms) {
-        if (term.variable.dimension == expectedOrder) { intraFactor = term.constant; break; }
-      }
-      int product = interFactor * intraFactor;
-      if (product < static_cast<int>(dimension_bound[i])) {
-        std::cerr << "Warning: For target " << entry.first << ", the product of interline ("
-                  << interFactor << ") and intraline (" << intraFactor 
-                  << ") factors for dimension " << globalFactorOrder[i]
-                  << " is " << product << ", below the required bound " << dimension_bound[i] << ".\n";
-      }
-      computedMaxDims[i] = product;
     }
-    l.max_dim_perline = computedMaxDims;
-  }
-  // Convert layoutMap into vector.
-  std::vector<Layout> layoutVector;
-  for (const auto &p : layoutMap)
-    layoutVector.push_back(p.second);
-  return layoutVector;
+    std::vector<std::string> targets;
+    targets.insert(targets.begin(), targets_unique.begin(), targets_unique.end()); // = {"RegisterFile", "GlobalBuffer", "MainMemory"};
+
+    // Convert the sample permutation string into a vector of single-character strings.
+    std::vector<std::string> globalRankList;
+    for (char c : samplePermutation) {
+        globalRankList.push_back(std::string(1, c));
+    }
+    
+    // Derive the dimension order from dimensionToDimID by sorting the mapping by value.
+    std::vector<std::pair<std::string, unsigned>> dims;
+    for (auto &p : dimensionToDimID) {
+        dims.push_back(p);
+    }
+    std::sort(dims.begin(), dims.end(), [](auto &a, auto &b) {
+        return a.second < b.second;
+    });
+    std::vector<char> computedDimOrder;
+    for (auto &p : dims) {
+        computedDimOrder.push_back(p.first[0]);
+    }
+    
+    // ----------------------
+    // Parse layout configuration entries.
+    // ----------------------
+    std::map<std::string, std::map<std::string, std::pair<std::string, std::map<std::string, std::uint32_t>>>> config_layout;
+    
+    for (int i = 0; i < layoutCount; i++) {
+        config::CompoundConfigNode entry = layoutArray[i];
+        std::string target, type, permutation, factorsStr;
+        entry.lookupValue("target", target);
+        entry.lookupValue("type", type);
+        entry.lookupValue("permutation", permutation);
+        entry.lookupValue("factors", factorsStr);
+        
+        // Parse the factors string (e.g., "J=1 K=1 U=1 I=1 V=1 E=1 Z=1 H=1 W=1")
+        std::map<std::string, std::uint32_t> factors;
+        std::istringstream iss(factorsStr);
+        std::string token;
+        while (iss >> token) {
+            auto pos = token.find('=');
+            if (pos != std::string::npos) {
+                std::string rank = token.substr(0, pos);
+                std::uint32_t value = std::stoi(token.substr(pos + 1));
+                factors[rank] = value;
+            }
+        }
+        config_layout[target][type] = std::make_pair(permutation, factors);
+    }
+    
+    // ----------------------
+    // Create Layout objects for each target.
+    // ----------------------
+    Layouts layouts;
+    for (const auto &t : targets) {
+        Layout layout;
+        layout.target = t;
+        layout.num_read_ports = targetToPortValue[t].first;
+        layout.num_write_ports = targetToPortValue[t].second;
+        layout.data_space = {"Inputs", "Outputs", "Weights"};
+        layout.dataSpaceToRank = dataSpaceToRank;
+        layout.rankToCoefficent = rankToCoefficent;
+        layout.rankToCoefficentValue = rankToCoefficentValue;
+        layout.rankToDimensionName = rankToDimensionName;
+        layout.rankToFactorizedDimensionID = rankToFactorizedDimensionID;
+        layout.dimensionToDimID = dimensionToDimID;
+        layout.coefficentToValue = coefficentToValue;
+        layout.dim_order = computedDimOrder;
+        layout.rank_list = globalRankList;
+        
+        // For each data space, create loop nests.
+        for (const auto &ds : layout.data_space) {
+            // --- Interline nest ---
+            LayoutNest nest;
+            nest.data_space = ds;
+            nest.type = "interline";
+            if (config_layout[t].find("interline") != config_layout[t].end()) {
+                std::string perm = config_layout[t]["interline"].first;
+                std::map<std::string, std::uint32_t> factors = config_layout[t]["interline"].second;
+                std::vector<std::string> order;
+                for (char c : perm) {
+                    std::string r(1, c);
+                    const auto &ranks = layout.dataSpaceToRank[ds];
+                    if (std::find(ranks.begin(), ranks.end(), r) != ranks.end()) {
+                        order.push_back(r);
+                    }
+                }
+                std::reverse(order.begin(), order.end());
+                nest.ranks = order;
+                nest.factors = factors;
+            } else {
+                nest.ranks = layout.dataSpaceToRank[ds];
+            }
+            layout.interline.push_back(nest);
+            
+            // --- Intraline nest ---
+            LayoutNest intranest;
+            intranest.data_space = ds;
+            intranest.type = "intraline";
+            if (config_layout[t].find("intraline") != config_layout[t].end()) {
+                std::string perm = config_layout[t]["intraline"].first;
+                std::map<std::string, std::uint32_t> factors = config_layout[t]["intraline"].second;
+                std::vector<std::string> order;
+                for (char c : perm) {
+                    std::string r(1, c);
+                    const auto &ranks = layout.dataSpaceToRank[ds];
+                    if (std::find(ranks.begin(), ranks.end(), r) != ranks.end()) {
+                        order.push_back(r);
+                    }
+                }
+                std::reverse(order.begin(), order.end());
+                intranest.ranks = order;
+                intranest.factors = factors;
+            } else {
+                intranest.ranks = layout.dataSpaceToRank[ds];
+                for (const auto &r : intranest.ranks) {
+                    intranest.factors[r] = 1;
+                }
+            }
+            layout.intraline.push_back(intranest);
+        }
+               
+        layouts.push_back(layout);
+    }
+
+  return layouts;
 }
-
 
 //------------------------------------------------------------------------------
 // Helper function to print a Nest's loop order.
 //------------------------------------------------------------------------------
-void PrintNestLoopOrder(const loop::Nest &nest, const std::vector<char>& factorOrder) {
-  for (const auto &descPair : nest.skew_descriptors) {
-    for (const auto &term : descPair.second.terms) {
-      int ord = term.variable.dimension;
-      char f = (ord < static_cast<int>(factorOrder.size())) ? factorOrder[ord] : '?';
-      std::cout << "    iter->dimension=" << ord << "-" << f
-                << " in [0, " << term.constant << ", 1) iter->residual_end=" << term.constant << "\n";
+
+//------------------------------------------------------------------------------
+// PrintOverallLayout
+// Iterates over the nest’s skew descriptors and prints each term (including rank name
+// and, now, all related ranks based on shared dimensions).
+void PrintOverallLayout(Layouts layouts)
+{
+  std::cout << "Dimension Order: ";
+  for (size_t i = 0; i < layouts[0].dim_order.size(); i++) {
+      char d = layouts[0].dim_order[i];
+      std::string dStr(1, d);
+      std::cout << d << "-" << layouts[0].dimensionToDimID[dStr];
+      if (i != layouts[0].dim_order.size()-1)
+          std::cout << ", ";
+  }
+  std::cout << std::endl;
+
+  std::cout << "Rank List: ";
+  for (const auto &r : layouts[0].rank_list)
+      std::cout << r << " ";
+  std::cout << std::endl << std::endl;
+
+  for (const auto &layout : layouts) {
+      std::cout << "Target: " << layout.target << std::endl;
+      std::cout << " num_read_ports: " << layout.num_read_ports
+                << ", num_write_ports: " << layout.num_write_ports << std::endl;
+      for (const auto &nest : layout.interline) {
+          std::cout << "  Data space: " << nest.data_space << std::endl;
+          std::cout << "  Type: " << nest.type << std::endl;
+          for (const auto &r : nest.ranks) {
+              int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
+              auto dims = layout.rankToFactorizedDimensionID.at(r);
+              std::cout << "    Rank: " << r << " dimension=";
+              if (dims.size() == 1) {
+                  std::cout << dims[0] << "-" << layout.rankToDimensionName.at(r)[0];
+              } else {
+                  std::cout << "(";
+                  for (size_t i = 0; i < dims.size(); i++) {
+                      std::cout << dims[i] << (i != dims.size()-1 ? "," : "");
+                  }
+                  std::cout << ")-(";
+                  auto names = layout.rankToDimensionName.at(r);
+                  for (size_t i = 0; i < names.size(); i++) {
+                      std::cout << names[i] << (i != names.size()-1 ? "," : "");
+                  }
+                  std::cout << ")";
+              }
+              std::cout << ", factor=" << factor << std::endl;
+          }
+      }
+      for (const auto &nest : layout.intraline) {
+          std::cout << "  Data space: " << nest.data_space << std::endl;
+          std::cout << "  Type: " << nest.type;
+          for (const auto &r : nest.ranks) {
+            int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
+            auto dims = layout.rankToFactorizedDimensionID.at(r);
+            std::cout << "    Rank: " << r << " dimension=";
+            if (dims.size() == 1) {
+                std::cout << dims[0] << "-" << layout.rankToDimensionName.at(r)[0];
+            } else {
+              if (dims.size() == 1) {
+                  std::cout << dims[0] << "-" << layout.rankToDimensionName.at(r)[0];
+              } else {
+                  std::cout << "(";
+                  for (size_t i = 0; i < dims.size(); i++) {
+                      std::cout << dims[i] << (i != dims.size()-1 ? "," : "");
+                  }
+                  std::cout << ")-(";
+                  auto names = layout.rankToDimensionName.at(r);
+                  for (size_t i = 0; i < names.size(); i++) {
+                      std::cout << names[i] << (i != names.size()-1 ? "," : "");
+                  }
+                  std::cout << ")";
+              }
+              std::cout << ", factor=" << factor << std::endl;
+          }
+      }
+      std::cout << std::endl;
+  }
+}
+}
+
+
+void PrintOneLvlLayout(Layout layout){
+  std::cout << "Dimension Order: ";
+  for (size_t i = 0; i < layout.dim_order.size(); i++) {
+    char d = layout.dim_order[i];
+    std::string dStr(1, d);
+    std::cout << d << "-" << layout.dimensionToDimID[dStr];
+    if (i != layout.dim_order.size()-1)
+      std::cout << ", ";
+  }
+  std::cout << std::endl;
+
+  std::cout << "Rank List: ";
+  for (const auto &r : layout.rank_list)
+    std::cout << r << " ";
+  std::cout << std::endl << std::endl;
+  assert(layout.rank_list.size() == layout.rankToFactorizedDimensionID.size());
+
+  {
+    std::cout << "Target: " << layout.target << std::endl;
+    std::cout << " num_read_ports: " << layout.num_read_ports
+              << ", num_write_ports: " << layout.num_write_ports << std::endl;
+    for (const auto &nest : layout.interline) {
+        std::cout << "  Data space: " << nest.data_space << std::endl;
+        std::cout << "  Type: " << nest.type << std::endl;
+        for (const auto &r : nest.ranks) {
+            int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
+            auto dims = layout.rankToFactorizedDimensionID.at(r);
+            std::cout << "    Rank: " << r << " dimension=";
+            if (dims.size() == 1) {
+                std::cout << dims[0] << "-" << layout.rankToDimensionName.at(r)[0];
+            } else {
+                std::cout << "(";
+                for (size_t i = 0; i < dims.size(); i++) {
+                    std::cout << dims[i] << (i != dims.size()-1 ? "," : "");
+                }
+                std::cout << ")-(";
+                auto names = layout.rankToDimensionName.at(r);
+                for (size_t i = 0; i < names.size(); i++) {
+                    std::cout << names[i] << (i != names.size()-1 ? "," : "");
+                }
+                std::cout << ")";
+            }
+            std::cout << ", factor=" << factor << std::endl;
+        }
     }
+    for (const auto &nest : layout.intraline) {
+        std::cout << "  Data space: " << nest.data_space << std::endl;
+        std::cout << "  Type: " << nest.type << std::endl;
+        for (const auto &r : nest.ranks) {
+            int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
+            auto dims = layout.rankToFactorizedDimensionID.at(r);
+            std::cout << "    Rank: " << r << " dimension=";
+            if (dims.size() == 1) {
+                std::cout << dims[0] << "-" << layout.rankToDimensionName.at(r)[0];
+            } else {
+                std::cout << "(";
+                for (size_t i = 0; i < dims.size(); i++) {
+                    std::cout << dims[i] << (i != dims.size()-1 ? "," : "");
+                }
+                std::cout << ")-(";
+                auto names = layout.rankToDimensionName.at(r);
+                for (size_t i = 0; i < names.size(); i++) {
+                    std::cout << names[i] << (i != names.size()-1 ? "," : "");
+                }
+                std::cout << ")";
+            }
+            std::cout << ", factor=" << factor << std::endl;
+        }
+    }
+    std::cout << std::endl;
   }
 }
 

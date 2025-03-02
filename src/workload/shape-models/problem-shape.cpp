@@ -260,42 +260,43 @@ void Shape::Parse(config::CompoundConfigNode shape)
       }
     }
     // Save mapping from dataspace name to its rank names.
-    DataSpaceNameToRankNames[name] = rank_names;
+    DataSpaceNameToRankName[name] = rank_names;
 
     // --- Build the RankNameToFactorizedDimensionID mapping ---
-      // For each rank, record the factorized dimension IDs that appear in its projection expression.
-      for (std::size_t i = 0; i < rank_names.size(); i++)
+    // For each rank, record the factorized dimension IDs that appear in its projection expression.
+    for (std::size_t i = 0; i < rank_names.size(); i++)
+    {
+      std::string rank = rank_names[i];
+      std::vector<std::string> dimNames;
+      std::vector<std::uint32_t> dims;
+      if (i < projection.size())
       {
-        std::string rank = rank_names[i];
-        std::vector<std::uint32_t> dims;
-        if (i < projection.size())
+        for (const auto& term : projection[i])
         {
-          for (const auto& term : projection[i])
-          {
-            dims.push_back(term.second);
-          }
+          dims.push_back(term.second);
+          dimNames.push_back(FactorizedDimensionIDToName.at(term.second));
         }
-        RankNameToFactorizedDimensionID[rank] = dims;
       }
+      RankNameToFactorizedDimensionID[rank] = dims;
+      RankNameToDimensionName[ rank_names[i] ] = dimNames;
 
-    // --- Build the RankNameToDimension and RankNameToCoefficient mappings ---
+    }
+    
+    // --- Build the RankNameToDimensionName and RankNameToCoefficient mappings ---
     // For each rank whose corresponding projection expression has more than one term,
     // extract the dimension and coefficient names.
     for (std::size_t i = 0; i < rank_names.size(); i++)
     {
       if (projection[i].size() > 1)
       {
-        std::vector<std::string> dims;
+
         std::vector<std::string> coeffs;
         // For each term in the projection expression:
         for (const auto& term : projection[i])
         {
-          // term.second is the factorized dimension ID.
-          dims.push_back(FactorizedDimensionIDToName.at(term.second));
           // term.first is the coefficient ID.
           coeffs.push_back(CoefficientIDToName.at(term.first));
         }
-        RankNameToDimension[ rank_names[i] ] = dims;
         RankNameToCoefficient[ rank_names[i] ] = coeffs;
       }
     }

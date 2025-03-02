@@ -8,7 +8,9 @@
 #include <vector>
 #include <unordered_map>
 #include <yaml-cpp/yaml.h>
-#include "mapping/nest.hpp"
+#include <unordered_set>
+#include <workload/workload.hpp>
+#include "compound-config/compound-config.hpp"
 
 //------------------------------------------------------------------------------
 // Layout structure (target-level information)
@@ -18,15 +20,34 @@
 namespace layout
 {
 
+
+struct LayoutNest {
+  std::string data_space;         // e.g., "Inputs"
+  std::string type;               // "interline" or "intraline"
+  std::vector<std::string> ranks; // Order of rank names for this nest.
+  std::map<std::string, std::uint32_t> factors;  // Factor for each rank (if specified)
+};
+
 struct Layout {
-  std::string target;
-  loop::Nest interline;   // single interline nest
-  loop::Nest intraline;   // single intraline nest
-  int num_read_ports = 1;   // from the interline specification (default 1)
-  int num_write_ports = 1;  // from the interline specification (default 1)
-  std::vector<int> max_dim_perline; // computed from the intraline nest
-  bool initialize = false;  // true if external YAML config provides layout
-  std::vector<char> factor_order; // records the factor letters in sorted order
+  std::string target;                      // e.g., "MainMemory"
+  std::vector<LayoutNest> interline;         // One nest per data space for interline type
+  std::vector<LayoutNest> intraline;         // One nest per data space for intraline type
+  std::vector<std::string> data_space;       // Data space names (e.g., Inputs, Outputs, Weights)
+  std::vector<std::string> rank_list;        // Overall rank list (derived from a permutation key)
+  int num_read_ports = 1;                    // Configured read ports
+  int num_write_ports = 1;                   // Configured write ports
+  std::vector<char> dim_order;               // Dimension order (derived from configuration)
+
+  // Configured mappings
+  std::map<std::string, std::vector<std::string>> dataSpaceToRank;
+  std::map<std::string, std::vector<std::uint32_t>> rankToFactorizedDimensionID;
+  std::map<std::string, std::vector<std::string>> rankToDimensionName;
+  std::map<std::string, std::uint32_t> dimensionToDimID;
+  std::map<std::string, std::vector<std::string>> rankToCoefficent;
+  std::map<std::string, std::vector<std::uint32_t>> rankToCoefficentValue;
+  std::unordered_map<std::string, std::uint32_t> coefficentToValue;
+
+  bool initialize = false;                   // True if external YAML provided layout for this target
 };
 
 typedef std::vector<Layout> Layouts;
@@ -55,11 +76,13 @@ std::map<std::string, unsigned> parseOrderMapping(const std::string &mappingStri
   
 std::vector<Layout> ParseAndConstruct(config::CompoundConfigNode layoutArray,
                                                  problem::Workload& workload,
-      std::map<std::string, std::pair<uint64_t,uint64_t>>& externalPortMapping);
+      std::map<std::string, std::pair<uint32_t,uint32_t>>& targetToPortValue);
 
 //------------------------------------------------------------------------------
 // Helper function to print a Nest's loop order.
 //------------------------------------------------------------------------------
-void PrintNestLoopOrder(const loop::Nest &nest, const std::vector<char>& factorOrder);
+void PrintOverallLayout(Layouts layout);
 
+//------------------------------------------------------------------------------
+void PrintOneLvlLayout(Layout layout);
 } // namespace layout

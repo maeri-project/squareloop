@@ -95,71 +95,65 @@ Model::Model(config::CompoundConfig* config,
   if (verbose_)
     std::cout << "Problem configuration complete." << std::endl;
 
-  std::cout << "CoefficientIDToName " << std::endl;
-  for (auto &key_pair: workload_.GetShape()->CoefficientIDToName)
-  {
-    std::cout << key_pair.first << ": " << key_pair.second  << "=" <<  workload_.GetCoefficient(key_pair.first) << std::endl;
-  }
-  std::cout << std::endl;
+  // std::cout << "CoefficientIDToName " << std::endl;
+  // for (auto &key_pair: workload_.GetShape()->CoefficientIDToName)
+  // {
+  //   std::cout << key_pair.first << ": " << key_pair.second  << "=" <<  workload_.GetCoefficient(key_pair.first) << std::endl;
+  // }
+  // std::cout << std::endl;
 
-  std::cout << "FlattenedDimensionNameToID " << std::endl;
-  for (auto & key_pair: workload_.GetShape()->FlattenedDimensionNameToID){
-    std::cout << key_pair.first << " " << key_pair.second << " ";//.first << " " << key_pair.second.second << " ";
-  };
-  std::cout << std::endl;
+  // std::cout << "FlattenedDimensionNameToID " << std::endl;
+  // for (auto & key_pair: workload_.GetShape()->FlattenedDimensionNameToID){
+  //   std::cout << key_pair.first << " " << key_pair.second << " ";//.first << " " << key_pair.second.second << " ";
+  // };
+  // std::cout << std::endl;
 
-  for(auto Name_RankName_Pair: workload_.GetShape()->DataSpaceNameToRankNames){
-    std::cout << Name_RankName_Pair.first << " ";
-    for(auto in_vec: Name_RankName_Pair.second)
-      std::cout << in_vec << " ";
-    std::cout << std::endl;
-  }
-  std::cout << std::endl;
+  // for(auto Name_RankName_Pair: workload_.GetShape()->DataSpaceNameToRankName){
+  //   std::cout << Name_RankName_Pair.first << " ";
+  //   for(auto in_vec: Name_RankName_Pair.second)
+  //     std::cout << in_vec << " ";
+  //   std::cout << std::endl;
+  // }
+  // std::cout << std::endl;
 
-  std::cout << " RankNameToFactorizedDimensionID " << std::endl;
-  for(auto Name_RankName_Pair: workload_.GetShape()->RankNameToFactorizedDimensionID){
-    std::cout << Name_RankName_Pair.first << " ";
-    for(auto in_vec: Name_RankName_Pair.second)
-      std::cout << in_vec << " ";
-    std::cout << std::endl;
-  }
-  std::cout << std::endl;
+  // std::cout << " RankNameToFactorizedDimensionID " << std::endl;
+  // for(auto Name_RankName_Pair: workload_.GetShape()->RankNameToFactorizedDimensionID){
+  //   std::cout << Name_RankName_Pair.first << " ";
+  //   for(auto in_vec: Name_RankName_Pair.second)
+  //     std::cout << in_vec << " ";
+  //   std::cout << std::endl;
+  // }
+  // std::cout << std::endl;
 
-  std::cout << "GetCoefficientID " << std::endl;
-  for (unsigned i = 0; i < workload_.GetShape()->NumFactorizedDimensions; ++i) { 
-    std::cout << i << " ";//.first << " " << key_pair.second.second << " ";
-  };
-  std::cout << std::endl;
+  // std::cout << "GetCoefficientID " << std::endl;
+  // for (unsigned i = 0; i < workload_.GetShape()->NumFactorizedDimensions; ++i) { 
+  //   std::cout << i << " ";//.first << " " << key_pair.second.second << " ";
+  // };
+  // std::cout << std::endl;
 
-  std::cout << "GetFactorizedBound " << std::endl;
-  for (unsigned i = 0; i < workload_.GetShape()->NumFactorizedDimensions; ++i) { 
-    std::cout << workload_.GetFactorizedBound(i) << " ";//.first << " " << key_pair.second.second << " ";
-  };
-  std::cout << std::endl;
+  // std::cout << "GetFactorizedBound " << std::endl;
+  // for (unsigned i = 0; i < workload_.GetShape()->NumFactorizedDimensions; ++i) { 
+  //   std::cout << workload_.GetFactorizedBound(i) << " ";//.first << " " << key_pair.second.second << " ";
+  // };
+  // std::cout << std::endl;
 
-  std::cout << "GetFlattenedBound " << std::endl;
-  for (unsigned i = 0; i <  workload_.GetShape()->NumFactorizedDimensions; ++i) { 
-    std::cout << workload_.GetFlattenedBound(i) << " ";//.first << " " << key_pair.second.second << " ";
-  };
-  std::cout << std::endl;
+  // std::cout << "RankNameToCoefficient " << std::endl;
+  // for (auto & key_pair: workload_.GetShape()->RankNameToCoefficient){
+  //   std::cout << key_pair.first << ": (";//.first << " " << key_pair.second.second << " ";
+  //   for(auto in_vec: key_pair.second)
+  //     std::cout << in_vec << ", ";
+  //   std::cout << ")" << std::endl;
+  // };
+  // std::cout << std::endl;
 
-  std::cout << "RankNameToCoefficient " << std::endl;
-  for (auto & key_pair: workload_.GetShape()->RankNameToCoefficient){
-    std::cout << key_pair.first << ": (";//.first << " " << key_pair.second.second << " ";
-    for(auto in_vec: key_pair.second)
-      std::cout << in_vec << ", ";
-    std::cout << ")" << std::endl;
-  };
-  std::cout << std::endl;
-
-  std::cout << "RankNameToDimension " << std::endl;
-  for (auto & key_pair: workload_.GetShape()->RankNameToDimension){
-    std::cout << key_pair.first << ": (";//.first << " " << key_pair.second.second << " ";
-    for(auto in_vec: key_pair.second)
-      std::cout << in_vec << ", ";
-    std::cout << ")" <<  std::endl;
-  };
-  std::cout << std::endl;
+  // std::cout << "RankNameToDimensionName " << std::endl;
+  // for (auto & key_pair: workload_.GetShape()->RankNameToDimensionName){
+  //   std::cout << key_pair.first << ": (";//.first << " " << key_pair.second.second << " ";
+  //   for(auto in_vec: key_pair.second)
+  //     std::cout << in_vec << ", ";
+  //   std::cout << ")" <<  std::endl;
+  // };
+  // std::cout << std::endl;
 
 
 
@@ -276,7 +270,7 @@ Model::Model(config::CompoundConfig* config,
   bool existing_layout = rootNode.lookup("layout", compound_config_node_layout);
   
   if (existing_layout){
-    std::map<std::string, std::pair<uint64_t, uint64_t>> externalPortMapping;
+    std::map<std::string, std::pair<uint32_t, uint32_t>> externalPortMapping;
     for (auto i: arch_specs_.topology.LevelNames())
         externalPortMapping[i] = {arch_specs_.topology.GetStorageLevel(i)->num_ports.Get(), arch_specs_.topology.GetStorageLevel(i)->num_ports.Get()};
 
@@ -284,19 +278,7 @@ Model::Model(config::CompoundConfig* config,
     
     layout_initialized_ = true;
 
-    for (const auto &l : layout_) {
-      std::cout << "Target: " << l.target << "\n"
-                << "  num_read_ports: " << l.num_read_ports << ", num_write_ports: " << l.num_write_ports << "\n"
-                << "  max_dim_perline: { ";
-      for (int d : l.max_dim_perline) std::cout << d << " ";
-      std::cout << "}\n  Factor order: { ";
-      for (char f : l.factor_order) std::cout << f << " ";
-      std::cout << "}\n  Interline nest:\n";
-      layout::PrintNestLoopOrder(l.interline, l.factor_order);
-      std::cout << "  Intraline nest:\n";
-      layout::PrintNestLoopOrder(l.intraline, l.factor_order);
-      std::cout << "\n";
-    }
+    layout::PrintOverallLayout(layout_);
   }
   else{
     layout_initialized_ = false;
