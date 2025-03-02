@@ -424,7 +424,14 @@ class BufferLevel : public Level
   void ComputeBufferEnergy(const tiling::CompoundDataMovementInfo& data_movement_info);
   void ComputeReductionEnergy();
   void ComputeAddrGenEnergy();
-  void ComputeBankConflictSlowdown(const tiling::CompoundTile& tile, layout::Layout layout, const std::uint64_t compute_cycles); // bank conflict analysis
+  void ComputeBankConflictSlowdown(
+      const tiling::CompoundTile& tile, layout::Layout layout,
+      const std::uint64_t compute_cycles); // bank conflict analysis
+
+  void NewFunction(std::pair<const problem::Shape::CoefficientID, int>& p,
+                   std::unordered_map<problem::Shape::FlattenedDimensionID,
+                                      int>& dim_id_to_shape_layout,
+                   double& overall_average_rows_accessed);
 
   double StorageEnergy(problem::Shape::DataSpaceID pv = problem::GetShape()->NumDataSpaces) const;
   double TemporalReductionEnergy(problem::Shape::DataSpaceID pv = problem::GetShape()->NumDataSpaces) const;

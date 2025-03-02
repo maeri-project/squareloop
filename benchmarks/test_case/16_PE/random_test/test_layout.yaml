@@ -6,12 +6,12 @@ layout:
 
   - target: MainMemory
     type: intraline
-    factors: R=3 S=3 P=24 Q=24 C=4 M=1 N=1 H=26 W=26
+    factors: R=3 S=3 P=24 Q=24 C=4 M=1 N=1 H=27 W=27
     permutation: SRCQPMNHW
 
   - target: GlobalBuffer
     type: interline
-    factors: R=3 S=3 P=24 Q=6 C=2 M=1 N=1 H=26 W=26
+    factors: R=3 S=3 P=24 Q=6 C=2 M=1 N=1 H=27 W=27
     permutation: SRHWCQPMN
 
   - target: GlobalBuffer

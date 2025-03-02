@@ -1,0 +1,25 @@
+layout:
+  - target: MainEemory
+    type: interline
+    factors: J=1 K=1 U=1 I=1 V=1 E=1 Z=1 H=1 W=1
+    permutation: KJVIUEZHW
+
+  - target: MainEemory
+    type: intraline
+    factors: J=3 K=3 U=24 I=24 V=4 E=1 Z=1 H=27 W=27
+    permutation: KJVIUEZHW
+
+  - target: GlobalBuffer
+    type: interline
+    factors: J=3 K=3 U=24 I=6 V=2 E=1 Z=1 H=27 W=27
+    permutation: KJHWVIUEZ
+
+  - target: GlobalBuffer
+    type: intraline
+    factors: J=1 K=1 U=1 I=4 V=2 E=1 Z=1 H=1 W=1
+    permutation: KJWHVIUEZ
+
+  - target: RegisterFile
+    type: interline
+    factors: J=1 K=1 U=1 I=1 V=1 E=1 Z=1 H=1 W=1
+    permutation: KJVIUEZHW

@@ -91,13 +91,13 @@ class Shape
 
   // --- NEW MEMBERS ---
   // Map dataspace name to its rank names (as specified in the YAML "ranks" field)
-  std::map<std::string, std::vector<std::string>> DataSpaceNameToRankNames;
+  std::map<std::string, std::vector<std::string>> DataSpaceToRank;
   // Map a rank name to the factorized dimensions that appear in the corresponding projection expression.
-  std::map<std::string, std::vector<std::uint32_t>> RankNameToFactorizedDimensionID;
+  std::map<std::string, std::vector<std::uint32_t>> RankToDimensionID;
+  std::map<std::string, std::vector<std::string>> RankToDimensionName;
   // Map rank "W" and "H" to a tuple (dilation, stride) as given in the instance.
-  std::map<std::string, std::tuple<std::uint32_t, std::uint32_t>> RankNameToDilationStride;
-  std::map<std::string, std::vector<std::string>> RankNameToDimension;
-  std::map<std::string, std::vector<std::string>> RankNameToCoefficient;
+  std::map<std::string, std::tuple<std::uint32_t, std::uint32_t>> RankToDilationStride;
+  std::map<std::string, std::vector<std::string>> RankToCoefficient;
   // -------------------
   
 

@@ -260,7 +260,7 @@ void Shape::Parse(config::CompoundConfigNode shape)
       }
     }
     // Save mapping from dataspace name to its rank names.
-    DataSpaceNameToRankNames[name] = rank_names;
+    DataSpaceToRank[name] = rank_names;
 
     // --- Build the RankNameToFactorizedDimensionID mapping ---
       // For each rank, record the factorized dimension IDs that appear in its projection expression.
@@ -268,14 +268,17 @@ void Shape::Parse(config::CompoundConfigNode shape)
       {
         std::string rank = rank_names[i];
         std::vector<std::uint32_t> dims;
+        std::vector<std::string> dimsName;
         if (i < projection.size())
         {
           for (const auto& term : projection[i])
           {
             dims.push_back(term.second);
+            dimsName.push_back(CoefficientIDToName.at(term.second));
           }
         }
-        RankNameToFactorizedDimensionID[rank] = dims;
+        RankToDimensionID[rank] = dims;
+        RankToDimensionName[rank] = dimsName;
       }
 
     // --- Build the RankNameToDimension and RankNameToCoefficient mappings ---
@@ -295,8 +298,7 @@ void Shape::Parse(config::CompoundConfigNode shape)
           // term.first is the coefficient ID.
           coeffs.push_back(CoefficientIDToName.at(term.first));
         }
-        RankNameToDimension[ rank_names[i] ] = dims;
-        RankNameToCoefficient[ rank_names[i] ] = coeffs;
+        RankToCoefficient[ rank_names[i] ] = coeffs;
       }
     }
     // --- End new code ---   

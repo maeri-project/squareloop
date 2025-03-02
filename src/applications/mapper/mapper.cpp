@@ -412,19 +412,6 @@ Mapper::Mapper(config::CompoundConfig* config,
     // layout_ = layout::ParseAndConstruct(compound_config_node_layout, workload_.GetShape()->FactorizedDimensionNameToID, workload_.GetFactorizedBounds().GetCoordinates(), externalPortMapping);//, arch_specs_, workload_);
     
     layout_initialized_ = true;
-    for (const auto &l : layout_) {
-      std::cout << "Target: " << l.target << "\n"
-                << "  num_read_ports: " << l.num_read_ports << ", num_write_ports: " << l.num_write_ports << "\n"
-                << "  max_dim_perline: { ";
-      for (int d : l.max_dim_perline) std::cout << d << " ";
-      std::cout << "}\n  Factor order: { ";
-      for (char f : l.factor_order) std::cout << f << " ";
-      std::cout << "}\n  Interline nest:\n";
-      layout::PrintNestLoopOrder(l.interline, l.factor_order);
-      std::cout << "  Intraline nest:\n";
-      layout::PrintNestLoopOrder(l.intraline, l.factor_order);
-      std::cout << "\n";
-    }
   }
   else{
     layout_initialized_ = false;
