@@ -963,6 +963,193 @@ BufferLevel::ComputeBankConflictSlowdown(const tiling::CompoundTile& tile,
                 data_space_id = j;
               }
           }
+      }
+
+      if (specs_.technology.Get() == Technology::DRAM) {
+        // get mapping access pattern
+        std::unordered_map<problem::Shape::FlattenedDimensionID, int> 
+            dim_id_to_shape_mapping;
+        for (auto level_ptr = &tile; 
+            level_ptr->child_level != std::numeric_limits<unsigned>::max();
+            level_ptr = level_ptr->child_level_ptr)
+        {
+          for (auto j : level_ptr->child_level_ptr->subnest)
+          {
+            std::cout << j.PrintCompact(dim_id_to_name) << " ";
+            if(dim_id_to_shape_mapping[j.dimension] == 0)
+              dim_id_to_shape_mapping[j.dimension] = 1;
+            dim_id_to_shape_mapping[j.dimension] *= j.residual_end;
+          }
+          std::cout << std::endl;
+        }
+
+        // get layout pattern
+        std::unordered_map<std::string, int>
+            rank_id_to_shape_layout;
+        std::unordered_map<std::string, int> 
+            rank_id_to_shape_mapping;
+        PrintOneLvlLayout(layout);
+        {
+          auto nest = layout.intraline[data_space_id];
+          for (const auto &r : nest.ranks) { // Analyze slowdown per rank
+            int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
+            auto dimsID = layout.rankToFactorizedDimensionID.at(r);
+            rank_id_to_shape_layout[r] = factor;
+            if (dimsID.size() == 1) {
+              rank_id_to_shape_mapping[r] = std::max(dim_id_to_shape_mapping[dimsID[0]], 1);
+            } else {
+              std::vector<std::uint32_t> coefficentValue = layout.rankToCoefficentValue.at(r);
+              std::cout << "rank:" << r << "  dimension: ";
+              int spatial_data_requirement = 1;
+              double spatial_data_requirement_dbl = 0;
+              for(unsigned index; index < dimsID.size(); index++){
+                spatial_data_requirement_dbl += (std::max(dim_id_to_shape_mapping[dimsID[index]], 1) - 1) * coefficentValue[index];
+                std::cout << dimsID[index] << " ";
+              }
+              spatial_data_requirement_dbl /= factor;
+              spatial_data_requirement += std::ceil(spatial_data_requirement_dbl);
+              rank_id_to_shape_mapping[r] = spatial_data_requirement;
+            }
+          }
+        }
+
+        // utilization computation
+        // for any single dimension each tile intersects either x or x+1 lines
+        // accesses_needed stores the value of x
+        // accesses_cnt stores the proportion of x and x+1 tiles
+        std::unordered_map<std::string, int>
+            accesses_needed;
+        std::unordered_map<std::string, std::pair<int,int>>
+            accesses_cnt;
+        std::vector<std::string> rank_list;
+        for (auto [rank_id, tile_req] : rank_id_to_shape_mapping)
+        {
+          rank_list.push_back(rank_id);
+          int layout_avail = rank_id_to_shape_layout[rank_id];
+          std::cout << "rank_id " << rank_id << " tile_req=" << tile_req << " layout_avail=" << layout_avail << std::endl;
+          accesses_needed[rank_id] = std::ceil((double)tile_req / layout_avail);
+          int gcd = std::gcd(layout_avail, tile_req);
+          accesses_cnt[rank_id].second = (tile_req/gcd - 1) % (layout_avail/gcd);
+          accesses_cnt[rank_id].first = (layout_avail/gcd) - accesses_cnt[rank_id].second;
+        }
+        // maybe these could be long long? not sure if they would fit
+        long double total_cnt = 0;
+        long double total_latency = 0;
+        // iterate over all possible tile types (all combinations of x or x+1 across dimensions)
+        for (int bitmask = 0; bitmask < (1<<rank_list.size()); bitmask++)
+        {
+          long double lines = 1;
+          long double cnt = 1;
+          for (unsigned idx = 0; idx < rank_list.size(); idx++)
+          {
+            auto rank_id = rank_list[idx];
+            if (bitmask & (1<<idx)) // tile instersects x+1 lines in dimension dim_id
+            {
+              lines *= (accesses_needed[rank_id]+1);
+              cnt *= accesses_cnt[rank_id].second;
+            }
+            else // tile instersects x lines in dimension dim_id
+            {
+              lines *= accesses_needed[rank_id];
+              cnt *= accesses_cnt[rank_id].first;
+            }
+          }
+          total_cnt += cnt;
+          total_latency += cnt * std::max((long double)compute_cycles,
+                                          std::ceil(lines / layout.num_read_ports));
+        }
+        std::cout << " total_cnt: " << total_cnt << std::endl;
+        std::cout << " total_latency: " << total_latency << std::endl;
+        std::cout << " compute_cycles: " << compute_cycles << std::endl;
+        overall_slowdown_ *= (total_cnt * compute_cycles) / total_latency;
+      } else {
+        // Pring out mapping information for debugging
+        std::unordered_map<problem::Shape::FlattenedDimensionID, int>
+        dim_id_to_shape_mapping;
+        for (auto j : tile.subnest){
+          std::cout << j.PrintCompact(dim_id_to_name) << " ";
+          if (loop::IsSpatial(j.spacetime_dimension))
+            {
+              dim_id_to_shape_mapping[j.dimension] = j.residual_end;
+            }
+        }
+        std::cout << std::endl;
+        std::cout << "print dim_id_to_shape_mapping" << std::endl;
+        for (auto j : dim_id_to_shape_mapping){
+          std::cout << j.first << " " << j.second << std::endl;
+        }
+
+        // print out layout information and API for debugging
+        double cur_data_space_bank_conflict = 1;
+        PrintOneLvlLayout(layout);
+        {
+          auto nest = layout.intraline[data_space_id];
+          for (const auto &r : nest.ranks) { // Analyze slowdown per rank
+            int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
+            auto dimsID = layout.rankToFactorizedDimensionID.at(r);
+            if (dimsID.size() == 1) {
+                // Data Access Required by Mapping
+                int spatial_data_requirement = std::max(dim_id_to_shape_mapping[dimsID[0]], 1);
+
+                // Layout Information
+                int avail_layout_spatial = factor;
+
+                // Compute Bank Conflict
+                double average_rows_accessed = (1.0
+                  + ((double)spatial_data_requirement - std::gcd(spatial_data_requirement, avail_layout_spatial))
+                        / avail_layout_spatial);
+                cur_data_space_bank_conflict *= average_rows_accessed;
+                overall_slowdown_
+                      *= std::min(1.0, double(layout.num_read_ports) / cur_data_space_bank_conflict);
+                // Introduced new layout modeling
+                std::cout << "rank:" << r << "  dimension: " << dimsID[0] << " data requirements (mapping): " 
+                        << spatial_data_requirement << "  data provide (layout): " << avail_layout_spatial
+                      << " average_rows_accessed: " << average_rows_accessed 
+                      << " slowdown: " << std::min(1.0, double(layout.num_read_ports) / cur_data_space_bank_conflict) << std::endl;
+            } else { // This rank has coefficients
+                // Data Access Required by Mapping
+                std::vector<std::uint32_t> coefficentValue = layout.rankToCoefficentValue.at(r);
+                std::cout << "rank:" << r << "  dimension: ";
+                // This equation considers data are accessed in contiguous manner.
+                // 1+[(p_par−1)×stride+(r_par−1)×dilation]/e 
+                // p_par: parallelism in P dimension
+                // r_par: parallelism in R dimension
+                // e: number of elements of given dimension in layout.
+                // Note: the rows accessed may not be contiguous, which is not considered.
+                // Example of non-contiguous access: 
+                // p_par=2
+                // r_par=2
+                // stride=5
+                // dilation=4
+                // e=2
+                // In cycle 0, input data of index {0,4,5,9} are accessed. These four elements sit in the row 0, row 2 and row 5 of 2 dimensional buffer. In total 3 rows are fetched. 
+                // IN cycle 1, input data of index {10,14,15,19} are accessed. These four elements sit in the row 6, row 8 and row 11 of 2 dimensional buffer. In total, there are still 3 rows to be fetched. 
+                int spatial_data_requirement = 1;
+                double spatial_data_requirement_dbl = 0;
+                for(unsigned index; index < dimsID.size(); index++){
+                  spatial_data_requirement_dbl += (std::max(dim_id_to_shape_mapping[dimsID[index]], 1) - 1) * coefficentValue[index];
+                  std::cout << dimsID[index] << " ";
+                }
+                spatial_data_requirement_dbl /= factor;
+                spatial_data_requirement += std::ceil(spatial_data_requirement_dbl);
+                
+                // Layout Information
+                int avail_layout_spatial = factor;
+
+                // Compute Bank Conflict
+                double average_rows_accessed = (1.0
+                  + ((double)spatial_data_requirement - std::gcd(spatial_data_requirement, avail_layout_spatial))
+                        / avail_layout_spatial);
+                cur_data_space_bank_conflict *= average_rows_accessed;
+
+                // Introduced new layout modeling
+                overall_slowdown_ *= std::min(1.0, double(layout.num_read_ports) / cur_data_space_bank_conflict);
+                std::cout << " data requirements (mapping): " 
+                  << spatial_data_requirement << "  data provide (layout): " << avail_layout_spatial
+                  << " average_rows_accessed: " << average_rows_accessed 
+                  << " slowdown: " << std::min(1.0, double(layout.num_read_ports) / cur_data_space_bank_conflict) << std::endl;
+            }
+          }
 
         // Pring out mapping information for debugging
         std::unordered_map<problem::Shape::FlattenedDimensionID, int>
