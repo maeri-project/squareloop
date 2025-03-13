@@ -938,6 +938,9 @@ BufferLevel::PreEvaluationCheck(
   return eval_status;
 }
 
+// assume additive dimensions have zero padding which does not need to be stored in memory
+const bool assume_zero_padding = true;
+
 void
 BufferLevel::ComputeBankConflictSlowdown(const tiling::CompoundTile& tile,
                                          layout::Layout layout,
@@ -983,11 +986,23 @@ BufferLevel::ComputeBankConflictSlowdown(const tiling::CompoundTile& tile,
           std::cout << std::endl;
         }
 
+        // get number of tiles in each dimension
+        std::unordered_map<problem::Shape::FlattenedDimensionID, int> 
+            dim_id_to_num_tiles;
+        for (auto j : tile.subnest)
+        {
+          dim_id_to_num_tiles[j.dimension] = j.residual_end;
+        }
+
         // get layout pattern
         std::unordered_map<std::string, int>
             rank_id_to_shape_layout;
         std::unordered_map<std::string, int> 
             rank_id_to_shape_mapping;
+        std::unordered_map<std::string, int> 
+            rank_id_to_num_tiles;
+        std::unordered_map<std::string, int> 
+            zero_pad_ranks;
         PrintOneLvlLayout(layout);
         {
           auto nest = layout.intraline[data_space_id];
@@ -996,19 +1011,27 @@ BufferLevel::ComputeBankConflictSlowdown(const tiling::CompoundTile& tile,
             auto dimsID = layout.rankToFactorizedDimensionID.at(r);
             rank_id_to_shape_layout[r] = factor;
             if (dimsID.size() == 1) {
+              rank_id_to_num_tiles[r] = std::max(dim_id_to_num_tiles[dimsID[0]], 1);
               rank_id_to_shape_mapping[r] = std::max(dim_id_to_shape_mapping[dimsID[0]], 1);
+              zero_pad_ranks[r] = 0;
             } else {
               std::vector<std::uint32_t> coefficentValue = layout.rankToCoefficentValue.at(r);
               std::cout << "rank:" << r << "  dimension: ";
+              zero_pad_ranks[r] = dim_id_to_shape_mapping[dimsID[0]]/2;
+              int num_tiles = 1;
               int spatial_data_requirement = 1;
               double spatial_data_requirement_dbl = 0;
-              for(unsigned index; index < dimsID.size(); index++){
+              for(unsigned index = 0; index < dimsID.size(); index++){
                 spatial_data_requirement_dbl += (std::max(dim_id_to_shape_mapping[dimsID[index]], 1) - 1) * coefficentValue[index];
+                num_tiles += (std::max(dim_id_to_num_tiles[dimsID[index]], 1) - 1) * coefficentValue[index];
+                if(dim_id_to_shape_mapping[dimsID[index]]/2 < zero_pad_ranks[r])
+                  zero_pad_ranks[r] = dim_id_to_shape_mapping[dimsID[index]]/2;
                 std::cout << dimsID[index] << " ";
               }
-              spatial_data_requirement_dbl /= factor;
+              //spatial_data_requirement_dbl /= factor;
               spatial_data_requirement += std::ceil(spatial_data_requirement_dbl);
               rank_id_to_shape_mapping[r] = spatial_data_requirement;
+              rank_id_to_num_tiles[r] = num_tiles;
             }
           }
         }
@@ -1022,41 +1045,74 @@ BufferLevel::ComputeBankConflictSlowdown(const tiling::CompoundTile& tile,
         std::unordered_map<std::string, std::pair<int,int>>
             accesses_cnt;
         std::vector<std::string> rank_list;
-        for (auto [rank_id, tile_req] : rank_id_to_shape_mapping)
-        {
+        std::unordered_map<std::string, int>
+            zp_accesses_needed;
+        std::vector<std::pair<std::string, int>> zp_rank_list;
+        for (auto [rank_id, tile_req] : rank_id_to_shape_mapping) {
           rank_list.push_back(rank_id);
           int layout_avail = rank_id_to_shape_layout[rank_id];
+          int num_tiles = rank_id_to_num_tiles[rank_id];
           std::cout << "rank_id " << rank_id << " tile_req=" << tile_req << " layout_avail=" << layout_avail << std::endl;
-          accesses_needed[rank_id] = std::ceil((double)tile_req / layout_avail);
-          int gcd = std::gcd(layout_avail, tile_req);
-          accesses_cnt[rank_id].second = (tile_req/gcd - 1) % (layout_avail/gcd);
-          accesses_cnt[rank_id].first = (layout_avail/gcd) - accesses_cnt[rank_id].second;
+          if(assume_zero_padding && zero_pad_ranks[rank_id] != 0) {
+            int zp = zero_pad_ranks[rank_id];
+            // minimum overlap of the memory tile on compute tile (without padding), the possible overlaps are all integer increments of this
+            int min_overlap = std::gcd(layout_avail, (layout_avail-(tile_req%layout_avail))%layout_avail); 
+            int num_alignments; // how many times do the compute and memory tiles align at the boundary
+            if(zp % min_overlap != 0) // memory and compute tiles never align
+              num_alignments = 0;
+            else // memory and compute tiles align every (layout_avail/min_overlap) compute tiles
+              num_alignments = num_tiles*min_overlap/layout_avail;
+            // sum of the numbers of intersecting memory tiles over all compute tiles 
+            int sum_of_counts = std::ceil(((double)(num_tiles-2)*tile_req+(tile_req-zp)%layout_avail)/layout_avail) + num_tiles - num_alignments - 3;
+            accesses_needed[rank_id] = sum_of_counts/(num_tiles-2);
+            accesses_cnt[rank_id].second = sum_of_counts % (num_tiles-2);
+            accesses_cnt[rank_id].first = num_tiles - 2 - accesses_cnt[rank_id].second;
+            zp_rank_list.emplace_back(rank_id, rank_list.size()-1);
+            zp_accesses_needed[rank_id] = std::ceil((tile_req-zp)/layout_avail);
+          } else {
+            accesses_needed[rank_id] = std::ceil((double)tile_req / layout_avail);
+            int gcd = std::gcd(layout_avail, tile_req);
+            accesses_cnt[rank_id].second = (tile_req/gcd - 1) % (layout_avail/gcd);
+            accesses_cnt[rank_id].first = (layout_avail/gcd) - accesses_cnt[rank_id].second;
+          }
         }
+
         // maybe these could be long long? not sure if they would fit
         long double total_cnt = 0;
         long double total_latency = 0;
-        // iterate over all possible tile types (all combinations of x or x+1 across dimensions)
-        for (int bitmask = 0; bitmask < (1<<rank_list.size()); bitmask++)
-        {
-          long double lines = 1;
-          long double cnt = 1;
-          for (unsigned idx = 0; idx < rank_list.size(); idx++)
-          {
-            auto rank_id = rank_list[idx];
-            if (bitmask & (1<<idx)) // tile instersects x+1 lines in dimension dim_id
-            {
-              lines *= (accesses_needed[rank_id]+1);
-              cnt *= accesses_cnt[rank_id].second;
+        // iterate over all possible tile types (all combinations of x or x+1 or zp across dimensions)
+        for (int zp_bitmask = 0; zp_bitmask < (1<<zp_rank_list.size()); zp_bitmask++) {
+          for (int bitmask = 0; bitmask < (1<<rank_list.size()); bitmask++) {
+            long double lines = 1;
+            long double cnt = 1;
+            for (unsigned idx = 0; idx < rank_list.size(); idx++) {
+              auto rank_id = rank_list[idx];
+              if (bitmask & (1<<idx)) { // tile instersects x+1 lines in dimension dim_id
+                lines *= (accesses_needed[rank_id]+1);
+                cnt *= accesses_cnt[rank_id].second;
+              }
+              else { // tile instersects x lines in dimension dim_id
+                lines *= accesses_needed[rank_id];
+                cnt *= accesses_cnt[rank_id].first;
+              }
             }
-            else // tile instersects x lines in dimension dim_id
-            {
-              lines *= accesses_needed[rank_id];
-              cnt *= accesses_cnt[rank_id].first;
+            for (unsigned idx = 0; idx < zp_rank_list.size(); idx++) {
+              if (zp_bitmask & (1<<idx)) {
+                if(bitmask & (1<<zp_rank_list[idx].second)) {
+                  cnt = 0;
+                  break;
+                }
+                auto rank_id = zp_rank_list[idx].first;
+                lines /= accesses_needed[rank_id];
+                cnt /= accesses_cnt[rank_id].first;
+                lines *= zp_accesses_needed[rank_id];
+                cnt *= 2;
+              }
             }
+            total_cnt += cnt;
+            total_latency += cnt * std::max((long double)compute_cycles,
+                                            std::ceil(lines / layout.num_read_ports));
           }
-          total_cnt += cnt;
-          total_latency += cnt * std::max((long double)compute_cycles,
-                                          std::ceil(lines / layout.num_read_ports));
         }
         std::cout << " total_cnt: " << total_cnt << std::endl;
         std::cout << " total_latency: " << total_latency << std::endl;
