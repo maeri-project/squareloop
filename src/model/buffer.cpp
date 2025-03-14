@@ -872,7 +872,8 @@ BufferLevel::ComputeBankConflictSlowdown(
   const tiling::CompoundTile& tile, 
   layout::Layout layout, 
   std::vector<loop::Descriptor>& tile_loopnest,
-  const std::uint64_t compute_cycles)
+  const std::uint64_t compute_cycles, 
+  crypto::CryptoConfig* crypto_config)
 {
   overall_slowdown_ = 1.0; // Initialization
 
@@ -913,6 +914,7 @@ BufferLevel::ComputeBankConflictSlowdown(
         }
 
         // get layout pattern
+        double line_size = 1;
         std::unordered_map<std::string, int>
             rank_id_to_shape_layout;
         std::unordered_map<std::string, int> 
@@ -928,6 +930,7 @@ BufferLevel::ComputeBankConflictSlowdown(
             int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
             auto dimsID = layout.rankToFactorizedDimensionID.at(r);
             rank_id_to_shape_layout[r] = factor;
+            line_size *= factor;
             if (dimsID.size() == 1) {
               rank_id_to_num_tiles[r] = std::max(dim_id_to_num_tiles[dimsID[0]], 1);
               rank_id_to_shape_mapping[r] = std::max(dim_id_to_shape_mapping[dimsID[0]], 1);
@@ -995,14 +998,17 @@ BufferLevel::ComputeBankConflictSlowdown(
           }
         }
 
+        double crypto_latency_per_line = std::ceil((double)line_size / (crypto_config->datapath)) * (crypto_config->auth_cycle_per_datapath + crypto_config->enc_cycle_per_datapath) 
+                                          + (crypto_config->auth_additional_cycle_per_block);
+
         // maybe these could be long long? not sure if they would fit
-        long double total_cnt = 0;
-        long double total_latency = 0;
+        double total_cnt = 0;
+        double total_latency = 0;
         // iterate over all possible tile types (all combinations of x or x+1 or zp across dimensions)
         for (int zp_bitmask = 0; zp_bitmask < (1<<zp_rank_list.size()); zp_bitmask++) {
           for (int bitmask = 0; bitmask < (1<<rank_list.size()); bitmask++) {
-            long double lines = 1;
-            long double cnt = 1;
+            double lines = 1;
+            double cnt = 1;
             for (unsigned idx = 0; idx < rank_list.size(); idx++) {
               auto rank_id = rank_list[idx];
               if (bitmask & (1<<idx)) { // tile instersects x+1 lines in dimension dim_id
@@ -1028,8 +1034,9 @@ BufferLevel::ComputeBankConflictSlowdown(
               }
             }
             total_cnt += cnt;
-            total_latency += cnt * std::max((long double)compute_cycles,
-                                            std::ceil(lines / layout.num_read_ports));
+            total_latency += cnt * std::max({(double)compute_cycles,
+                                            std::ceil(lines / layout.num_read_ports),
+                                            crypto_latency_per_line*lines});
           }
         }
         std::cout << " total_cnt: " << total_cnt << std::endl;
@@ -1278,13 +1285,14 @@ EvalStatus BufferLevel::Evaluate(const tiling::CompoundTile& tile,
                                  problem::Workload* workload,
                                  const double confidence_threshold,
                                  const std::uint64_t compute_cycles,
-                                 const bool break_on_failure)
+                                 const bool break_on_failure, 
+                                 crypto::CryptoConfig* crypto_config)
 {
   workload_ = workload;
   // Layout Modeling
   std::cout << "start layout evaluation" << std::endl;
 
-  ComputeBankConflictSlowdown(tile, layout, tile_loopnest, compute_cycles);
+  ComputeBankConflictSlowdown(tile, layout, tile_loopnest, compute_cycles, crypto_config);
 
   auto eval_status = ComputeScalarAccesses(tile.data_movement_info,
                                            mask,
