@@ -1291,7 +1291,8 @@ std::vector<EvalStatus> Topology::PreEvaluationCheck(const Mapping& mapping,
 std::vector<EvalStatus> Topology::Evaluate(Mapping& mapping,
                                            analysis::NestAnalysis* analysis,
                                            sparse::SparseOptimizationInfo* sparse_optimizations,
-                                           bool break_on_failure)
+                                           bool break_on_failure, 
+                                           crypto::CryptoConfig* crypto_config)
 {
   assert(is_specced_);
   Reset();
@@ -1461,7 +1462,8 @@ std::vector<EvalStatus> Topology::Evaluate(Mapping& mapping,
                                      current_tile_loopnest,
                                      workload,
                                      mapping.confidence_thresholds.at(storage_level_id),
-                                     compute_cycles, break_on_failure);
+                                     compute_cycles, break_on_failure,
+                                     crypto_config);
       total_cycles = std::max(total_cycles, storage_level->Cycles());
       eval_status.at(level_id) = s;
       success_accum &= s.success;
