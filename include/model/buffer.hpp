@@ -39,6 +39,7 @@
 #include "model/network.hpp"
 #include "layout/layout.hpp"
 #include "workload/density-models/density-distribution.hpp"
+#include "crypto/crypto.hpp"
 
 namespace model
 {
@@ -424,7 +425,7 @@ class BufferLevel : public Level
   void ComputeBufferEnergy(const tiling::CompoundDataMovementInfo& data_movement_info);
   void ComputeReductionEnergy();
   void ComputeAddrGenEnergy();
-  void ComputeBankConflictSlowdown(const tiling::CompoundTile& tile, layout::Layout layout, const std::uint64_t compute_cycles); // bank conflict analysis
+  void ComputeBankConflictSlowdown(const tiling::CompoundTile& tile, layout::Layout layout, std::vector<loop::Descriptor>& tile_loopnest, const std::uint64_t compute_cycles/*, crypto::CryptoConfig* crypto_config*/); // bank conflict analysis
 
   double StorageEnergy(problem::Shape::DataSpaceID pv = problem::GetShape()->NumDataSpaces) const;
   double TemporalReductionEnergy(problem::Shape::DataSpaceID pv = problem::GetShape()->NumDataSpaces) const;
@@ -480,9 +481,11 @@ class BufferLevel : public Level
                                 const bool break_on_failure) override;
 
   EvalStatus Evaluate(const tiling::CompoundTile& tile, const tiling::CompoundMask& mask, const layout::Layout layout, 
+                      std::vector<loop::Descriptor>& tile_loopnest,
                       problem::Workload* workload,
                       const double confidence_threshold, const std::uint64_t compute_cycles,
-                      const bool break_on_failure);
+                      const bool break_on_failure/*,
+                      crypto::CryptoConfig* crypto_config*/);
 
   EvalStatus Evaluate(const tiling::CompoundTile& tile, const tiling::CompoundMask& mask,
                       problem::Workload* workload,

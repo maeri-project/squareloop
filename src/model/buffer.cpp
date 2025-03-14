@@ -944,6 +944,7 @@ const bool assume_zero_padding = true;
 void
 BufferLevel::ComputeBankConflictSlowdown(const tiling::CompoundTile& tile,
                                          layout::Layout layout,
+                                         std::vector<loop::Descriptor>& tile_loopnest,
                                          const std::uint64_t compute_cycles)
 {
   overall_slowdown_ = 1.0; // Initialization
@@ -972,19 +973,14 @@ BufferLevel::ComputeBankConflictSlowdown(const tiling::CompoundTile& tile,
         // get mapping access pattern
         std::unordered_map<problem::Shape::FlattenedDimensionID, int> 
             dim_id_to_shape_mapping;
-        for (auto level_ptr = &tile; 
-            level_ptr->child_level != std::numeric_limits<unsigned>::max();
-            level_ptr = level_ptr->child_level_ptr)
+        for (auto j : tile_loopnest)
         {
-          for (auto j : level_ptr->child_level_ptr->subnest)
-          {
-            std::cout << j.PrintCompact(dim_id_to_name) << " ";
-            if(dim_id_to_shape_mapping[j.dimension] == 0)
-              dim_id_to_shape_mapping[j.dimension] = 1;
-            dim_id_to_shape_mapping[j.dimension] *= j.residual_end;
-          }
-          std::cout << std::endl;
+          std::cout << j.PrintCompact(dim_id_to_name) << " ";
+          if(dim_id_to_shape_mapping[j.dimension] == 0)
+            dim_id_to_shape_mapping[j.dimension] = 1;
+          dim_id_to_shape_mapping[j.dimension] *= j.residual_end;
         }
+        std::cout << std::endl;
 
         // get number of tiles in each dimension
         std::unordered_map<problem::Shape::FlattenedDimensionID, int> 
@@ -1370,6 +1366,7 @@ BufferLevel::ComputeBankConflictSlowdown(const tiling::CompoundTile& tile,
 EvalStatus
 BufferLevel::Evaluate(const tiling::CompoundTile& tile,
                       const tiling::CompoundMask& mask, layout::Layout layout,
+                      std::vector<loop::Descriptor>& tile_loopnest,
                       problem::Workload* workload,
                       const double confidence_threshold,
                       const std::uint64_t compute_cycles,
@@ -1379,7 +1376,7 @@ BufferLevel::Evaluate(const tiling::CompoundTile& tile,
   // Layout Modeling
   std::cout << "start layout evaluation" << std::endl;
 
-  ComputeBankConflictSlowdown(tile, layout, compute_cycles);
+  ComputeBankConflictSlowdown(tile, layout, tile_loopnest, compute_cycles);
 
   auto eval_status = ComputeScalarAccesses(
       tile.data_movement_info, mask, confidence_threshold, break_on_failure);
