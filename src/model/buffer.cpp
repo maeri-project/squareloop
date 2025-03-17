@@ -1093,11 +1093,20 @@ BufferLevel::ComputeBankConflictSlowdown(const tiling::CompoundTile& tile,
                   }
               }
 
-            // assuming 16-bit words
-            double crypto_latency_per_line = crypto_config == nullptr ? 0 : 
-                                              std::ceil((double)line_size*16 / (crypto_config->datapath)) * (crypto_config->auth_cycle_per_datapath + crypto_config->enc_cycle_per_datapath) 
-                                              + (crypto_config->auth_additional_cycle_per_block);
-            std::cout <<" crypto_latency_per_line=" << crypto_latency_per_line << std::endl;
+            double crypto_blocks_per_line = 0;
+            double crypto_latency_per_line = 0;
+            double crypto_hash_reads_per_line = 0;
+            if (crypto_config != nullptr)
+              {
+                double word_size = specs_.word_bits.Get();
+                crypto_blocks_per_line = std::ceil((double)line_size * word_size / (crypto_config->datapath));
+                crypto_latency_per_line = crypto_blocks_per_line * (crypto_config->auth_cycle_per_datapath + crypto_config->enc_cycle_per_datapath) 
+                                                 + (crypto_config->auth_additional_cycle_per_block);
+                // assume hashes are always consecutive and in lines of same size as specified by layout
+                crypto_hash_reads_per_line = std::ceil(crypto_blocks_per_line  * (crypto_config->hash_size) / (line_size * word_size));
+              }
+            std::cout << " crypto_latency_per_line=" << crypto_latency_per_line << std::endl;
+            std::cout << " crypto_hash_reads_per_line=" << crypto_hash_reads_per_line << std::endl;
 
             // maybe these could be long long? not sure if they would fit
             double total_cnt = 0;
@@ -1140,7 +1149,7 @@ BufferLevel::ComputeBankConflictSlowdown(const tiling::CompoundTile& tile,
                       }
                     total_cnt += cnt;
                     total_latency += cnt * std::max({(double)compute_cycles,
-                                                    std::ceil(lines / layout.num_read_ports),
+                                                    std::ceil((lines + crypto_hash_reads_per_line) / layout.num_read_ports),
                                                     crypto_latency_per_line*lines});
                   }
               }
