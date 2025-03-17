@@ -64,11 +64,10 @@ ParseAndConstruct(
   std::map<std::string, std::vector<std::string> > dataSpaceToRank
       = workload.GetShape()->DataSpaceNameToRankName;
   std::vector<std::string> data_space_vec;
-  for (auto& key_pair : dataSpaceToRank)
+  for (unsigned j = 0; j < problem::GetShape()->NumDataSpaces; j++)
     {
-      data_space_vec.push_back(key_pair.first);
+      data_space_vec.push_back(problem::GetShape()->DataSpaceIDToName.at(j));
     }
-  //data_space_vec = {"Weights", "Inputs", "Outputs"};
 
   std::unordered_map<std::string, std::uint32_t> coefficentToValue;
   for (auto& key_pair : workload.GetShape()->CoefficientIDToName)
@@ -201,8 +200,6 @@ ParseAndConstruct(
       layout.target = t;
       layout.num_read_ports = targetToPortValue[t].first;
       layout.num_write_ports = targetToPortValue[t].second;
-      //layout.num_read_ports = 1;
-      //layout.num_write_ports = 1;
       layout.data_space = data_space_vec;
       layout.dataSpaceToRank = dataSpaceToRank;
       layout.rankToCoefficent = rankToCoefficent;
