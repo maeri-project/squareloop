@@ -1433,12 +1433,6 @@ std::vector<EvalStatus> Topology::Evaluate(Mapping& mapping,
   {
     auto storage_level = GetStorageLevel(storage_level_id);
 
-    for(unsigned i = current_storage_boundary; i <= mapping.loop_nest.storage_tiling_boundaries[storage_level_id]; i++)
-    {
-      current_tile_loopnest.push_back(mapping.loop_nest.loops[i]);
-    }
-    current_storage_boundary = mapping.loop_nest.storage_tiling_boundaries[storage_level_id] + 1;
-
     // Evaluate Loop Nest on hardware structures: calculate
     // primary statistics.
     auto level_id = specs_.StorageMap(storage_level_id);
@@ -1480,6 +1474,12 @@ std::vector<EvalStatus> Topology::Evaluate(Mapping& mapping,
       if (break_on_failure && !s.success)
         break;
     }
+
+    for(unsigned i = current_storage_boundary; i <= mapping.loop_nest.storage_tiling_boundaries[storage_level_id]; i++)
+    {
+      current_tile_loopnest.push_back(mapping.loop_nest.loops[i]);
+    }
+    current_storage_boundary = mapping.loop_nest.storage_tiling_boundaries[storage_level_id] + 1;
   }
 
   if (!break_on_failure || success_accum)
