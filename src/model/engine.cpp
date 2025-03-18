@@ -90,7 +90,7 @@ std::vector<EvalStatus> Engine::Evaluate(Mapping& mapping, problem::Workload& wo
 
   nest_analysis_.Init(&workload, &mapping.loop_nest, layout, mapping.fanoutX_map, mapping.fanoutY_map);
     
-  auto eval_status = topology_.Evaluate(mapping, &nest_analysis_, sparse_optimizations, break_on_failure);
+  auto eval_status = topology_.Evaluate(mapping, &nest_analysis_, sparse_optimizations, break_on_failure, crypto_config);
 
   is_evaluated_ = std::accumulate(eval_status.begin(), eval_status.end(), true,
                                   [](bool cur, const EvalStatus& status)

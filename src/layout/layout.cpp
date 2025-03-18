@@ -64,9 +64,9 @@ ParseAndConstruct(
   std::map<std::string, std::vector<std::string> > dataSpaceToRank
       = workload.GetShape()->DataSpaceNameToRankName;
   std::vector<std::string> data_space_vec;
-  for (auto& key_pair : dataSpaceToRank)
+  for (unsigned j = 0; j < problem::GetShape()->NumDataSpaces; j++)
     {
-      data_space_vec.push_back(key_pair.first);
+      data_space_vec.push_back(problem::GetShape()->DataSpaceIDToName.at(j));
     }
 
   std::unordered_map<std::string, std::uint32_t> coefficentToValue;
