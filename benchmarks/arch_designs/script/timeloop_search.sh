@@ -1,0 +1,1 @@
+timeloop-mapper ../layer_shapes/CONV/ResNet50/resnet50_1.yaml ../arch_designs/vector_256.yaml ../mapper/mapper_original_timeloop.yaml  ../crypto/AES-GCM.yaml 

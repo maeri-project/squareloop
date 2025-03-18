@@ -1,0 +1,1 @@
+timeloop-model ../layer_shapes/CONV/ResNet50/resnet50_1.yaml ../arch_designs/vector_256.yaml  ../crypto/AES-GCM.yaml  /home/ubuntu/squareloop/benchmarks/test_run/timeloop-mapper.map.yaml

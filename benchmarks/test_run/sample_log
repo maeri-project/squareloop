@@ -1,0 +1,384 @@
+(squareloop) root@537f910f72ec:/home/ubuntu/squareloop/benchmarks/test_run# timeloop-model ../layer_shapes/CONV/ResNet50/resnet50_1.yaml ../arch_designs/vector_256.yaml  ../crypto/AES-GCM.yaml  /home/ubuntu/squareloop/benchmarks/test_run/timeloop-mapper.map.yaml ../layout/resnet50/SRCQPMNHW_Mx32_1.yaml 
+input file: ../layer_shapes/CONV/ResNet50/resnet50_1.yaml
+input file: ../arch_designs/vector_256.yaml
+input file: ../crypto/AES-GCM.yaml
+input file: /home/ubuntu/squareloop/benchmarks/test_run/timeloop-mapper.map.yaml
+input file: ../layout/resnet50/SRCQPMNHW_Mx32_1.yaml
+Start Parsering Crypto
+Start Parsering Layout
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: S R C Q P M N H W 
+
+Target: RegisterFile
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: M dimension=1-M, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: W dimension=(3,6)-(S,Q), factor=1
+    Rank: H dimension=(2,5)-(R,P), factor=1
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: P dimension=5-P, factor=1
+    Rank: Q dimension=6-Q, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: H dimension=(2,5)-(R,P), factor=1
+    Rank: W dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: GlobalBuffer
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: M dimension=1-M, factor=1
+    Rank: C dimension=0-C, factor=3
+    Rank: R dimension=2-R, factor=7
+    Rank: S dimension=3-S, factor=7
+  Data space: Inputs
+  Type: interline
+    Rank: W dimension=(3,6)-(S,Q), factor=1
+    Rank: H dimension=(2,5)-(R,P), factor=1
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=3
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: P dimension=5-P, factor=1
+    Rank: Q dimension=6-Q, factor=6
+  Data space: Weights
+  Type: intraline
+    Rank: M dimension=1-M, factor=32
+    Rank: C dimension=0-C, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: W dimension=(3,6)-(S,Q), factor=32
+    Rank: H dimension=(2,5)-(R,P), factor=1
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=32
+    Rank: P dimension=5-P, factor=1
+    Rank: Q dimension=6-Q, factor=1
+Target: MainMemory
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: M dimension=1-M, factor=2
+    Rank: C dimension=0-C, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: W dimension=(3,6)-(S,Q), factor=7
+    Rank: H dimension=(2,5)-(R,P), factor=224
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=2
+    Rank: P dimension=5-P, factor=112
+    Rank: Q dimension=6-Q, factor=19
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: H dimension=(2,5)-(R,P), factor=1
+    Rank: W dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+mapping analysis
+iter->dimension=6-Q in [0, 2, 1) iter->residual_end=2
+iter->dimension=5-P in [0, 28, 1) iter->residual_end=28
+iter->dimension=1-M in [0, 4, 1) iter->residual_end=4
+iter->dimension=6-Q in [0, 2, 1) iter->residual_end=2
+iter->dimension=2-R in [0, 7, 1) iter->residual_end=7
+iter->dimension=3-S in [0, 7, 1) iter->residual_end=7
+iter->dimension=5-P in [0, 4, 1) iter->residual_end=4
+iter->dimension=1-M in [0, 16, 1) iter->residual_end=16
+iter->dimension=0-C in [0, 3, 1) iter->residual_end=3
+iter->dimension=6-Q in [0, 28, 1) iter->residual_end=28
+nest->storage_tiling_boundaries[0]=0
+nest->storage_tiling_boundaries[1]=7
+nest->storage_tiling_boundaries[2]=9
+Evaluate Storage Level 0 -- RegisterFile
+start layout evaluation
+residual_end:
+initialized crypto
+starting bank conflict evaluation
+tile.GetDataSpaceName()=Weights
+Q28 
+print dim_id_to_shape_mapping
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: S R C Q P M N H W 
+
+Target: RegisterFile
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: M dimension=1-M, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+
+rank:C  dimension: 0 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:M  dimension: 1 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:R  dimension: 2 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:S  dimension: 3 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+tile.GetDataSpaceName()=Inputs
+Q28 
+print dim_id_to_shape_mapping
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: S R C Q P M N H W 
+
+Target: RegisterFile
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Inputs
+  Type: interline
+    Rank: W dimension=(3,6)-(S,Q), factor=1
+    Rank: H dimension=(2,5)-(R,P), factor=1
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: H dimension=(2,5)-(R,P), factor=1
+    Rank: W dimension=(3,6)-(S,Q), factor=1
+
+rank:N  dimension: 4 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:C  dimension: 0 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:H  dimension: 2 5  mapping parallelism: 1  binding parallelism 1 unique_line_set: 0 slowdown: 1
+rank:W  dimension: 3 6  mapping parallelism: 1  binding parallelism 1 unique_line_set: 0 slowdown: 1
+tile.GetDataSpaceName()=Outputs
+Q28 
+print dim_id_to_shape_mapping
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: S R C Q P M N H W 
+
+Target: RegisterFile
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: P dimension=5-P, factor=1
+    Rank: Q dimension=6-Q, factor=1
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+
+rank:N  dimension: 4 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:M  dimension: 1 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:Q  dimension: 6 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:P  dimension: 5 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+ overall_slowdown_: 1
+Evaluate Storage Level 1 -- GlobalBuffer
+start layout evaluation
+residual_end:28 
+initialized crypto
+starting bank conflict evaluation
+tile.GetDataSpaceName()=Weights
+C3X M16X P4X S7 R7 Q2 M4 
+print dim_id_to_shape_mapping
+5 4
+1 16
+0 3
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: S R C Q P M N H W 
+
+Target: GlobalBuffer
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: M dimension=1-M, factor=1
+    Rank: C dimension=0-C, factor=3
+    Rank: R dimension=2-R, factor=7
+    Rank: S dimension=3-S, factor=7
+  Type: intraline
+    Rank: M dimension=1-M, factor=32
+    Rank: C dimension=0-C, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+
+rank:M  dimension: 1 mapping parallelism: 16  binding parallelism 32 average_rows_accessed: 1 slowdown: 1
+rank:C  dimension: 0 mapping parallelism: 3  binding parallelism 1 average_rows_accessed: 3 slowdown: 0.666667
+rank:R  dimension: 2 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 0.666667
+rank:S  dimension: 3 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 0.666667
+tile.GetDataSpaceName()=Inputs
+C3X M16X P4X S7 R7 Q2 M4 
+print dim_id_to_shape_mapping
+5 4
+1 16
+0 3
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: S R C Q P M N H W 
+
+Target: GlobalBuffer
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Inputs
+  Type: interline
+    Rank: W dimension=(3,6)-(S,Q), factor=1
+    Rank: H dimension=(2,5)-(R,P), factor=1
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=3
+  Type: intraline
+    Rank: W dimension=(3,6)-(S,Q), factor=32
+    Rank: H dimension=(2,5)-(R,P), factor=1
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+
+rank:W  dimension: 3 6  mapping parallelism: 1  binding parallelism 32 unique_line_set: 0 slowdown: 1
+rank:H  dimension: 2 5  mapping parallelism: 7  binding parallelism 1 unique_line_set: 0 slowdown: 1
+rank:N  dimension: 4 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:C  dimension: 0 mapping parallelism: 3  binding parallelism 1 average_rows_accessed: 3 slowdown: 1
+tile.GetDataSpaceName()=Outputs
+C3X M16X P4X S7 R7 Q2 M4 
+print dim_id_to_shape_mapping
+5 4
+1 16
+0 3
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: S R C Q P M N H W 
+
+Target: GlobalBuffer
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: P dimension=5-P, factor=1
+    Rank: Q dimension=6-Q, factor=6
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=32
+    Rank: P dimension=5-P, factor=1
+    Rank: Q dimension=6-Q, factor=1
+
+rank:N  dimension: 4 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:M  dimension: 1 mapping parallelism: 16  binding parallelism 32 average_rows_accessed: 1 slowdown: 1
+rank:P  dimension: 5 mapping parallelism: 4  binding parallelism 1 average_rows_accessed: 4 slowdown: 0.5
+rank:Q  dimension: 6 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 0.5
+ overall_slowdown_: 0.0740741
+Evaluate Storage Level 2 -- MainMemory
+start layout evaluation
+residual_end:28 7 7 2 4 
+initialized crypto
+starting bank conflict evaluation
+tile.GetDataSpaceName()=Weights
+P28 Q2 
+print dim_id_to_shape_mapping
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: S R C Q P M N H W 
+
+Target: MainMemory
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: M dimension=1-M, factor=2
+    Rank: C dimension=0-C, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+
+rank:C  dimension: 0 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:M  dimension: 1 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:R  dimension: 2 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:S  dimension: 3 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+tile.GetDataSpaceName()=Inputs
+P28 Q2 
+print dim_id_to_shape_mapping
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: S R C Q P M N H W 
+
+Target: MainMemory
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Inputs
+  Type: interline
+    Rank: W dimension=(3,6)-(S,Q), factor=7
+    Rank: H dimension=(2,5)-(R,P), factor=224
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: H dimension=(2,5)-(R,P), factor=1
+    Rank: W dimension=(3,6)-(S,Q), factor=1
+
+rank:N  dimension: 4 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:C  dimension: 0 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:H  dimension: 2 5  mapping parallelism: 1  binding parallelism 1 unique_line_set: 0 slowdown: 1
+rank:W  dimension: 3 6  mapping parallelism: 1  binding parallelism 1 unique_line_set: 0 slowdown: 1
+tile.GetDataSpaceName()=Outputs
+P28 Q2 
+print dim_id_to_shape_mapping
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: S R C Q P M N H W 
+
+Target: MainMemory
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=2
+    Rank: P dimension=5-P, factor=112
+    Rank: Q dimension=6-Q, factor=19
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+
+rank:N  dimension: 4 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:M  dimension: 1 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:Q  dimension: 6 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+rank:P  dimension: 5 mapping parallelism: 1  binding parallelism 1 average_rows_accessed: 1 slowdown: 1
+ overall_slowdown_: 1
+Utilization = 0.06 | pJ/Compute =    3.053 | Cycles = 8297856
+(squareloop) root@537f910f72ec:/home/ubuntu/squareloop/benchmarks/test_run# 

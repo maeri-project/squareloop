@@ -261,6 +261,7 @@ Model::Model(config::CompoundConfig* config,
     crypto_->crypto_initialized_ = true;
   }
   else{
+    crypto_->crypto_initialized_ = false;
     std::cout << "No Crypto specified" << std::endl;
   }
 

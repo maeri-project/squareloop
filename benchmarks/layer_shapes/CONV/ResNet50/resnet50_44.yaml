@@ -10,7 +10,7 @@ problem:
     R: 1
     S: 1
     Wdilation: 1
-    Wstride: 
+    Wstride: null
   shape:
     coefficients:
     - default: 1
@@ -28,6 +28,11 @@ problem:
       - - - M
       - - - R
       - - - S
+      ranks:
+      - C
+      - M
+      - R
+      - S
     - name: Inputs
       projection:
       - - - N
@@ -40,6 +45,11 @@ problem:
           - Hdilation
         - - Q
           - Hstride
+      ranks:
+      - N
+      - C
+      - H
+      - W
     - name: Outputs
       projection:
       - - - N
@@ -47,6 +57,11 @@ problem:
       - - - Q
       - - - P
       read_write: true
+      ranks:
+      - N
+      - M
+      - Q
+      - P
     dimensions:
     - C
     - M

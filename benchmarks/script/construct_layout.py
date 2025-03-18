@@ -54,24 +54,26 @@ oacts_auto_expanded_ranks = ['P', "Q"]
 # When spatial layout for weights does not utilize all available parallelism,
 # we spread out the R, S dimensions
 layout_policy_constraints_dict = {
-    #            [S, R,  C,  Q,  P, M, N,  W,  H]
-    "Cx16":      [1, 1, 16, 16,  1, 1, 1,  1,  1],
-    "Hx16":      [1, 1,  1,  1, 16, 1, 1,  1, 16],
-    "Wx16":      [1, 1,  1, 16,  1, 1, 1, 16,  1],
-    "Cx4Wx4":    [1, 1,  4,  4,  1, 4, 1,  4,  1],
-    "Cx4Hx4":    [1, 1,  4,  1,  4, 4, 1,  1,  4],
-    "Wx4Hx4":    [1, 1,  1,  4,  4, 1, 1,  4,  4],
-    "Cx4Wx2Hx2": [1, 1,  4,  2,  2, 1, 1,  2,  2],
+    #            [S, R,  C,  Q,  P,  M, N,  W,  H]
+    "Cx32":      [1, 1, 32, 32,  1,  1, 1,  1,  1],
+    "Mx32":      [1, 1,  1,  1,  1, 32, 1, 32,  1],
+    "Hx32":      [1, 1,  1,  1, 32,  1, 1,  1, 32],
+    "Wx32":      [1, 1,  1, 32,  1,  1, 1, 32,  1],
+    "Cx8Wx4":    [1, 1,  8,  4,  1,  4, 1,  4,  1],
+    "Cx8Hx4":    [1, 1,  8,  1,  4,  4, 1,  1,  4],
+    "Wx8Hx4":    [1, 1,  1,  8,  4,  1, 1,  8,  4],
+    "Cx8Wx2Hx2": [1, 1,  8,  2,  2,  1, 1,  2,  2],
 }
 
 layout_name_dict = [
-    "SRCQPMNHW_Cx16",
-    "SRCQPMNHW_Hx16",
-    "SRCQPMNHW_Wx16",
-    "SRCQPMNHW_Cx4Hx4",
-    "SRCQPMNHW_Cx4Wx4",
-    "SRCQPMNHW_Wx4Hx4",
-    "SRCQPMNHW_Cx4Wx2Hx2",
+    "SRCQPMNHW_Cx32",
+    "SRCQPMNHW_Hx32",
+    "SRCQPMNHW_Mx32",
+    "SRCQPMNHW_Wx32",
+    "SRCQPMNHW_Cx8Hx4",
+    "SRCQPMNHW_Cx8Wx4",
+    "SRCQPMNHW_Wx8Hx4",
+    "SRCQPMNHW_Cx8Wx2Hx2",
 ]
 
 ###########################
@@ -298,11 +300,6 @@ def generate_layout(file_path, layout_policy, workload_bounds):
         f.write("  - target: MainMemory\n")
         f.write("    type: interline\n")
         f.write(f"    factors: R={chunk_iteration['R']} S={chunk_iteration['S']} P={chunk_iteration['P']} Q={chunk_iteration['Q']} C={chunk_iteration['C']} M={chunk_iteration['M']} N={chunk_iteration['N']} H={chunk_iteration['H']} W={chunk_iteration['W']}\n")
-        f.write(f"    permutation: {permutation}\n")
-        f.write("\n")
-        f.write("  - target: MainMemory\n")
-        f.write("    type: intraline\n")
-        f.write(f"    factors: R={chunk_size['R']} S={chunk_size['S']} P={chunk_size['P']} Q={chunk_size['Q']} C={chunk_size['C']} M={chunk_size['M']} N={chunk_size['N']} H={chunk_size['H']} W={chunk_size['W']}\n")
         f.write(f"    permutation: {permutation}\n")
         f.write("\n")
         f.write("  - target: GlobalBuffer\n")
