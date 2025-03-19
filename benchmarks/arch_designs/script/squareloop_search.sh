@@ -1,1 +1,2 @@
-timeloop-mapper ../layer_shapes/CONV/ResNet50/resnet50_1.yaml ../layout/resnet50/SRCQPMNHW_Cx16_1.yaml ../arch_designs/vector_256.yaml ../mapper/mapper_original_timeloop.yaml  ../crypto/AES-GCM.yaml 
+timeloop-mapper ../layer_shapes/CONV/ResNet50/resnet50_1.yaml ../layout/resnet50/SRCQPMNHW_Mx32_1.yaml ../arch_designs/vector_256.yaml ../mapper/mapper_original_timeloop.yaml  ../crypto/AES-GCM.yaml 
+timeloop-mapper ../layer_shapes/CONV/ResNet50/resnet50_47.yaml ../layout/resnet50/SRCQPMNHW_Cx32_47.yaml ../arch_designs/vector_256.yaml ../mapper/mapper_original_timeloop.yaml  ../crypto/AES-GCM.yaml 
