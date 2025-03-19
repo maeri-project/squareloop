@@ -375,7 +375,7 @@ Mapper::Mapper(config::CompoundConfig* config,
   crypto_ = new crypto::CryptoConfig();
 
   if (existing_crypto){
-    crypto_ = crypto::ParseAndConstruct(compound_config_node_crypto);//, arch_specs_, workload_);
+    crypto_ = crypto::ParseAndConstruct(compound_config_node_crypto);
     
     crypto_->crypto_initialized_ = true;
 
@@ -409,24 +409,9 @@ Mapper::Mapper(config::CompoundConfig* config,
         externalPortMapping[i] = {arch_specs_.topology.GetStorageLevel(i)->num_ports.Get(), arch_specs_.topology.GetStorageLevel(i)->num_ports.Get()};
 
     layout_ = layout::ParseAndConstruct(compound_config_node_layout, workload_, externalPortMapping);
-    // layout_ = layout::ParseAndConstruct(compound_config_node_layout, workload_.GetShape()->FactorizedDimensionNameToID, workload_.GetFactorizedBounds().GetCoordinates(), externalPortMapping);//, arch_specs_, workload_);
     
     layout_initialized_ = true;
     layout::PrintOverallLayout(layout_);
-
-    // for (const auto &l : layout_) {
-    //   std::cout << "Target: " << l.target << "\n"
-    //             << "  num_read_ports: " << l.num_read_ports << ", num_write_ports: " << l.num_write_ports << "\n"
-    //             << "  max_dim_perline: { ";
-    //   for (int d : l.max_dim_perline) std::cout << d << " ";
-    //   std::cout << "}\n  Factor order: { ";
-    //   for (char f : l.factor_order) std::cout << f << " ";
-    //   std::cout << "}\n  Interline nest:\n";
-    //   layout::PrintNestLoopOrder(l.interline, l.factor_order);
-    //   std::cout << "  Intraline nest:\n";
-    //   layout::PrintNestLoopOrder(l.intraline, l.factor_order);
-    //   std::cout << "\n";
-    // }
   }
   else{
     layout_initialized_ = false;

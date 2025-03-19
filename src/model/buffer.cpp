@@ -929,6 +929,8 @@ namespace model
 
         if (specs_.technology.Get() == Technology::DRAM)
         {
+
+          // compute latency is the product of all temporal iterations.
           uint64_t compute_cycles = 1;
           for (auto j : tile_loopnest)
           {
@@ -940,13 +942,13 @@ namespace model
 
           // get mapping access pattern
           std::unordered_map<problem::Shape::FlattenedDimensionID, int>
-              dim_id_to_shape_mapping;
+              dim_id_to_mapping_parallelism;
           for (auto j : tile_loopnest)
           {
             std::cout << j.PrintCompact(dim_id_to_name) << " ";
-            if (dim_id_to_shape_mapping[j.dimension] == 0)
-              dim_id_to_shape_mapping[j.dimension] = 1;
-            dim_id_to_shape_mapping[j.dimension] *= j.residual_end;
+            if (dim_id_to_mapping_parallelism[j.dimension] == 0)
+              dim_id_to_mapping_parallelism[j.dimension] = 1;
+            dim_id_to_mapping_parallelism[j.dimension] *= j.residual_end;
           }
           std::cout << std::endl;
 
@@ -957,13 +959,16 @@ namespace model
           {
             dim_id_to_num_tiles[j.dimension] = j.residual_end;
           }
-
-          // get layout pattern
+          std::cout << "dim_id_to_num_tiles: "  << std::endl;
+          for (auto j: dim_id_to_num_tiles)
+            std::cout << "dimID:" << j.first << "  num_tile:" << j.second << std::endl;
+          
+            // get layout pattern
           double line_size = 1;
           std::unordered_map<std::string, int>
               rank_id_to_shape_layout;
           std::unordered_map<std::string, int>
-              rank_id_to_shape_mapping;
+              rank_id_to_mapping_parallelism;
           std::unordered_map<std::string, int>
               rank_id_to_num_tiles;
           std::unordered_map<std::string, int>
@@ -980,29 +985,29 @@ namespace model
               if (dimsID.size() == 1)
               {
                 rank_id_to_num_tiles[r] = std::max(dim_id_to_num_tiles[dimsID[0]], 1);
-                rank_id_to_shape_mapping[r] = std::max(dim_id_to_shape_mapping[dimsID[0]], 1);
+                rank_id_to_mapping_parallelism[r] = std::max(dim_id_to_mapping_parallelism[dimsID[0]], 1);
                 zero_pad_ranks[r] = 0;
               }
               else
               {
                 std::vector<std::uint32_t> coefficientValue = layout.rankToCoefficientValue.at(r);
                 std::cout << "rank:" << r << "  dimension: ";
-                zero_pad_ranks[r] = dim_id_to_shape_mapping[dimsID[0]] / 2;
+                zero_pad_ranks[r] = dim_id_to_mapping_parallelism[dimsID[0]] / 2;
                 int num_tiles = 1;
                 int mapping_parallelism = 1;
                 double mapping_parallelism_dbl = 0;
                 for (unsigned index = 0; index < dimsID.size(); index++)
                 {
-                  mapping_parallelism_dbl += (std::max(dim_id_to_shape_mapping[dimsID[index]], 1) - 1) * coefficientValue[index];
+                  mapping_parallelism_dbl += (std::max(dim_id_to_mapping_parallelism[dimsID[index]], 1) - 1) * coefficientValue[index];
                   num_tiles += (std::max(dim_id_to_num_tiles[dimsID[index]], 1) - 1) * coefficientValue[index];
-                  if (dim_id_to_shape_mapping[dimsID[index]] / 2 < zero_pad_ranks[r])
-                    zero_pad_ranks[r] = dim_id_to_shape_mapping[dimsID[index]] / 2;
+                  if (dim_id_to_mapping_parallelism[dimsID[index]] / 2 < zero_pad_ranks[r])
+                    zero_pad_ranks[r] = dim_id_to_mapping_parallelism[dimsID[index]] / 2;
                   std::cout << dimsID[index] << " ";
                 }
                 std::cout << std::endl;
                 // mapping_parallelism_dbl /= factor;
                 mapping_parallelism += std::ceil(mapping_parallelism_dbl);
-                rank_id_to_shape_mapping[r] = mapping_parallelism;
+                rank_id_to_mapping_parallelism[r] = mapping_parallelism;
                 rank_id_to_num_tiles[r] = num_tiles;
               }
             }
@@ -1020,7 +1025,7 @@ namespace model
           std::unordered_map<std::string, int>
               zp_accesses_needed;
           std::vector<std::pair<std::string, int>> zp_rank_list;
-          for (auto [rank_id, tile_req] : rank_id_to_shape_mapping)
+          for (auto [rank_id, tile_req] : rank_id_to_mapping_parallelism)
           {
             rank_list.push_back(rank_id);
             int layout_avail = rank_id_to_shape_layout[rank_id];
@@ -1116,23 +1121,30 @@ namespace model
           std::cout << " total_latency: " << total_latency << std::endl;
           std::cout << " compute_cycles: " << compute_cycles << std::endl;
           overall_slowdown_ *= (total_cnt * compute_cycles) / total_latency;
+          std::cout << " overall_slowdown_: " << overall_slowdown_ << std::endl << std::endl;
         }
         else
         {
           // Pring out mapping information for debugging
           std::unordered_map<problem::Shape::FlattenedDimensionID, int>
-              dim_id_to_shape_mapping;
+              dim_id_to_mapping_parallelism;
+          // For mapping below current memory level
+          for (auto j : tile_loopnest)
+          {
+            std::cout << j.PrintCompact(dim_id_to_name) << " ";
+            if (loop::IsSpatial(j.spacetime_dimension))
+              dim_id_to_mapping_parallelism[j.dimension] = j.residual_end;
+          }
+          // For mapping at current memory level
           for (auto j : tile.subnest)
           {
             std::cout << j.PrintCompact(dim_id_to_name) << " ";
             if (loop::IsSpatial(j.spacetime_dimension))
-            {
-              dim_id_to_shape_mapping[j.dimension] = j.residual_end;
-            }
+              dim_id_to_mapping_parallelism[j.dimension] = j.residual_end;
           }
           std::cout << std::endl;
-          std::cout << "print dim_id_to_shape_mapping" << std::endl;
-          for (auto j : dim_id_to_shape_mapping)
+          std::cout << "print dim_id_to_mapping_parallelism" << std::endl;
+          for (auto j : dim_id_to_mapping_parallelism)
           {
             std::cout << j.first << " " << j.second << std::endl;
           }
@@ -1155,18 +1167,17 @@ namespace model
               {
                 // Parallelism at Mapping (mapping_parallelism)
                 // defined as the maximum number ​ of distinct data elements in rank r that can be simultaneously requested by the mapping f during one operational cycle.
-                int mapping_parallelism = std::max(dim_id_to_shape_mapping[dimsID[0]], 1);
+                int mapping_parallelism = std::max(dim_id_to_mapping_parallelism[dimsID[0]], 1);
 
                 // Parallelism at Binding (binding_parallelism)
                 // defined as the maximum number of elements along rank r that can be concurrently accessed from a given "buffer" in a single clock cycle.
                 int binding_parallelism = factor;
 
                 // Compute Bank Conflict
-                double average_rows_accessed = (1.0 + ((double)mapping_parallelism - 
-                                std::gcd(mapping_parallelism, binding_parallelism)) / binding_parallelism);
+                double average_rows_accessed = std::max((1.0 + ((double)mapping_parallelism - 
+                                std::gcd(mapping_parallelism, binding_parallelism)) / binding_parallelism), 1.0);
 
                 total_rows_required_by_cur_data_space *= average_rows_accessed;
-                overall_slowdown_ *= std::min(1.0, double(layout.num_read_ports) / total_rows_required_by_cur_data_space);
                 // Introduced new layout modeling
                 std::cout
                     << "rank:" << r << "  dimension: " << dimsID[0]
@@ -1188,7 +1199,7 @@ namespace model
                 for (unsigned index = 0; index < dimsID.size(); index++)
                 {
                   mapping_parallelism_dbl += (
-                    std::max(dim_id_to_shape_mapping[dimsID[index]],1) - 1) * coefficientValue[index];
+                    std::max(dim_id_to_mapping_parallelism[dimsID[index]],1) - 1) * coefficientValue[index];
                   std::cout << dimsID[index] << " ";
                 }
                 mapping_parallelism += std::ceil(mapping_parallelism_dbl);
@@ -1198,8 +1209,10 @@ namespace model
                 // Correct the strided access -- figure out a consecutive number of cycles where number of lines accessed would repeat.
                 // Within this pattern group, mapping at different cycles request different number of lines
                 // Outside this pattern group, number of lines requested by mapping would repeat the same pattern
-                unsigned num_cycles_form_a_pattern_group = std::ceil((mapping_parallelism * binding_parallelism) / std::gcd(mapping_parallelism, binding_parallelism));
-
+                unsigned num_cycles_form_a_pattern_group = std::ceil((mapping_parallelism * binding_parallelism) / std::max(int(std::gcd(mapping_parallelism, binding_parallelism)), int(mapping_parallelism)));
+                // unsigned num_cycles_form_a_pattern_group = std::ceil((mapping_parallelism * binding_parallelism) / std::gcd(mapping_parallelism, binding_parallelism));
+                std::cout << " binding_parallelism=" << binding_parallelism << "  mapping_parallelism=" << mapping_parallelism << "   num_cycles_form_a_pattern_group=" << num_cycles_form_a_pattern_group << std::endl;
+                
                 // Calculate total number of lines accessed within a consecutive number of num_cycles_form_a_pattern_group cycles.
                 // index = q * stride + s * dilation; So iterate all cycles. Within each cycle, iterate over each dimension.
                 std::set<int> overall_index_list;
@@ -1208,7 +1221,7 @@ namespace model
                   std::set<int> index_set = {initial_index};
                   for (unsigned i = 0; i < dimsID.size(); i++)
                   {
-                    unsigned parallelism = std::max(dim_id_to_shape_mapping[dimsID[i]], 1);
+                    unsigned parallelism = std::max(dim_id_to_mapping_parallelism[dimsID[i]], 1);
                     std::set<int> new_index_set;
                     for (auto index_comp : index_set)
                     {
@@ -1231,11 +1244,10 @@ namespace model
                 }
 
                 // Compute Bank Conflict
-                double average_rows_accessed = double(line_set.size()) / double(num_cycles_form_a_pattern_group);
-                total_rows_required_by_cur_data_space *= std::max(average_rows_accessed, 1.0);
+                double average_rows_accessed = std::max(double(line_set.size()) / double(num_cycles_form_a_pattern_group), 1.0);
+                total_rows_required_by_cur_data_space *= average_rows_accessed;
 
                 // Introduced new layout modeling
-                overall_slowdown_ *= std::min(1.0, double(layout.num_read_ports) /  total_rows_required_by_cur_data_space);
                 std::cout
                     << "\t statistic mapping parallelism (strided access): " << statistic_mapping_parallelism
                     << "\tbinding parallelism: " << binding_parallelism
@@ -1244,6 +1256,7 @@ namespace model
               }
             }
             std::cout << "slowdown caused by " << tile.GetDataSpaceName() << " is " << std::min(1.0, double(layout.num_read_ports) / total_rows_required_by_cur_data_space) << std::endl;
+            overall_slowdown_ *= std::min(1.0, double(layout.num_read_ports) /  total_rows_required_by_cur_data_space);
           }
         }
       }
@@ -1251,6 +1264,7 @@ namespace model
     std::cout << " overall_slowdown_: " << overall_slowdown_ << std::endl;
   }
 
+  
   //
   // Heavyweight Evaluate() function.
   // FIXME: Derive FanoutX, FanoutY, MeshX, MeshY from mapping if unspecified.

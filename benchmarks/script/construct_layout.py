@@ -35,8 +35,10 @@ from cnn_layers import *
 # User Specified Inputs
 ###########################
 
-total_lines_on_chip_buffer = 1024  # lines
-size_line_on_chip_buffer = 16  # data
+available_lines_glb_buf = 1024  # number of lines within a single on-chip global buffer
+size_of_line_glb_buf = 32       # number of data a single on-chip global buffer line contains
+size_of_line_offchip_dram = 32  # number of data a single DRAM line contains
+
 weight_related_ranks = ['M', "C", "R", "S"]
 weight_auto_expanded_ranks = ['R', "S"]
 
@@ -122,43 +124,43 @@ def product(cap_dict, ranks):
     return prod
 
 
-def expand_line_utilization(spatial_capacities, workload_shape, data_related_ranks, data_auto_expanded_ranks):
+def expand_line_utilization(spatial_capacities_glb_buf, workload_shape, data_related_ranks, data_auto_expanded_ranks):
     """
     Given:
-      - spatial_capacities: dict mapping each rank to its initial capacity per line.
+      - spatial_capacities_glb_buf: dict mapping each rank to its initial capacity per line.
       - workload_shape: dict mapping each rank to the total workload available.
       - data_related_ranks: list of ranks that define the weight tensor layout.
       - data_auto_expanded_ranks: list of ranks that can be expanded if the line is underutilized.
-      - size_line_on_chip_buffer: total number of elements that can be stored per on-chip buffer line.
+      - size_of_line_glb_buf: total number of elements that can be stored per on-chip buffer line.
       
     This function checks if the product of the spatial capacities for the data_related_ranks
     exactly fills the line. If not, it increases the capacity for auto-expandable ranks (without
     exceeding the total available workload for that rank) until the product is as close as possible
-    to (but not over) size_line_on_chip_buffer.
+    to (but not over) size_of_line_glb_buf.
     
     Returns a tuple (final_capacities, final_product) where:
       - final_capacities is a dict with the (possibly expanded) capacity for each weight-related rank.
       - final_product is the product (i.e. total weights per line) after expansion.
     """
     # Initialize the capacities for the weight-related ranks
-    current_caps = {r: spatial_capacities[r] for r in data_related_ranks}
+    current_caps = {r: spatial_capacities_glb_buf[r] for r in data_related_ranks}
     current_product = product(current_caps, data_related_ranks)
     
     print(f"Initial product for {data_related_ranks}: {current_product}")
-    print(f"Target line size: {size_line_on_chip_buffer}")
+    print(f"Target line size: {size_of_line_glb_buf}")
     
     # If already fully utilized (or exceeded), no need to expand.
-    if current_product >= size_line_on_chip_buffer:
+    if current_product >= size_of_line_glb_buf:
         print("No auto-expansion needed.")
         return current_caps, current_product
     
     # Compute extra available for each auto-expandable rank.
     extra_available = {}
     for r in data_auto_expanded_ranks:
-        extra_available[r] = workload_shape[r] - spatial_capacities[r]
+        extra_available[r] = workload_shape[r] - spatial_capacities_glb_buf[r]
     
     # Try to expand until either the line is fully utilized or no further expansion is possible.
-    while current_product < size_line_on_chip_buffer:
+    while current_product < size_of_line_glb_buf:
         expanded_this_round = False
         # Cycle over auto-expandable ranks
         for r in data_auto_expanded_ranks:
@@ -168,15 +170,15 @@ def expand_line_utilization(spatial_capacities, workload_shape, data_related_ran
                 # we can compute new_product as:
                 new_product = (current_product // current_caps[r]) * (current_caps[r] + 1)
                 # Only add if we do not exceed the line capacity.
-                if new_product <= size_line_on_chip_buffer:
+                if new_product <= size_of_line_glb_buf:
                     current_caps[r] += 1
                     extra_available[r] -= 1
                     current_product = product(current_caps, data_related_ranks)
                     expanded_this_round = True
                     print(f"Expanded rank {r}: new capacity = {current_caps[r]}, new product = {current_product}")
-                    spatial_capacities[r] = current_caps[r]
+                    spatial_capacities_glb_buf[r] = current_caps[r]
                     # If we exactly hit the target, break early.
-                    if current_product == size_line_on_chip_buffer:
+                    if current_product == size_of_line_glb_buf:
                         break
         # If no rank could be expanded without exceeding the target, exit the loop.
         if not expanded_this_round:
@@ -184,11 +186,11 @@ def expand_line_utilization(spatial_capacities, workload_shape, data_related_ran
             break
 
 
-def calculate_lines_required(workload_shape, spatial_capacities, permutation):
+def calculate_lines_required(workload_shape, spatial_capacities_glb_buf, permutation):
     """
     Given:
       - workload_shape: dict mapping each rank (e.g. 'S', 'R', etc.) to its total number of elements.
-      - spatial_capacities: dict mapping each rank to the number of elements that can fit in one line.
+      - spatial_capacities_glb_buf: dict mapping each rank to the number of elements that can fit in one line.
       - permutation: string specifying the order of ranks (e.g. "SRCQPMNHW")
     Returns:
       A dict mapping each rank to the number of lines required.
@@ -196,19 +198,19 @@ def calculate_lines_required(workload_shape, spatial_capacities, permutation):
     lines_required = {}
     for rank in permutation:
         total = workload_shape.get(rank)
-        capacity = spatial_capacities.get(rank)
+        capacity = spatial_capacities_glb_buf.get(rank)
         if total is None or capacity is None:
             raise ValueError(f"Missing total or capacity for rank '{rank}'")
         lines_required[rank] = math.ceil(total / capacity)
     return lines_required
 
 
-def allocate_tiles(permutation, total_line_required, total_lines_on_chip_buffer):
+def allocate_tiles(permutation, total_line_required_glb_buf, available_lines_glb_buf):
     """
     Allocate on-chip lines (tile sizes) per rank under a multiplicative (product) constraint.
     
     For each rank in the given priority order (permutation), we assign an allocation:
-      allocated[r] = min( total_line_required[r], floor(total_lines_on_chip_buffer / product_so_far) )
+      allocated[r] = min( total_line_required_glb_buf[r], floor(available_lines_glb_buf / product_so_far) )
     where product_so_far is the product of allocated lines for all ranks processed so far.
     
     Returns:
@@ -219,21 +221,21 @@ def allocate_tiles(permutation, total_line_required, total_lines_on_chip_buffer)
     product_val = 1
     for r in permutation:
         # Maximum we can allocate for rank r without exceeding the overall on-chip capacity:
-        max_possible = total_lines_on_chip_buffer // product_val
-        # We want to allocate as many lines as needed by the workload (total_line_required[r]),
+        max_possible = available_lines_glb_buf // product_val
+        # We want to allocate as many lines as needed by the workload (total_line_required_glb_buf[r]),
         # but cannot exceed max_possible.
-        allocated[r] = min(total_line_required[r], max_possible)
+        allocated[r] = min(total_line_required_glb_buf[r], max_possible)
         product_val *= allocated[r]
     return allocated, product_val
 
 
-def compute_chunk_params(permutation, total_line_required, spatial_capacities, total_lines_on_chip_buffer):
+def compute_chunk_params(permutation, total_line_required_glb_buf, spatial_capacities_glb_buf, available_lines_glb_buf):
     """
     Compute the per-rank chunk size and number of iterations (chunks) given:
       - permutation: a string like "SRCQPMNHW" defining priority.
-      - total_line_required: dict mapping each rank to total lines needed to store its workload.
-      - spatial_capacities: dict mapping each rank to number of data elements stored in one on-chip line.
-      - total_lines_on_chip_buffer: overall number of on-chip lines available (i.e. product constraint).
+      - total_line_required_glb_buf: dict mapping each rank to total lines needed to store its workload.
+      - spatial_capacities_glb_buf: dict mapping each rank to number of data elements stored in one on-chip line.
+      - available_lines_glb_buf: overall number of on-chip lines available (i.e. product constraint).
       
     Returns:
       chunk_size: dict mapping each rank to number of data elements loaded per chunk.
@@ -241,15 +243,15 @@ def compute_chunk_params(permutation, total_line_required, spatial_capacities, t
       allocated_tiles: dict showing allocated on-chip lines (tile sizes) per rank.
       product_val: product of allocated lines (total lines used by one chunk).
     """
-    allocated_tiles, product_val = allocate_tiles(permutation, total_line_required, total_lines_on_chip_buffer)
+    allocated_tiles, product_val = allocate_tiles(permutation, total_line_required_glb_buf, available_lines_glb_buf)
     
     # Compute chunk size per rank: the number of data elements loaded for that rank in one chunk.
-    chunk_size = {r: allocated_tiles[r] * spatial_capacities[r] for r in permutation}
+    chunk_size = {r: allocated_tiles[r] * spatial_capacities_glb_buf[r] for r in permutation}
     
     # Compute how many chunks (iterations) are needed per rank:
-    # If the on-chip tile for that rank holds allocated_tiles[r] lines, but the workload requires total_line_required[r]
+    # If the on-chip tile for that rank holds allocated_tiles[r] lines, but the workload requires total_line_required_glb_buf[r]
     # lines, then we need:
-    chunk_iteration = {r: math.ceil(total_line_required[r] / allocated_tiles[r]) for r in permutation}
+    chunk_iteration = {r: math.ceil(total_line_required_glb_buf[r] / allocated_tiles[r]) for r in permutation}
     
     return chunk_size, chunk_iteration, allocated_tiles, product_val
 
@@ -262,8 +264,10 @@ def generate_layout(file_path, layout_policy, workload_bounds):
         layout_policy.split("_")[-1]
     ]
 
-    # on-chip buffer spatial layout configuration
-    spatial_capacities = {
+    ####################
+    # on-chip global buffer spatial layout configuration
+    ####################
+    spatial_capacities_glb_buf = {
         "S": min(S, workload_shape['S']),  # S_spatial: number of S elements per line
         "R": min(R, workload_shape['R']),  # R_spatial
         "C": min(C, workload_shape['C']),  # C_spatial
@@ -275,19 +279,19 @@ def generate_layout(file_path, layout_policy, workload_bounds):
         "W": min(W, workload_shape['W']),  # W_spatial
     }
 
-    expand_line_utilization(spatial_capacities, workload_shape, weight_related_ranks, weight_auto_expanded_ranks)
-    expand_line_utilization(spatial_capacities, workload_shape, iacts_related_ranks, iacts_auto_expanded_ranks)
-    expand_line_utilization(spatial_capacities, workload_shape, oacts_related_ranks, oacts_auto_expanded_ranks)
-    print(f"after expansion spatial_capacities:\n{spatial_capacities}")
+    expand_line_utilization(spatial_capacities_glb_buf, workload_shape, weight_related_ranks, weight_auto_expanded_ranks)
+    expand_line_utilization(spatial_capacities_glb_buf, workload_shape, iacts_related_ranks, iacts_auto_expanded_ranks)
+    expand_line_utilization(spatial_capacities_glb_buf, workload_shape, oacts_related_ranks, oacts_auto_expanded_ranks)
+    print(f"after expansion spatial_capacities_glb_buf:\n{spatial_capacities_glb_buf}")
 
     # Change ranks spatial value to higher if it does not fully utilize the capacity of a single line.
     permutation = layout_policy.split("_")[0]
-    total_line_required = calculate_lines_required(workload_shape, spatial_capacities, permutation)
-    print(f"total_line_required:\n{total_line_required}")
+    total_line_required_glb_buf = calculate_lines_required(workload_shape, spatial_capacities_glb_buf, permutation)
+    print(f"total_line_required_glb_buf:\n{total_line_required_glb_buf}")
 
-    chunk_size, chunk_iteration, allocated_lines, product_val = compute_chunk_params(permutation, total_line_required, spatial_capacities, total_lines_on_chip_buffer)
+    chunk_size, chunk_iteration, allocated_lines, product_val = compute_chunk_params(permutation, total_line_required_glb_buf, spatial_capacities_glb_buf, available_lines_glb_buf)
     print(f"chunk_size:\n{chunk_size}\nchunk_iteration:\n{chunk_iteration}\nallocated_lines:\n{allocated_lines}")
-    print(f"buffer utilization={product_val/total_lines_on_chip_buffer*100:0.2f}%, used #lines={product_val}")
+    print(f"on_chip global buffer utilization={product_val/available_lines_glb_buf*100:0.2f}%, used #lines={product_val}")
     # on-chip buffer temporal layout configuration
     # total size / spatial line size based on the order.
     # assuming each data space equally divide the overall on-chip buffer line.
@@ -295,11 +299,40 @@ def generate_layout(file_path, layout_policy, workload_bounds):
     # The size would be used for other data spaces with remaining shape
     # for iActs
 
+    ####################
+    # off-chip DRAM spatial layout configuration
+    ####################
+    spatial_capacities_dram = {
+        "S": min(S, workload_shape['S']),  # S_spatial: number of S elements per line
+        "R": min(R, workload_shape['R']),  # R_spatial
+        "C": min(C, workload_shape['C']),  # C_spatial
+        "Q": min(Q, workload_shape['Q']),  # Q_spatial
+        "P": min(P, workload_shape['P']),  # P_spatial
+        "M": min(M, workload_shape['M']),  # M_spatial
+        "N": min(N, workload_shape['N']),  # N_spatial
+        "H": min(H, workload_shape['H']),  # H_spatial
+        "W": min(W, workload_shape['W']),  # W_spatial
+    }
+
+    expand_line_utilization(spatial_capacities_dram, workload_shape, weight_related_ranks, weight_auto_expanded_ranks)
+    expand_line_utilization(spatial_capacities_dram, workload_shape, iacts_related_ranks, iacts_auto_expanded_ranks)
+    expand_line_utilization(spatial_capacities_dram, workload_shape, oacts_related_ranks, oacts_auto_expanded_ranks)
+    print(f"after expansion spatial_capacities_dram:\n{spatial_capacities_dram}")
+
+    # Change ranks spatial value to higher if it does not fully utilize the capacity of a single line.
+    permutation = layout_policy.split("_")[0]
+    total_line_required_dram = calculate_lines_required(workload_shape, spatial_capacities_dram, permutation)
+    print(f"total_line_required_dram:\n{total_line_required_dram}")
+
     with open(file_path, "w") as f:
         f.write("layout:\n")
         f.write("  - target: MainMemory\n")
         f.write("    type: interline\n")
-        f.write(f"    factors: R={chunk_iteration['R']} S={chunk_iteration['S']} P={chunk_iteration['P']} Q={chunk_iteration['Q']} C={chunk_iteration['C']} M={chunk_iteration['M']} N={chunk_iteration['N']} H={chunk_iteration['H']} W={chunk_iteration['W']}\n")
+        f.write(f"    factors: R={total_line_required_dram['R']} S={total_line_required_dram['S']} P={total_line_required_dram['P']} Q={total_line_required_dram['Q']} C={total_line_required_dram['C']} M={total_line_required_dram['M']} N={total_line_required_dram['N']} H={total_line_required_dram['H']} W={total_line_required_dram['W']}\n")
+        f.write(f"    permutation: {permutation}\n")
+        f.write("  - target: MainMemory\n")
+        f.write("    type: intraline\n")
+        f.write(f"    factors: R={spatial_capacities_dram['R']} S={spatial_capacities_dram['S']} P={spatial_capacities_dram['P']} Q={spatial_capacities_dram['Q']} C={spatial_capacities_dram['C']} M={spatial_capacities_dram['M']} N={spatial_capacities_dram['N']} H={spatial_capacities_dram['H']} W={spatial_capacities_dram['W']}\n")
         f.write(f"    permutation: {permutation}\n")
         f.write("\n")
         f.write("  - target: GlobalBuffer\n")
@@ -310,7 +343,7 @@ def generate_layout(file_path, layout_policy, workload_bounds):
         f.write("  - target: GlobalBuffer\n")
         f.write("    type: intraline\n")
         f.write(
-            f"    factors: R={spatial_capacities['R']} S={spatial_capacities['S']} P={spatial_capacities['P']} Q={spatial_capacities['Q']} C={spatial_capacities['C']} M={spatial_capacities['M']} N={spatial_capacities['N']} H={spatial_capacities['H']} W={spatial_capacities['W']}\n"
+            f"    factors: R={spatial_capacities_glb_buf['R']} S={spatial_capacities_glb_buf['S']} P={spatial_capacities_glb_buf['P']} Q={spatial_capacities_glb_buf['Q']} C={spatial_capacities_glb_buf['C']} M={spatial_capacities_glb_buf['M']} N={spatial_capacities_glb_buf['N']} H={spatial_capacities_glb_buf['H']} W={spatial_capacities_glb_buf['W']}\n"
         )
         f.write(f"    permutation: {permutation}\n")
         f.write("\n")
