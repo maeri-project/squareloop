@@ -1087,6 +1087,7 @@ namespace model
             cnt *= frequency_counts[rank_id].first;
             std::cout << "\t Accesses[x lines]:" << num_x_lines[rank_id] << "     \t  frequency_counts:" << frequency_counts[rank_id].first;
           }
+          std::cout << std::endl;
         }
         std::cout << std::endl << std::endl;
         total_cnt += cnt;
