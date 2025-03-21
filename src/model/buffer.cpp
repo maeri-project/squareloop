@@ -1087,8 +1087,8 @@ namespace model
             cnt *= frequency_counts[rank_id].first;
             std::cout << "\t Accesses[x lines]:" << num_x_lines[rank_id] << "     \t  frequency_counts:" << frequency_counts[rank_id].first;
           }
-          std::cout << std::endl << std::endl;
         }
+        std::cout << std::endl << std::endl;
         total_cnt += cnt;
         overall_critical_path_latency += cnt * std::max((double)compute_cycles,
                                           std::ceil(lines / layout.num_read_ports));
