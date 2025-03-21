@@ -946,7 +946,7 @@ namespace model
           std::cout << j.PrintCompact(dim_id_to_name) << " ";
           if (dim_id_to_tile_dim_shape[j.dimension] == 0)
             dim_id_to_tile_dim_shape[j.dimension] = 1;
-          dim_id_to_tile_dim_shape[j.dimension] *= j.residual_end;
+          dim_id_to_tile_dim_shape[j.dimension] *= j.end;
         }
       else
         // only iterate through spatial accesses
@@ -954,7 +954,7 @@ namespace model
         {
           std::cout << j.PrintCompact(dim_id_to_name) << " ";
           if (loop::IsSpatial(j.spacetime_dimension))
-            dim_id_to_tile_dim_shape[j.dimension] = j.residual_end;
+            dim_id_to_tile_dim_shape[j.dimension] = j.end;
         }
       
       std::cout << std::endl;
@@ -1028,9 +1028,12 @@ namespace model
         {
           num_x_lines[rank_id] = std::ceil((double)mapping_parallelism / binding_parallelism);
           int gcd = std::gcd(binding_parallelism, mapping_parallelism);
-          frequency_counts[rank_id].second = (mapping_parallelism / gcd - 1) % (binding_parallelism / gcd); //ToDo Row Buffer support (optional, add function check in layout definition)
+          frequency_counts[rank_id].second = (mapping_parallelism / gcd - 1) % (binding_parallelism / gcd); // ToDo: Row Buffer support (optional, add function check in layout definition)
           // ToDo: tile_req / gcd is total number of lines in a pattern group.
-          frequency_counts[rank_id].first = (binding_parallelism / gcd) - frequency_counts[rank_id].second; // ToDo: use layout_avail/gcd to replace the current pattern group calculation.
+          if(frequency_counts[rank_id].second < 1) // Just checking frequency_counts[rank_id].second == 0;
+            frequency_counts[rank_id].first = 1;
+          else
+            frequency_counts[rank_id].first = (binding_parallelism / gcd) - frequency_counts[rank_id].second; // ToDo: Wrong equation when C=3, H=7
         }
       }
 
@@ -1045,7 +1048,7 @@ namespace model
       std::cout << " *** step 4 *** " << std::endl;
       for (auto j : tile_loopnest)
         if (!loop::IsSpatial(j.spacetime_dimension) && skiped_register_level){
-          compute_cycles *= j.residual_end;
+          compute_cycles *= j.end;
         }
         else if (loop::IsSpatial(j.spacetime_dimension)){
           skiped_register_level = true;
@@ -1089,13 +1092,12 @@ namespace model
           }
           std::cout << std::endl;
         }
-        std::cout << std::endl << std::endl;
         total_cnt += cnt;
         overall_critical_path_latency += cnt * std::max((double)compute_cycles,
-                                          std::ceil(lines / layout.num_read_ports));
+        std::ceil(lines / layout.num_read_ports));
+        std::cout << " total lines requested = " << lines << "  cnt(current bucket) = " << cnt << std::endl;
       }
-
-      overall_slowdown_ *= (total_cnt * compute_cycles) / overall_critical_path_latency;
+      overall_slowdown_ *= (total_cnt * compute_cycles) / overall_critical_path_latency; // ToDo: use read port for input and weights. use write ports for outputs.
       std::cout << "slowdown caused by " << tile.GetDataSpaceName() << " is " << (total_cnt * compute_cycles) / overall_critical_path_latency << std::endl;
     }
     std::cout << "overall_slowdown_ = " << overall_slowdown_ << std::endl;

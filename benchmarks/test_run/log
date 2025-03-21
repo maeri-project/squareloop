@@ -1,0 +1,1033 @@
+input file: ../layer_shapes/CONV/ResNet50/resnet50_1.yaml
+input file: ../arch_designs/vector_256.yaml
+input file: ./timeloop-mapper.map.yaml
+input file: ../layout/resnet50/SRCQPMNHW_Cx4Hx8_1.yaml
+Start Parsering Crypto
+No Crypto specified
+Start Parsering Layout
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: S R C Q P M N H W 
+
+Target: RegisterFile
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: M dimension=1-M, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: W dimension=(3,6)-(S,Q), factor=1
+    Rank: H dimension=(2,5)-(R,P), factor=1
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: P dimension=5-P, factor=1
+    Rank: Q dimension=6-Q, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: H dimension=(2,5)-(R,P), factor=1
+    Rank: W dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: GlobalBuffer
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: M dimension=1-M, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: R dimension=2-R, factor=4
+    Rank: S dimension=3-S, factor=7
+  Data space: Inputs
+  Type: interline
+    Rank: W dimension=(3,6)-(S,Q), factor=1
+    Rank: H dimension=(2,5)-(R,P), factor=1
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: P dimension=5-P, factor=1
+    Rank: Q dimension=6-Q, factor=36
+  Data space: Weights
+  Type: intraline
+    Rank: M dimension=1-M, factor=4
+    Rank: C dimension=0-C, factor=3
+    Rank: R dimension=2-R, factor=2
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: W dimension=(3,6)-(S,Q), factor=1
+    Rank: H dimension=(2,5)-(R,P), factor=10
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=3
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=4
+    Rank: P dimension=5-P, factor=8
+    Rank: Q dimension=6-Q, factor=1
+Target: MainMemory
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: M dimension=1-M, factor=16
+    Rank: C dimension=0-C, factor=1
+    Rank: R dimension=2-R, factor=4
+    Rank: S dimension=3-S, factor=7
+  Data space: Inputs
+  Type: interline
+    Rank: W dimension=(3,6)-(S,Q), factor=224
+    Rank: H dimension=(2,5)-(R,P), factor=23
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=16
+    Rank: P dimension=5-P, factor=14
+    Rank: Q dimension=6-Q, factor=112
+  Data space: Weights
+  Type: intraline
+    Rank: M dimension=1-M, factor=4
+    Rank: C dimension=0-C, factor=3
+    Rank: R dimension=2-R, factor=2
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: W dimension=(3,6)-(S,Q), factor=1
+    Rank: H dimension=(2,5)-(R,P), factor=10
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=3
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=4
+    Rank: P dimension=5-P, factor=8
+    Rank: Q dimension=6-Q, factor=1
+mapping analysis
+iter->dimension=6-Q in [0, 2, 1) iter->residual_end=2
+iter->dimension=5-P in [0, 28, 1) iter->residual_end=28
+iter->dimension=1-M in [0, 4, 1) iter->residual_end=4
+iter->dimension=6-Q in [0, 2, 1) iter->residual_end=2
+iter->dimension=2-R in [0, 7, 1) iter->residual_end=7
+iter->dimension=3-S in [0, 7, 1) iter->residual_end=7
+iter->dimension=5-P in [0, 4, 1) iter->residual_end=4
+iter->dimension=1-M in [0, 16, 1) iter->residual_end=16
+iter->dimension=0-C in [0, 3, 1) iter->residual_end=3
+iter->dimension=6-Q in [0, 28, 1) iter->residual_end=28
+nest->storage_tiling_boundaries[0]=0
+nest->storage_tiling_boundaries[1]=7
+nest->storage_tiling_boundaries[2]=9
+Evaluate Storage Level 0 -- RegisterFile
+start layout evaluation
+starting bank conflict evaluation
+crypto_config->datapath=0
+tile.GetDataSpaceName()=Weights
+ *** step 1 *** 
+Q28 
+dim_id_to_tile_dim_shape: 
+ *** step 2 *** 
+ *** step 3 *** 
+rank_id S mapping_parallelism=1 binding_parallelism=1
+rank_id R mapping_parallelism=1 binding_parallelism=1
+rank_id M mapping_parallelism=1 binding_parallelism=1
+rank_id C mapping_parallelism=1 binding_parallelism=1
+ *** step 4 *** 
+compute_cycles=1
+ *** step 5 *** 
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 1  cnt(current bucket) = 1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 2  cnt(current bucket) = 0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 2  cnt(current bucket) = 0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 4  cnt(current bucket) = 0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 2  cnt(current bucket) = 0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 4  cnt(current bucket) = 0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 4  cnt(current bucket) = 0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 8  cnt(current bucket) = 0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 2  cnt(current bucket) = 0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 4  cnt(current bucket) = 0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 4  cnt(current bucket) = 0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 8  cnt(current bucket) = 0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 4  cnt(current bucket) = 0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 8  cnt(current bucket) = 0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 8  cnt(current bucket) = 0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 16  cnt(current bucket) = 0
+slowdown caused by Weights is 1
+tile.GetDataSpaceName()=Inputs
+ *** step 1 *** 
+Q28 
+dim_id_to_tile_dim_shape: 
+rank:H  dimension: 2 5 
+rank:W  dimension: 3 6 
+ *** step 2 *** 
+ *** step 3 *** 
+rank_id W mapping_parallelism=1 binding_parallelism=1
+rank_id H mapping_parallelism=1 binding_parallelism=1
+rank_id C mapping_parallelism=1 binding_parallelism=1
+rank_id N mapping_parallelism=1 binding_parallelism=1
+ *** step 4 *** 
+compute_cycles=1
+ *** step 5 *** 
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x lines]:1     	  frequency_counts:1
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 1  cnt(current bucket) = 1
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x lines]:1     	  frequency_counts:1
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 2  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x lines]:1     	  frequency_counts:1
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 2  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x lines]:1     	  frequency_counts:1
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 4  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 2  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 4  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 4  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 8  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x lines]:1     	  frequency_counts:1
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 2  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x lines]:1     	  frequency_counts:1
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 4  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x lines]:1     	  frequency_counts:1
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 4  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x lines]:1     	  frequency_counts:1
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 8  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 4  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 8  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 8  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 16  cnt(current bucket) = 0
+slowdown caused by Inputs is 1
+tile.GetDataSpaceName()=Outputs
+ *** step 1 *** 
+Q28 
+dim_id_to_tile_dim_shape: 
+ *** step 2 *** 
+ *** step 3 *** 
+rank_id P mapping_parallelism=1 binding_parallelism=1
+rank_id M mapping_parallelism=1 binding_parallelism=1
+rank_id Q mapping_parallelism=1 binding_parallelism=1
+rank_id N mapping_parallelism=1 binding_parallelism=1
+ *** step 4 *** 
+compute_cycles=1
+ *** step 5 *** 
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 1  cnt(current bucket) = 1
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 2  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 2  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 4  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 2  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 4  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 4  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 8  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 2  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 4  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 4  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 8  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 4  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 8  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 8  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 16  cnt(current bucket) = 0
+slowdown caused by Outputs is 1
+overall_slowdown_ = 1
+Evaluate Storage Level 1 -- GlobalBuffer
+start layout evaluation
+starting bank conflict evaluation
+crypto_config->datapath=0
+tile.GetDataSpaceName()=Weights
+ *** step 1 *** 
+C3X M16X P4X S7 R7 Q2 M4 
+dim_id_to_tile_dim_shape: 
+dimID:5  tile_dim_shape:4
+dimID:1  tile_dim_shape:16
+dimID:0  tile_dim_shape:3
+ *** step 2 *** 
+ *** step 3 *** 
+rank_id S mapping_parallelism=1 binding_parallelism=1
+rank_id R mapping_parallelism=1 binding_parallelism=2
+rank_id C mapping_parallelism=3 binding_parallelism=3
+rank_id M mapping_parallelism=16 binding_parallelism=4
+ *** step 4 *** 
+compute_cycles=1
+ *** step 5 *** 
+rank:M	 Accesses[x lines]:4     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 4  cnt(current bucket) = 1
+rank:M	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 5  cnt(current bucket) = 0
+rank:M	 Accesses[x lines]:4     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 8  cnt(current bucket) = 0
+rank:M	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 10  cnt(current bucket) = 0
+rank:M	 Accesses[x lines]:4     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 8  cnt(current bucket) = 0
+rank:M	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 10  cnt(current bucket) = 0
+rank:M	 Accesses[x lines]:4     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 16  cnt(current bucket) = 0
+rank:M	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 20  cnt(current bucket) = 0
+rank:M	 Accesses[x lines]:4     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 8  cnt(current bucket) = 0
+rank:M	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 10  cnt(current bucket) = 0
+rank:M	 Accesses[x lines]:4     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 16  cnt(current bucket) = 0
+rank:M	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 20  cnt(current bucket) = 0
+rank:M	 Accesses[x lines]:4     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 16  cnt(current bucket) = 0
+rank:M	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 20  cnt(current bucket) = 0
+rank:M	 Accesses[x lines]:4     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 32  cnt(current bucket) = 0
+rank:M	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 40  cnt(current bucket) = 0
+slowdown caused by Weights is 0.5
+tile.GetDataSpaceName()=Inputs
+ *** step 1 *** 
+C3X M16X P4X S7 R7 Q2 M4 
+dim_id_to_tile_dim_shape: 
+dimID:5  tile_dim_shape:4
+dimID:1  tile_dim_shape:16
+dimID:0  tile_dim_shape:3
+rank:W  dimension: 3 6 
+rank:H  dimension: 2 5 
+ *** step 2 *** 
+ *** step 3 *** 
+rank_id C mapping_parallelism=3 binding_parallelism=3
+rank_id N mapping_parallelism=1 binding_parallelism=1
+rank_id H mapping_parallelism=7 binding_parallelism=10
+rank_id W mapping_parallelism=1 binding_parallelism=1
+ *** step 4 *** 
+compute_cycles=1
+ *** step 5 *** 
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x lines]:1     	  frequency_counts:4
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 1  cnt(current bucket) = 4
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x lines]:1     	  frequency_counts:4
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 2  cnt(current bucket) = 0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:2	  frequency_counts:6
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 2  cnt(current bucket) = 6
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:2	  frequency_counts:6
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 4  cnt(current bucket) = 0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x lines]:1     	  frequency_counts:4
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 2  cnt(current bucket) = 0
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x lines]:1     	  frequency_counts:4
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 4  cnt(current bucket) = 0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:2	  frequency_counts:6
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 4  cnt(current bucket) = 0
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:2	  frequency_counts:6
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 8  cnt(current bucket) = 0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x lines]:1     	  frequency_counts:4
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 2  cnt(current bucket) = 0
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x lines]:1     	  frequency_counts:4
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 4  cnt(current bucket) = 0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:2	  frequency_counts:6
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 4  cnt(current bucket) = 0
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:2	  frequency_counts:6
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 8  cnt(current bucket) = 0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x lines]:1     	  frequency_counts:4
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 4  cnt(current bucket) = 0
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x lines]:1     	  frequency_counts:4
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 8  cnt(current bucket) = 0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:2	  frequency_counts:6
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 8  cnt(current bucket) = 0
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:2	  frequency_counts:6
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 16  cnt(current bucket) = 0
+slowdown caused by Inputs is 1
+tile.GetDataSpaceName()=Outputs
+ *** step 1 *** 
+C3X M16X P4X S7 R7 Q2 M4 
+dim_id_to_tile_dim_shape: 
+dimID:5  tile_dim_shape:4
+dimID:1  tile_dim_shape:16
+dimID:0  tile_dim_shape:3
+ *** step 2 *** 
+ *** step 3 *** 
+rank_id P mapping_parallelism=4 binding_parallelism=8
+rank_id M mapping_parallelism=16 binding_parallelism=4
+rank_id Q mapping_parallelism=1 binding_parallelism=1
+rank_id N mapping_parallelism=1 binding_parallelism=1
+ *** step 4 *** 
+compute_cycles=1
+ *** step 5 *** 
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:4     	  frequency_counts:1
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 4  cnt(current bucket) = 1
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:4     	  frequency_counts:1
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 8  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 5  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 10  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:4     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 8  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:4     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 16  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 10  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 20  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:4     	  frequency_counts:1
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 8  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:4     	  frequency_counts:1
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 16  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 10  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 20  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:4     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 16  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:4     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 32  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 20  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 40  cnt(current bucket) = 0
+slowdown caused by Outputs is 0.5
+overall_slowdown_ = 0.25
+Evaluate Storage Level 2 -- MainMemory
+start layout evaluation
+starting bank conflict evaluation
+crypto_config->datapath=0
+tile.GetDataSpaceName()=Weights
+ *** step 1 *** 
+Q28 C3X M16X P4X S7 R7 Q2 M4 
+dim_id_to_tile_dim_shape: 
+dimID:2  tile_dim_shape:7
+dimID:3  tile_dim_shape:7
+dimID:5  tile_dim_shape:4
+dimID:1  tile_dim_shape:64
+dimID:0  tile_dim_shape:3
+dimID:6  tile_dim_shape:56
+ *** step 2 *** 
+ *** step 3 *** 
+rank_id S mapping_parallelism=7 binding_parallelism=1
+rank_id R mapping_parallelism=7 binding_parallelism=2
+rank_id C mapping_parallelism=3 binding_parallelism=3
+rank_id M mapping_parallelism=64 binding_parallelism=4
+ *** step 4 *** 
+compute_cycles=392
+ *** step 5 *** 
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:4     	  frequency_counts:1
+rank:S	 Accesses[x lines]:7     	  frequency_counts:1
+ total lines requested = 448  cnt(current bucket) = 1
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:4     	  frequency_counts:1
+rank:S	 Accesses[x lines]:7     	  frequency_counts:1
+ total lines requested = 476  cnt(current bucket) = 0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:4     	  frequency_counts:1
+rank:S	 Accesses[x lines]:7     	  frequency_counts:1
+ total lines requested = 896  cnt(current bucket) = 0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:4     	  frequency_counts:1
+rank:S	 Accesses[x lines]:7     	  frequency_counts:1
+ total lines requested = 952  cnt(current bucket) = 0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:S	 Accesses[x lines]:7     	  frequency_counts:1
+ total lines requested = 560  cnt(current bucket) = 0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:S	 Accesses[x lines]:7     	  frequency_counts:1
+ total lines requested = 595  cnt(current bucket) = 0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:S	 Accesses[x lines]:7     	  frequency_counts:1
+ total lines requested = 1120  cnt(current bucket) = 0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:S	 Accesses[x lines]:7     	  frequency_counts:1
+ total lines requested = 1190  cnt(current bucket) = 0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:4     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:8	  frequency_counts:0
+ total lines requested = 512  cnt(current bucket) = 0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:4     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:8	  frequency_counts:0
+ total lines requested = 544  cnt(current bucket) = 0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:4     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:8	  frequency_counts:0
+ total lines requested = 1024  cnt(current bucket) = 0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:4     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:8	  frequency_counts:0
+ total lines requested = 1088  cnt(current bucket) = 0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:8	  frequency_counts:0
+ total lines requested = 640  cnt(current bucket) = 0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:8	  frequency_counts:0
+ total lines requested = 680  cnt(current bucket) = 0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:8	  frequency_counts:0
+ total lines requested = 1280  cnt(current bucket) = 0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:8	  frequency_counts:0
+ total lines requested = 1360  cnt(current bucket) = 0
+slowdown caused by Weights is 1
+tile.GetDataSpaceName()=Inputs
+ *** step 1 *** 
+Q28 C3X M16X P4X S7 R7 Q2 M4 
+dim_id_to_tile_dim_shape: 
+dimID:2  tile_dim_shape:7
+dimID:3  tile_dim_shape:7
+dimID:5  tile_dim_shape:4
+dimID:1  tile_dim_shape:64
+dimID:0  tile_dim_shape:3
+dimID:6  tile_dim_shape:56
+rank:W  dimension: 3 6 
+rank:H  dimension: 2 5 
+ *** step 2 *** 
+ *** step 3 *** 
+rank_id C mapping_parallelism=3 binding_parallelism=3
+rank_id N mapping_parallelism=1 binding_parallelism=1
+rank_id H mapping_parallelism=13 binding_parallelism=10
+rank_id W mapping_parallelism=117 binding_parallelism=1
+ *** step 4 *** 
+compute_cycles=392
+ *** step 5 *** 
+rank:W	 Accesses[x lines]:117     	  frequency_counts:1
+rank:H	 Accesses[x lines]:2     	  frequency_counts:8
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 234  cnt(current bucket) = 8
+rank:W	 Accesses[x + 1 lines]:118	  frequency_counts:0
+rank:H	 Accesses[x lines]:2     	  frequency_counts:8
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 236  cnt(current bucket) = 0
+rank:W	 Accesses[x lines]:117     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:3	  frequency_counts:2
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 351  cnt(current bucket) = 2
+rank:W	 Accesses[x + 1 lines]:118	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:3	  frequency_counts:2
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 354  cnt(current bucket) = 0
+rank:W	 Accesses[x lines]:117     	  frequency_counts:1
+rank:H	 Accesses[x lines]:2     	  frequency_counts:8
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 468  cnt(current bucket) = 0
+rank:W	 Accesses[x + 1 lines]:118	  frequency_counts:0
+rank:H	 Accesses[x lines]:2     	  frequency_counts:8
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 472  cnt(current bucket) = 0
+rank:W	 Accesses[x lines]:117     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:3	  frequency_counts:2
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 702  cnt(current bucket) = 0
+rank:W	 Accesses[x + 1 lines]:118	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:3	  frequency_counts:2
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+ total lines requested = 708  cnt(current bucket) = 0
+rank:W	 Accesses[x lines]:117     	  frequency_counts:1
+rank:H	 Accesses[x lines]:2     	  frequency_counts:8
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 468  cnt(current bucket) = 0
+rank:W	 Accesses[x + 1 lines]:118	  frequency_counts:0
+rank:H	 Accesses[x lines]:2     	  frequency_counts:8
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 472  cnt(current bucket) = 0
+rank:W	 Accesses[x lines]:117     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:3	  frequency_counts:2
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 702  cnt(current bucket) = 0
+rank:W	 Accesses[x + 1 lines]:118	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:3	  frequency_counts:2
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 708  cnt(current bucket) = 0
+rank:W	 Accesses[x lines]:117     	  frequency_counts:1
+rank:H	 Accesses[x lines]:2     	  frequency_counts:8
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 936  cnt(current bucket) = 0
+rank:W	 Accesses[x + 1 lines]:118	  frequency_counts:0
+rank:H	 Accesses[x lines]:2     	  frequency_counts:8
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 944  cnt(current bucket) = 0
+rank:W	 Accesses[x lines]:117     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:3	  frequency_counts:2
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 1404  cnt(current bucket) = 0
+rank:W	 Accesses[x + 1 lines]:118	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:3	  frequency_counts:2
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+ total lines requested = 1416  cnt(current bucket) = 0
+slowdown caused by Inputs is 1
+tile.GetDataSpaceName()=Outputs
+ *** step 1 *** 
+Q28 C3X M16X P4X S7 R7 Q2 M4 
+dim_id_to_tile_dim_shape: 
+dimID:2  tile_dim_shape:7
+dimID:3  tile_dim_shape:7
+dimID:5  tile_dim_shape:4
+dimID:1  tile_dim_shape:64
+dimID:0  tile_dim_shape:3
+dimID:6  tile_dim_shape:56
+ *** step 2 *** 
+ *** step 3 *** 
+rank_id P mapping_parallelism=4 binding_parallelism=8
+rank_id M mapping_parallelism=64 binding_parallelism=4
+rank_id Q mapping_parallelism=56 binding_parallelism=1
+rank_id N mapping_parallelism=1 binding_parallelism=1
+ *** step 4 *** 
+compute_cycles=392
+ *** step 5 *** 
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:56     	  frequency_counts:1
+ total lines requested = 896  cnt(current bucket) = 1
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:56     	  frequency_counts:1
+ total lines requested = 1792  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:56     	  frequency_counts:1
+ total lines requested = 952  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:56     	  frequency_counts:1
+ total lines requested = 1904  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x lines]:56     	  frequency_counts:1
+ total lines requested = 1792  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x lines]:56     	  frequency_counts:1
+ total lines requested = 3584  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x lines]:56     	  frequency_counts:1
+ total lines requested = 1904  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x lines]:56     	  frequency_counts:1
+ total lines requested = 3808  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:57	  frequency_counts:0
+ total lines requested = 912  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:57	  frequency_counts:0
+ total lines requested = 1824  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:57	  frequency_counts:0
+ total lines requested = 969  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:57	  frequency_counts:0
+ total lines requested = 1938  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:57	  frequency_counts:0
+ total lines requested = 1824  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:57	  frequency_counts:0
+ total lines requested = 3648  cnt(current bucket) = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:57	  frequency_counts:0
+ total lines requested = 1938  cnt(current bucket) = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:57	  frequency_counts:0
+ total lines requested = 3876  cnt(current bucket) = 0
+slowdown caused by Outputs is 0.875
+overall_slowdown_ = 0.875
+Utilization = 0.19 | pJ/Compute =    3.053 | Cycles = 2458624
