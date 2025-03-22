@@ -900,7 +900,7 @@ namespace model
     return eval_status;
   }
 
-  double
+  std::pair<double, double>
   BufferLevel::ComputeBankConflictSlowdownPerDataSpace(const layout::Layout layout,
                                                        const crypto::CryptoConfig *crypto_config,
                                                        unsigned data_space_id,
@@ -916,6 +916,7 @@ namespace model
 #ifdef DEBUG
     std::cout << " *** step 1 *** " << std::endl;
 #endif
+    uint64_t total_data_requested = 1;
     std::vector<std::string> rank_list;
     std::unordered_map<std::string, int>
         rank_id_to_mapping_parallelism;
@@ -930,6 +931,7 @@ namespace model
           if (mapping_parallelism > 1)
           { // Skip thoses rank with parallelism as 1 as they won't lead to bank conflict
             rank_id_to_mapping_parallelism[r] = mapping_parallelism;
+            total_data_requested *= mapping_parallelism;
             rank_list.push_back(r);
           }
         }
@@ -953,6 +955,7 @@ namespace model
           if (mapping_parallelism > 1)
           { // Skip thoses rank with parallelism as 1 as they won't lead to bank conflict
             rank_id_to_mapping_parallelism[r] = mapping_parallelism;
+            total_data_requested *= mapping_parallelism;
             rank_list.push_back(r);
           }
         }
@@ -962,8 +965,10 @@ namespace model
     if (rank_id_to_mapping_parallelism.size() == 0)
     {
       std::cout << "all related rank has mapping parallelism = 1" << std::endl;
-      return 1.0; // No bank conflict if no rank is found
+      return std::pair<double, double> {1.0, 1.0}; // No bank conflict if no rank is found
     }
+
+
     // ****************************************************************
     // Step 2: Get Binding Parallelism (What Layout Provide Per Cycle)
     // ****************************************************************
@@ -1068,12 +1073,24 @@ namespace model
                 << std::endl;
 #endif
     }
+
+    // ****************************************************************
+    // Step 5: Analyze -- Bandwidth Modeling vs Layout based Modeling
+    // ****************************************************************
+    double average_line_requested_bw_modeling = double(total_data_requested) / double(specs_.block_size.Get());
+    double average_line_requested_layout_modeling = double(overall_lines) / double(total_cnt);
+    double num_lines_correction_ratio = average_line_requested_bw_modeling / average_line_requested_layout_modeling;
+    
 #ifdef DEBUG
-    std::cout << "average lines requested = " << overall_lines << "  total counts = " << total_cnt << "  average line requested = " << overall_lines / total_cnt << std::endl;
+    std::cout << "average lines requested = " << overall_lines << "  total counts = " << total_cnt << " total_data_requested=" << total_data_requested << std::endl;
+    std::cout << "average line requested (layout modeling) = " << overall_lines / total_cnt  <<  " average lines requested (bandwidth modeling) = " << average_line_requested_bw_modeling  << " bw/layout = " << num_lines_correction_ratio << std::endl;
 #endif
+
+    assert(num_lines_correction_ratio <= 1);
+
     double slowdown_current_dataspace = (total_cnt * compute_cycles) / overall_critical_path_latency; // ToDo: use read port for input and weights. use write ports for outputs.
 
-    return slowdown_current_dataspace;
+    return std::pair<double, double> {slowdown_current_dataspace, num_lines_correction_ratio};
   };
 
   void
@@ -1198,8 +1215,12 @@ namespace model
       // because all data requested by mapping in parallel needed to be provided within 1 cycle.
       std::cout << "## Phase 2 -- spatial bank conflict checking" << std::endl;
       double slowdown_spatial_check = 1.0;
+      double spatial_check_num_access_ratio_bw_over_layout = 1.0;
+      std::pair<double, double> spatial_bc_analysis_result;
       if (dim_id_to_mapping_parallelism.size() > 0)
-        slowdown_spatial_check = ComputeBankConflictSlowdownPerDataSpace(layout, crypto_config, data_space_id, 1.0, dim_id_to_mapping_parallelism, assume_zero_padding);
+        spatial_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(layout, crypto_config, data_space_id, 1.0, dim_id_to_mapping_parallelism, assume_zero_padding);
+      slowdown_spatial_check = spatial_bc_analysis_result.first;
+      spatial_check_num_access_ratio_bw_over_layout = spatial_bc_analysis_result.second;
 #ifdef DEBUG
       std::cout << "spatial-check: bank conflict slowdown caused by " << tile.GetDataSpaceName() << " is " << slowdown_spatial_check << std::endl;
 #endif
@@ -1209,29 +1230,38 @@ namespace model
       // ****************************************************************
       std::cout << "## Phase 3 -- next subtile bank conflict checking" << std::endl;
       double slowdown_subtile_check = 1.0;
+      double subtile_check_num_access_ratio_bw_over_layout = 1.0;
+      std::pair<double, double> subtile_bc_analysis_result;
       if (dim_id_to_subtile_shape.size() > 0)
-        slowdown_subtile_check = ComputeBankConflictSlowdownPerDataSpace(layout, crypto_config, data_space_id, compute_cycles, dim_id_to_subtile_shape, assume_zero_padding);
+        subtile_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(layout, crypto_config, data_space_id, compute_cycles, dim_id_to_subtile_shape, assume_zero_padding);
+      slowdown_spatial_check = subtile_bc_analysis_result.first;
+      subtile_check_num_access_ratio_bw_over_layout = subtile_bc_analysis_result.second;
+
 #ifdef DEBUG
       std::cout << "subtile-check: bank conflict slowdown caused by " << tile.GetDataSpaceName() << " is " << slowdown_subtile_check << std::endl;
 #endif
-
-      // ****************************************************************
-      // Phase 4: Cryptography Latency Evaluation
-      // ****************************************************************
-
+      
       double combined_slowdown_cur_dataspace = slowdown_spatial_check * slowdown_subtile_check;
-
 #ifdef DEBUG
       std::cout << "overall bank conflict slowdown caused by " << tile.GetDataSpaceName() << " is " << combined_slowdown_cur_dataspace << std::endl
                 << std::endl;
 #endif
-      dataspace_access_inflation_from_bank_conflict.push_back(combined_slowdown_cur_dataspace);
-      overall_slowdown_ *= combined_slowdown_cur_dataspace;
 
+      // ****************************************************************
+      // Phase 4: Correct Number of Accesses (for Energy Calculation)
+      // ****************************************************************  
+      double num_access_ratio = spatial_check_num_access_ratio_bw_over_layout * subtile_check_num_access_ratio_bw_over_layout;
+      dataspace_access_inflation_from_bank_conflict.push_back(num_access_ratio);
       for (auto &key_pair : tile.fine_grained_data_accesses)
       { // increase data access. .. ToDo: this does not change energy now.
-        key_pair.second /= combined_slowdown_cur_dataspace;
+        key_pair.second /= num_access_ratio;
       }
+
+      // ****************************************************************
+      // Phase 5: Cryptography Latency Evaluation
+      // ****************************************************************
+      overall_slowdown_ *= combined_slowdown_cur_dataspace;
+
     }
 #ifdef DEBUG
     std::cout << "overall_slowdown_ = " << overall_slowdown_ << std::endl
