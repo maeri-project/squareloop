@@ -177,15 +177,14 @@ rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
 rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
 Current bucket: total lines requested = 34  frequency counts = 0
 
-average lines requested = 16 total_data_requested=48
-slowdown current dataspace = 0.125  total counts = 1  compute_cycles=1   overall_critical_path_latency=8
+average lines requested = 16  total counts = 1 total_data_requested=48  compute_cycles=1
 average line requested (layout modeling) = 16 average lines requested (bandwidth modeling) = 1.5 bw/layout = 0.09375
+spatial-check: bank conflict slowdown caused by Weights is 0.125
 ## Phase 3 -- next subtile bank conflict checking
  *** step 1 *** 
 all related rank has mapping parallelism = 1
-bank conflict slowdown caused by Weights: spatial-check: 0.125
-subtile-check: 1
-overall (combined): 0.125
+subtile-check: bank conflict slowdown caused by Weights is 1
+overall bank conflict slowdown caused by Weights is 1
 
 spatial_check_num_access_ratio_bw_over_layout=0.09375 subtile_check_num_access_ratio_bw_over_layout=1
 num_access_ratio=0.09375
@@ -217,9 +216,9 @@ rank:H	 Accesses[x + 1 lines]:4	  frequency_counts:0
 rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
 Current bucket: total lines requested = 8  frequency counts = 0
 
-average lines requested = 3 total_data_requested=21
-slowdown current dataspace = 0.5  total counts = 1  compute_cycles=1   overall_critical_path_latency=2
+average lines requested = 3  total counts = 1 total_data_requested=21  compute_cycles=1
 average line requested (layout modeling) = 3 average lines requested (bandwidth modeling) = 0.65625 bw/layout = 0.21875
+spatial-check: bank conflict slowdown caused by Inputs is 0.5
 ## Phase 3 -- next subtile bank conflict checking
  *** step 1 *** 
 rank:W  dimension: 3 6 
@@ -234,12 +233,10 @@ Current bucket: total lines requested = 19  frequency counts = 1
 rank:W	 Accesses[x + 1 lines]:20	  frequency_counts:0
 Current bucket: total lines requested = 20  frequency counts = 0
 
-average lines requested = 19 total_data_requested=55
-slowdown current dataspace = 1  total counts = 1  compute_cycles=28   overall_critical_path_latency=28
+average lines requested = 19  total counts = 1 total_data_requested=55  compute_cycles=28
 average line requested (layout modeling) = 19 average lines requested (bandwidth modeling) = 1.71875 bw/layout = 0.0904605
-bank conflict slowdown caused by Inputs: spatial-check: 0.5
-subtile-check: 1
-overall (combined): 0.5
+subtile-check: bank conflict slowdown caused by Inputs is 1
+overall bank conflict slowdown caused by Inputs is 1
 
 spatial_check_num_access_ratio_bw_over_layout=0.21875 subtile_check_num_access_ratio_bw_over_layout=0.0904605
 num_access_ratio=0.0197882
@@ -247,7 +244,7 @@ num of lines before correction = 160758  after correction =8123915
 num of lines before correction = 7375872  after correction =372740170
 tile.GetDataSpaceName()=Outputs
 Skipping masked data space Outputs
-overall_slowdown_ = 0.0625
+overall_slowdown_ = 1
 
 
  data space id = 0  metadata_action -- fine_grained_data_accesses: 100352
@@ -262,6 +259,7 @@ subtile size: Q28 C3X M16X P4X S7 R7 Q2 M4
 compute_cycles=10976
 tile.GetDataSpaceName()=Weights
 ## Phase 2 -- spatial bank conflict checking
+spatial-check: bank conflict slowdown caused by Weights is 0
 ## Phase 3 -- next subtile bank conflict checking
  *** step 1 *** 
  *** step 2 *** 
@@ -367,18 +365,17 @@ rank:R	 Accesses[x + 1 lines]:4	  frequency_counts:0
 rank:S	 Accesses[x + 1 lines]:4	  frequency_counts:0
 Current bucket: total lines requested = 2080  frequency counts = 0
 
-average lines requested = 576 total_data_requested=9408
-slowdown current dataspace = 1  total counts = 1  compute_cycles=10976   overall_critical_path_latency=10976
+average lines requested = 576  total counts = 1 total_data_requested=9408  compute_cycles=10976
 average line requested (layout modeling) = 576 average lines requested (bandwidth modeling) = 294 bw/layout = 0.510417
-bank conflict slowdown caused by Weights: spatial-check: 0
-subtile-check: 1
-overall (combined): 0
+subtile-check: bank conflict slowdown caused by Weights is 1
+overall bank conflict slowdown caused by Weights is 1
 
 spatial_check_num_access_ratio_bw_over_layout=0 subtile_check_num_access_ratio_bw_over_layout=0.510417
 num_access_ratio=0
 num of lines before correction = 9408  after correction =0
 tile.GetDataSpaceName()=Inputs
 ## Phase 2 -- spatial bank conflict checking
+spatial-check: bank conflict slowdown caused by Inputs is 0
 ## Phase 3 -- next subtile bank conflict checking
  *** step 1 *** 
 rank:W  dimension: 3 6 
@@ -429,18 +426,17 @@ rank:H	 Accesses[x + 1 lines]:6	  frequency_counts:0
 rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
 Current bucket: total lines requested = 480  frequency counts = 0
 
-average lines requested = 195 total_data_requested=4563
-slowdown current dataspace = 1  total counts = 1  compute_cycles=10976   overall_critical_path_latency=10976
+average lines requested = 195  total counts = 1 total_data_requested=4563  compute_cycles=10976
 average line requested (layout modeling) = 195 average lines requested (bandwidth modeling) = 142.594 bw/layout = 0.73125
-bank conflict slowdown caused by Inputs: spatial-check: 0
-subtile-check: 1
-overall (combined): 0
+subtile-check: bank conflict slowdown caused by Inputs is 1
+overall bank conflict slowdown caused by Inputs is 1
 
 spatial_check_num_access_ratio_bw_over_layout=0 subtile_check_num_access_ratio_bw_over_layout=0.73125
 num_access_ratio=0
 num of lines before correction = 160758  after correction =0
 tile.GetDataSpaceName()=Outputs
 ## Phase 2 -- spatial bank conflict checking
+spatial-check: bank conflict slowdown caused by Outputs is 0
 ## Phase 3 -- next subtile bank conflict checking
  *** step 1 *** 
  *** step 2 *** 
@@ -489,17 +485,15 @@ rank:P	 Accesses[x + 1 lines]:5	  frequency_counts:0
 rank:Q	 Accesses[x + 1 lines]:3	  frequency_counts:2
 Current bucket: total lines requested = 975  frequency counts = 0
 
-average lines requested = 2560 total_data_requested=14336
-slowdown current dataspace = 1  total counts = 4  compute_cycles=10976   overall_critical_path_latency=43904
+average lines requested = 2560  total counts = 4 total_data_requested=14336  compute_cycles=10976
 average line requested (layout modeling) = 640 average lines requested (bandwidth modeling) = 448 bw/layout = 0.7
-bank conflict slowdown caused by Outputs: spatial-check: 0
-subtile-check: 1
-overall (combined): 0
+subtile-check: bank conflict slowdown caused by Outputs is 1
+overall bank conflict slowdown caused by Outputs is 1
 
 spatial_check_num_access_ratio_bw_over_layout=0 subtile_check_num_access_ratio_bw_over_layout=0.7
 num_access_ratio=0
 num of lines before correction = 802816  after correction =0
-overall_slowdown_ = 0
+overall_slowdown_ = 1
 
 
-Utilization = 0.05 | pJ/Compute =   24.721 | Cycles = 9834496
+Utilization = 0.75 | pJ/Compute =   24.721 | Cycles = 614656

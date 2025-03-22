@@ -1080,20 +1080,21 @@ namespace model
     double average_line_requested_bw_modeling = double(total_data_requested) / double(specs_.block_size.Get());
     double average_line_requested_layout_modeling = double(overall_lines) / double(total_cnt);
     double num_lines_correction_ratio = average_line_requested_bw_modeling / average_line_requested_layout_modeling;
+    double slowdown_current_dataspace = (total_cnt * double(compute_cycles)) / overall_critical_path_latency; // ToDo: use read port for input and weights. use write ports for outputs.
     
 #ifdef DEBUG
-    std::cout << "average lines requested = " << overall_lines << "  total counts = " << total_cnt << " total_data_requested=" << total_data_requested << std::endl;
+    std::cout << "average lines requested = " << overall_lines  << " total_data_requested=" << total_data_requested << std::endl;
+    std::cout << "slowdown current dataspace = " << slowdown_current_dataspace << "  total counts = " << total_cnt << "  compute_cycles=" << compute_cycles << "   overall_critical_path_latency=" << overall_critical_path_latency <<  std::endl;
     std::cout << "average line requested (layout modeling) = " << overall_lines / total_cnt  <<  " average lines requested (bandwidth modeling) = " << average_line_requested_bw_modeling  << " bw/layout = " << num_lines_correction_ratio << std::endl;
 #endif
 
     assert(num_lines_correction_ratio <= 1);
 
-    double slowdown_current_dataspace = (total_cnt * compute_cycles) / overall_critical_path_latency; // ToDo: use read port for input and weights. use write ports for outputs.
 
     return std::pair<double, double> {slowdown_current_dataspace, num_lines_correction_ratio};
   };
 
-  void
+  tiling::CompoundTile
   BufferLevel::ComputeBankConflictSlowdown(const tiling::CompoundTile &tile,
                                            layout::Layout layout,
                                            const tiling::CompoundMask &mask,
@@ -1102,7 +1103,7 @@ namespace model
   {
     overall_slowdown_ = 1.0; // Initialization
     auto dim_id_to_name = problem::GetShape()->FlattenedDimensionIDToName;
-
+    tiling::CompoundTile tile_corrected_access = tile;
     // ****************************************************************
     // Pre-Check: Get Subtile Shape and Spatial Data Requirement
     // ****************************************************************
@@ -1149,7 +1150,7 @@ namespace model
 #ifdef DEBUG
       std::cout << "Skip bank conflict analysis because of (1) no spatial access request and (2) subtile size = 1;" << std::endl << std::endl;
 #endif
-      return;
+      return tile_corrected_access;
     }
 
     // ****************************************************************
@@ -1203,7 +1204,7 @@ namespace model
 #ifdef DEBUG
         std::cout << "Skipping masked data space " << tile.GetDataSpaceName() << std::endl;
 #endif
-        dataspace_access_inflation_from_bank_conflict.push_back(1.0);
+        num_access_correction_ratio_per_data_space_.push_back(1.0);
         continue;
       }
 
@@ -1221,9 +1222,6 @@ namespace model
         spatial_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(layout, crypto_config, data_space_id, 1.0, dim_id_to_mapping_parallelism, assume_zero_padding);
       slowdown_spatial_check = spatial_bc_analysis_result.first;
       spatial_check_num_access_ratio_bw_over_layout = spatial_bc_analysis_result.second;
-#ifdef DEBUG
-      std::cout << "spatial-check: bank conflict slowdown caused by " << tile.GetDataSpaceName() << " is " << slowdown_spatial_check << std::endl;
-#endif
 
       // ****************************************************************
       // Phase 3: Perform Next Subtile Bank Conflict Check for Current Data Space
@@ -1234,16 +1232,15 @@ namespace model
       std::pair<double, double> subtile_bc_analysis_result;
       if (dim_id_to_subtile_shape.size() > 0)
         subtile_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(layout, crypto_config, data_space_id, compute_cycles, dim_id_to_subtile_shape, assume_zero_padding);
-      slowdown_spatial_check = subtile_bc_analysis_result.first;
+      slowdown_subtile_check = subtile_bc_analysis_result.first;
       subtile_check_num_access_ratio_bw_over_layout = subtile_bc_analysis_result.second;
 
-#ifdef DEBUG
-      std::cout << "subtile-check: bank conflict slowdown caused by " << tile.GetDataSpaceName() << " is " << slowdown_subtile_check << std::endl;
-#endif
-      
       double combined_slowdown_cur_dataspace = slowdown_spatial_check * slowdown_subtile_check;
+      overall_slowdown_ *= combined_slowdown_cur_dataspace;
 #ifdef DEBUG
-      std::cout << "overall bank conflict slowdown caused by " << tile.GetDataSpaceName() << " is " << combined_slowdown_cur_dataspace << std::endl
+      std::cout << "bank conflict slowdown caused by " << tile.GetDataSpaceName() << ": spatial-check: " << slowdown_spatial_check << std::endl;
+      std::cout << "subtile-check: " << slowdown_subtile_check << std::endl;
+      std::cout << "overall (combined): " << combined_slowdown_cur_dataspace << std::endl
                 << std::endl;
 #endif
 
@@ -1251,16 +1248,21 @@ namespace model
       // Phase 4: Correct Number of Accesses (for Energy Calculation)
       // ****************************************************************  
       double num_access_ratio = spatial_check_num_access_ratio_bw_over_layout * subtile_check_num_access_ratio_bw_over_layout;
-      dataspace_access_inflation_from_bank_conflict.push_back(num_access_ratio);
-      for (auto &key_pair : tile.fine_grained_data_accesses)
-      { // increase data access. .. ToDo: this does not change energy now.
-        key_pair.second /= num_access_ratio;
-      }
+      std::cout << "spatial_check_num_access_ratio_bw_over_layout=" << spatial_check_num_access_ratio_bw_over_layout  << " subtile_check_num_access_ratio_bw_over_layout=" << subtile_check_num_access_ratio_bw_over_layout << std::endl;
+      std::cout << "num_access_ratio=" << num_access_ratio << std::endl;
+      
+      num_access_correction_ratio_per_data_space_.push_back(num_access_ratio);
+      for (auto key_pair : tile_corrected_access.data_movement_info[data_space_id].fine_grained_data_accesses)
+        if (key_pair.second != 0) {
+          // increase data access. .. ToDo: this does not change energy now.
+          std::cout << "num of lines before correction = " << key_pair.second;
+          tile_corrected_access.data_movement_info[data_space_id].fine_grained_data_accesses[key_pair.first] = static_cast<uint64_t>(double(key_pair.second) / num_access_ratio);
+          std::cout << "  after correction =" << tile_corrected_access.data_movement_info[data_space_id].fine_grained_data_accesses[key_pair.first] << std::endl;
+        }
 
       // ****************************************************************
       // Phase 5: Cryptography Latency Evaluation
       // ****************************************************************
-      overall_slowdown_ *= combined_slowdown_cur_dataspace;
 
     }
 #ifdef DEBUG
@@ -1268,6 +1270,8 @@ namespace model
               << std::endl
               << std::endl;
 #endif
+
+    return tile_corrected_access;
   }
 
   //
@@ -1290,13 +1294,13 @@ namespace model
     std::cout << "start layout evaluation" << std::endl;
 #endif
 
-    ComputeBankConflictSlowdown(tile, layout, mask, tile_loopnest, crypto_config);
+    auto tile_corrected_access = ComputeBankConflictSlowdown(tile, layout, mask, tile_loopnest, crypto_config);
 
     auto eval_status = ComputeScalarAccesses(
-        tile.data_movement_info, mask, confidence_threshold, break_on_failure);
+      tile.data_movement_info, mask, confidence_threshold, break_on_failure);
     if (!break_on_failure || eval_status.success)
     {
-      ComputeVectorAccesses(tile.data_movement_info);
+      ComputeVectorAccesses(tile_corrected_access.data_movement_info);
       ComputeBufferEnergy(tile.data_movement_info);
       ComputeReductionEnergy();
       ComputeAddrGenEnergy();
@@ -2063,11 +2067,13 @@ namespace model
                                      : false;
 
           double total_naive_accesses;
+          std::cout << " data space id = " << pvi ; 
           if (!metadata_action)
           {
             total_naive_accesses = (iter->second % block_size == 0)
                                        ? iter->second / block_size
                                        : iter->second / block_size + 1;
+            std::cout << "  metadata_action -- fine_grained_data_accesses: " << iter->second << std::endl;
             stats_.fine_grained_vector_accesses[pvi][iter->first] = total_naive_accesses * ratio;
           }
         }
