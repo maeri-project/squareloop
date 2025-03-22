@@ -1450,7 +1450,9 @@
      
      // if analysis
      if(analysis->IsLayoutInitialized()){
+#ifdef DEBUG
        std::cout << "Evaluate Storage Level " << storage_level_id << " -- " << layout[storage_level_id].target << std::endl;
+#endif
        assert(layout.size() > storage_level_id);
        auto s = storage_level->Evaluate(tiles[storage_level_id], keep_masks[storage_level_id], layout[storage_level_id], 
                                       current_tile_loopnest,
@@ -1464,7 +1466,9 @@
        if (break_on_failure && !s.success)
          break;
      }else{
+#ifdef DEBUG
        std::cout << "Evaluate Storage Level " << storage_level_id  << std::endl;
+#endif
        auto s = storage_level->Evaluate(tiles[storage_level_id], keep_masks[storage_level_id], 
                                    workload,
                                    mapping.confidence_thresholds.at(storage_level_id),

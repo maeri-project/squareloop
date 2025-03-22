@@ -42,7 +42,7 @@ BOOST_CLASS_EXPORT(model::BufferLevel)
 #include "util/misc.hpp"
 #include "util/numeric.hpp"
 
-#define DEBUG
+// #define DEBUG
 
 namespace model
 {
@@ -964,7 +964,9 @@ namespace model
 
     if (rank_id_to_mapping_parallelism.size() == 0)
     {
+#ifdef DEBUG
       std::cout << "all related rank has mapping parallelism = 1" << std::endl;
+#endif
       return std::pair<double, double> {1.0, 1.0}; // No bank conflict if no rank is found
     }
 
@@ -1062,7 +1064,9 @@ namespace model
           std::cout << "\t Accesses[x lines]:" << num_x_lines[rank_id] << "   \t  frequency_counts:" << frequency_counts[rank_id].first;
 #endif
         }
+#ifdef DEBUG
         std::cout << std::endl;
+#endif
       }
       total_cnt += cnt;
       overall_critical_path_latency += cnt * std::max((double)compute_cycles,
@@ -1214,27 +1218,41 @@ namespace model
       // ****************************************************************
       // compute latency for spatial checking should be always 1,
       // because all data requested by mapping in parallel needed to be provided within 1 cycle.
+#ifdef DEBUG
       std::cout << "## Phase 2 -- spatial bank conflict checking" << std::endl;
+#endif
       double slowdown_spatial_check = 1.0;
       double spatial_check_num_access_ratio_bw_over_layout = 1.0;
       std::pair<double, double> spatial_bc_analysis_result;
-      if (dim_id_to_mapping_parallelism.size() > 0)
+      if (dim_id_to_mapping_parallelism.size() > 0){
         spatial_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(layout, crypto_config, data_space_id, 1.0, dim_id_to_mapping_parallelism, assume_zero_padding);
-      slowdown_spatial_check = spatial_bc_analysis_result.first;
-      spatial_check_num_access_ratio_bw_over_layout = spatial_bc_analysis_result.second;
+        slowdown_spatial_check = spatial_bc_analysis_result.first;
+        spatial_check_num_access_ratio_bw_over_layout = spatial_bc_analysis_result.second;
+      }
+      else{
+        slowdown_spatial_check = 1.0;
+        spatial_check_num_access_ratio_bw_over_layout = 1.0;
+      }
 
       // ****************************************************************
       // Phase 3: Perform Next Subtile Bank Conflict Check for Current Data Space
       // ****************************************************************
+#ifdef DEBUG
       std::cout << "## Phase 3 -- next subtile bank conflict checking" << std::endl;
+#endif
       double slowdown_subtile_check = 1.0;
       double subtile_check_num_access_ratio_bw_over_layout = 1.0;
       std::pair<double, double> subtile_bc_analysis_result;
-      if (dim_id_to_subtile_shape.size() > 0)
+      if (dim_id_to_subtile_shape.size() > 0){
         subtile_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(layout, crypto_config, data_space_id, compute_cycles, dim_id_to_subtile_shape, assume_zero_padding);
-      slowdown_subtile_check = subtile_bc_analysis_result.first;
-      subtile_check_num_access_ratio_bw_over_layout = subtile_bc_analysis_result.second;
-
+        slowdown_subtile_check = subtile_bc_analysis_result.first;
+        subtile_check_num_access_ratio_bw_over_layout = subtile_bc_analysis_result.second;
+      }
+      else{
+        slowdown_subtile_check = 1.0;
+        subtile_check_num_access_ratio_bw_over_layout = 1.0;
+      }
+      
       double combined_slowdown_cur_dataspace = slowdown_spatial_check * slowdown_subtile_check;
       overall_slowdown_ *= combined_slowdown_cur_dataspace;
 #ifdef DEBUG
@@ -1248,16 +1266,22 @@ namespace model
       // Phase 4: Correct Number of Accesses (for Energy Calculation)
       // ****************************************************************  
       double num_access_ratio = spatial_check_num_access_ratio_bw_over_layout * subtile_check_num_access_ratio_bw_over_layout;
+#ifdef DEBUG
       std::cout << "spatial_check_num_access_ratio_bw_over_layout=" << spatial_check_num_access_ratio_bw_over_layout  << " subtile_check_num_access_ratio_bw_over_layout=" << subtile_check_num_access_ratio_bw_over_layout << std::endl;
       std::cout << "num_access_ratio=" << num_access_ratio << std::endl;
+#endif
       
       num_access_correction_ratio_per_data_space_.push_back(num_access_ratio);
       for (auto key_pair : tile_corrected_access.data_movement_info[data_space_id].fine_grained_data_accesses)
         if (key_pair.second != 0) {
           // increase data access. .. ToDo: this does not change energy now.
+#ifdef DEBUG
           std::cout << "num of lines before correction = " << key_pair.second;
+#endif
           tile_corrected_access.data_movement_info[data_space_id].fine_grained_data_accesses[key_pair.first] = static_cast<uint64_t>(double(key_pair.second) / num_access_ratio);
+#ifdef DEBUG
           std::cout << "  after correction =" << tile_corrected_access.data_movement_info[data_space_id].fine_grained_data_accesses[key_pair.first] << std::endl;
+#endif
         }
 
       // ****************************************************************
@@ -2067,13 +2091,17 @@ namespace model
                                      : false;
 
           double total_naive_accesses;
+#ifdef DEBUG
           std::cout << " data space id = " << pvi ; 
+#endif
           if (!metadata_action)
           {
             total_naive_accesses = (iter->second % block_size == 0)
                                        ? iter->second / block_size
                                        : iter->second / block_size + 1;
+#ifdef DEBUG
             std::cout << "  metadata_action -- fine_grained_data_accesses: " << iter->second << std::endl;
+#endif
             stats_.fine_grained_vector_accesses[pvi][iter->first] = total_naive_accesses * ratio;
           }
         }

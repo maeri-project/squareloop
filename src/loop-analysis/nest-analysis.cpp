@@ -115,6 +115,7 @@ void NestAnalysis::Init(problem::Workload* wc, const loop::Nest* nest, layout::L
   ASSERT(fanoutX_map.size() == nest->storage_tiling_boundaries.size());
   ASSERT(fanoutY_map.size() == nest->storage_tiling_boundaries.size());
 
+#ifdef DEBUG
   std::cout << "mapping analysis" << std::endl;
   for( auto iter = nest->loops.rbegin(); iter < nest->loops.rend(); iter++){
    std::cout << "iter->dimension=" << iter->dimension << "-" << problem::GetShape()->FlattenedDimensionIDToName.at(iter->dimension) <<" in [" << iter->start  << ", " << iter->end << ", " << iter->stride << ") iter->residual_end=" << iter->residual_end  << std::endl;
@@ -123,6 +124,7 @@ void NestAnalysis::Init(problem::Workload* wc, const loop::Nest* nest, layout::L
   for( unsigned iter = 0; iter < nest->storage_tiling_boundaries.size(); iter++){
    std::cout << "nest->storage_tiling_boundaries["<< iter <<"]=" << nest->storage_tiling_boundaries[iter] << std::endl;
   }
+#endif
 
   workload_ = wc;
   layout_ = layout;
