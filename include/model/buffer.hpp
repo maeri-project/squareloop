@@ -384,6 +384,7 @@ class BufferLevel : public Level
   bool populate_energy_per_op = false;
   problem::Workload* workload_ = nullptr;
   double overall_slowdown_ = 1.0;
+  std::vector<double> dataspace_access_inflation_from_bank_conflict;
 
   // Network endpoints.
   std::shared_ptr<Network> network_read_;
@@ -425,7 +426,8 @@ class BufferLevel : public Level
   void ComputeBufferEnergy(const tiling::CompoundDataMovementInfo& data_movement_info);
   void ComputeReductionEnergy();
   void ComputeAddrGenEnergy();
-  void ComputeBankConflictSlowdown(const tiling::CompoundTile& tile, layout::Layout layout, std::vector<loop::Descriptor>& tile_loopnest, crypto::CryptoConfig* crypto_config); // bank conflict analysis
+  double ComputeBankConflictSlowdownPerDataSpace(const layout::Layout layout, const  crypto::CryptoConfig *crypto_config, unsigned data_space_id, uint64_t compute_cycles, std::unordered_map<problem::Shape::FlattenedDimensionID,  int> dim_id_to_mapping_parallelism, const bool assume_zero_padding); // bank conflict analysis for current dataspace
+  void ComputeBankConflictSlowdown(const tiling::CompoundTile& tile, layout::Layout layout, const tiling::CompoundMask &mask, std::vector<loop::Descriptor>& tile_loopnest, crypto::CryptoConfig* crypto_config); // bank conflict analysis
 
   double StorageEnergy(problem::Shape::DataSpaceID pv = problem::GetShape()->NumDataSpaces) const;
   double TemporalReductionEnergy(problem::Shape::DataSpaceID pv = problem::GetShape()->NumDataSpaces) const;

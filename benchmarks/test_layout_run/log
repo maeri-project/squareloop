@@ -1,0 +1,1999 @@
+input file: ../layer_shapes/CONV/ResNet50/resnet50_1.yaml
+input file: ../arch_designs/vector_256.yaml
+input file: ./timeloop-mapper.map.yaml
+input file: ../layout/resnet50/SRCQPMNHW_Cx32_1.yaml
+BUFFER MainMemory vector access energy = 3200 pJ, cluster area = 0 um^2
+Entries = 262144, word_size = 8, block_size = 32, cluster_size = 1, num_banks = 2, num_ports = 2, energy = 221.427, area = 0
+BUFFER GlobalBuffer vector access energy = 221.427 pJ, cluster area = 0 um^2
+Entries = 64, word_size = 8, block_size = 1, cluster_size = 1, num_banks = 2, num_ports = 2, energy = 0.489008, area = 0
+BUFFER RegisterFile vector access energy = 0.489008 pJ, cluster area = 0 um^2
+Start Parsering Crypto
+No Crypto specified
+Start Parsering Layout
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: S R C Q P M N H W 
+
+Target: RegisterFile
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: M dimension=1-M, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: W dimension=(3,6)-(S,Q), factor=1
+    Rank: H dimension=(2,5)-(R,P), factor=1
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: P dimension=5-P, factor=1
+    Rank: Q dimension=6-Q, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: H dimension=(2,5)-(R,P), factor=1
+    Rank: W dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: GlobalBuffer
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: M dimension=1-M, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: R dimension=2-R, factor=3
+    Rank: S dimension=3-S, factor=3
+  Data space: Inputs
+  Type: interline
+    Rank: W dimension=(3,6)-(S,Q), factor=1
+    Rank: H dimension=(2,5)-(R,P), factor=1
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: P dimension=5-P, factor=28
+    Rank: Q dimension=6-Q, factor=4
+  Data space: Weights
+  Type: intraline
+    Rank: M dimension=1-M, factor=1
+    Rank: C dimension=0-C, factor=3
+    Rank: R dimension=2-R, factor=3
+    Rank: S dimension=3-S, factor=3
+  Data space: Inputs
+  Type: intraline
+    Rank: W dimension=(3,6)-(S,Q), factor=3
+    Rank: H dimension=(2,5)-(R,P), factor=3
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=3
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: P dimension=5-P, factor=1
+    Rank: Q dimension=6-Q, factor=32
+Target: MainMemory
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: M dimension=1-M, factor=64
+    Rank: C dimension=0-C, factor=1
+    Rank: R dimension=2-R, factor=3
+    Rank: S dimension=3-S, factor=3
+  Data space: Inputs
+  Type: interline
+    Rank: W dimension=(3,6)-(S,Q), factor=75
+    Rank: H dimension=(2,5)-(R,P), factor=75
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=64
+    Rank: P dimension=5-P, factor=112
+    Rank: Q dimension=6-Q, factor=4
+  Data space: Weights
+  Type: intraline
+    Rank: M dimension=1-M, factor=1
+    Rank: C dimension=0-C, factor=3
+    Rank: R dimension=2-R, factor=3
+    Rank: S dimension=3-S, factor=3
+  Data space: Inputs
+  Type: intraline
+    Rank: W dimension=(3,6)-(S,Q), factor=3
+    Rank: H dimension=(2,5)-(R,P), factor=3
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=3
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: P dimension=5-P, factor=1
+    Rank: Q dimension=6-Q, factor=32
+mapping analysis
+iter->dimension=6-Q in [0, 2, 1) iter->residual_end=2
+iter->dimension=5-P in [0, 28, 1) iter->residual_end=28
+iter->dimension=1-M in [0, 4, 1) iter->residual_end=4
+iter->dimension=6-Q in [0, 2, 1) iter->residual_end=2
+iter->dimension=2-R in [0, 7, 1) iter->residual_end=7
+iter->dimension=3-S in [0, 7, 1) iter->residual_end=7
+iter->dimension=5-P in [0, 4, 1) iter->residual_end=4
+iter->dimension=1-M in [0, 16, 1) iter->residual_end=16
+iter->dimension=0-C in [0, 3, 1) iter->residual_end=3
+iter->dimension=6-Q in [0, 28, 1) iter->residual_end=28
+nest->storage_tiling_boundaries[0]=0
+nest->storage_tiling_boundaries[1]=7
+nest->storage_tiling_boundaries[2]=9
+Datatype Bypass Nest:
+---------------------
+0: 00000000000000000000000000000111
+1: 00000000000000000000000000000110
+2: 00000000000000000000000000000101
+
+---------------------
+mapping.datatype_bypass_nest[0][0]=1
+mapping.datatype_bypass_nest[0][1]=1
+mapping.datatype_bypass_nest[0][2]=1
+mapping.datatype_bypass_nest[0][3]=0
+mapping.datatype_bypass_nest[1][0]=0
+mapping.datatype_bypass_nest[1][1]=1
+mapping.datatype_bypass_nest[1][2]=1
+DataSpace: 0
+fanout: 1
+access stats:     [1, 1]: accesses = 614656 hops = 0 unicast hops = 0
+
+fanout: 192
+access stats:     [4, 48]: accesses = 1.0537e+06 hops = 1.76494e+08 unicast hops = 4.02512e+08
+
+fanout: 1
+access stats: 
+fanout: 1
+access stats: 
+fanout: 1
+access stats: 
+fanout: 1
+access stats: 
+fanout: 1
+access stats:     [1, 1]: accesses = 9408 hops = 0 unicast hops = 0
+
+fanout: 1
+access stats: 
+DataSpace: 1
+fanout: 1
+access stats:     [1, 1]: accesses = 614656 hops = 0 unicast hops = 0
+
+fanout: 192
+access stats:     [16, 12]: accesses = 2.29555e+06 hops = 2.70875e+08 unicast hops = 3.5076e+09
+
+fanout: 1
+access stats: 
+fanout: 1
+access stats: 
+fanout: 1
+access stats: 
+fanout: 1
+access stats: 
+fanout: 1
+access stats:     [1, 1]: accesses = 160758 hops = 0 unicast hops = 0
+
+fanout: 1
+access stats: 
+DataSpace: 2
+fanout: 1
+access stats:     [1, 1]: accesses = 614656 hops = 0 unicast hops = 0
+
+fanout: 192
+access stats:     [3, 64]: accesses = 802816 hops = 7.74717e+07 unicast hops = 2.30007e+08
+
+fanout: 1
+access stats: 
+fanout: 1
+access stats: 
+fanout: 1
+access stats: 
+fanout: 1
+access stats: 
+fanout: 1
+access stats:     [1, 1]: accesses = 802816 hops = 0 unicast hops = 0
+
+fanout: 1
+access stats: 
+Evaluate Storage Level 0 -- RegisterFile
+start layout evaluation
+starting bank conflict evaluation
+crypto_config->datapath=0
+tile.GetDataSpaceName()=Weights
+ *** step 1 *** 
+Q28 
+dim_id_to_tile_dim_shape: 
+ *** step 2 *** 
+ *** step 3 *** 
+rank_id S mapping_parallelism=1 binding_parallelism=1
+rank_id R mapping_parallelism=1 binding_parallelism=1
+rank_id M mapping_parallelism=1 binding_parallelism=1
+rank_id C mapping_parallelism=1 binding_parallelism=1
+ *** step 4 *** 
+compute_cycles=1
+ *** step 5 *** 
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 1  frequency cnt = 1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 2  frequency cnt = 0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 2  frequency cnt = 0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 4  frequency cnt = 0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 2  frequency cnt = 0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 4  frequency cnt = 0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 4  frequency cnt = 0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 8  frequency cnt = 0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 2  frequency cnt = 0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 4  frequency cnt = 0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 4  frequency cnt = 0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 8  frequency cnt = 0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 4  frequency cnt = 0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 8  frequency cnt = 0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 8  frequency cnt = 0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 16  frequency cnt = 0
+slowdown caused by Weights is 1
+tile.GetDataSpaceName()=Inputs
+Skipping masked data space Inputs
+tile.GetDataSpaceName()=Outputs
+ *** step 1 *** 
+Q28 
+dim_id_to_tile_dim_shape: 
+ *** step 2 *** 
+ *** step 3 *** 
+rank_id P mapping_parallelism=1 binding_parallelism=1
+rank_id M mapping_parallelism=1 binding_parallelism=1
+rank_id Q mapping_parallelism=1 binding_parallelism=1
+rank_id N mapping_parallelism=1 binding_parallelism=1
+ *** step 4 *** 
+compute_cycles=1
+ *** step 5 *** 
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 1  frequency cnt = 1
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 2  frequency cnt = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 2  frequency cnt = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 4  frequency cnt = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 2  frequency cnt = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 4  frequency cnt = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 4  frequency cnt = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:P	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 8  frequency cnt = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 2  frequency cnt = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 4  frequency cnt = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 4  frequency cnt = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x lines]:1     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 8  frequency cnt = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 4  frequency cnt = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:1     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 8  frequency cnt = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 8  frequency cnt = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 16  frequency cnt = 0
+slowdown caused by Outputs is 1
+overall_slowdown_ = 1
+block_size =1
+pvi =0
+iter->first =compression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =decompression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =leak
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+total_naive_accesses =21952
+iter->first =random_fill
+iter->second =21952
+stats_.fine_grained_vector_accesses[pvi][iter->first] =21952
+pvi =0
+iter->first =random_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =random_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =random_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+total_naive_accesses =614656
+iter->first =random_read
+iter->second =614656
+stats_.fine_grained_vector_accesses[pvi][iter->first] =614656
+pvi =0
+iter->first =random_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+op name: gated_metadata_fill: 0
+op name: gated_metadata_read: 0
+op name: gated_metadata_update: 0
+op name: random_metadata_fill: 0
+op name: random_metadata_read: 0
+op name: random_metadata_update: 0
+op name: skipped_metadata_fill: 0
+op name: skipped_metadata_read: 0
+op name: skipped_metadata_update: 0
+pvi =1
+iter->first =compression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =decompression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =leak
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =random_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =random_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =random_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =random_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =random_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =random_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+op name: gated_metadata_fill: 0
+op name: gated_metadata_read: 0
+op name: gated_metadata_update: 0
+op name: random_metadata_fill: 0
+op name: random_metadata_read: 0
+op name: random_metadata_update: 0
+op name: skipped_metadata_fill: 0
+op name: skipped_metadata_read: 0
+op name: skipped_metadata_update: 0
+pvi =2
+iter->first =compression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =decompression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =leak
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =random_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =random_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =random_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =random_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+total_naive_accesses =602112
+iter->first =random_read
+iter->second =602112
+stats_.fine_grained_vector_accesses[pvi][iter->first] =602112
+pvi =2
+total_naive_accesses =614656
+iter->first =random_update
+iter->second =614656
+stats_.fine_grained_vector_accesses[pvi][iter->first] =614656
+pvi =2
+iter->first =skipped_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =skipped_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =skipped_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =skipped_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =skipped_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =skipped_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+op name: gated_metadata_fill: 0
+op name: gated_metadata_read: 0
+op name: gated_metadata_update: 0
+op name: random_metadata_fill: 0
+op name: random_metadata_read: 0
+op name: random_metadata_update: 0
+op name: skipped_metadata_fill: 0
+op name: skipped_metadata_read: 0
+op name: skipped_metadata_update: 0
+op_name: random_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=614656
+op_name: random_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=21952
+op_name: random_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: decompression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: compression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: leak   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: decompression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: compression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: leak   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=602112
+op_name: random_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=614656
+op_name: gated_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: decompression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: compression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: leak   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+Evaluate Storage Level 1 -- GlobalBuffer
+start layout evaluation
+starting bank conflict evaluation
+crypto_config->datapath=0
+tile.GetDataSpaceName()=Weights
+ *** step 1 *** 
+C3X M16X P4X S7 R7 Q2 M4 
+dim_id_to_tile_dim_shape: 
+dimID:5  tile_dim_shape:4
+dimID:1  tile_dim_shape:16
+dimID:0  tile_dim_shape:3
+ *** step 2 *** 
+ *** step 3 *** 
+rank_id S mapping_parallelism=1 binding_parallelism=3
+rank_id R mapping_parallelism=1 binding_parallelism=3
+rank_id C mapping_parallelism=3 binding_parallelism=3
+rank_id M mapping_parallelism=16 binding_parallelism=1
+ *** step 4 *** 
+compute_cycles=1
+ *** step 5 *** 
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 16  frequency cnt = 1
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 17  frequency cnt = 0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 32  frequency cnt = 0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 34  frequency cnt = 0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 32  frequency cnt = 0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 34  frequency cnt = 0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 64  frequency cnt = 0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 68  frequency cnt = 0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 32  frequency cnt = 0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 34  frequency cnt = 0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 64  frequency cnt = 0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:1     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 68  frequency cnt = 0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 64  frequency cnt = 0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 68  frequency cnt = 0
+rank:M	 Accesses[x lines]:16     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 128  frequency cnt = 0
+rank:M	 Accesses[x + 1 lines]:17	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 136  frequency cnt = 0
+slowdown caused by Weights is 0.125
+tile.GetDataSpaceName()=Inputs
+ *** step 1 *** 
+C3X M16X P4X S7 R7 Q2 M4 
+dim_id_to_tile_dim_shape: 
+dimID:5  tile_dim_shape:4
+dimID:1  tile_dim_shape:16
+dimID:0  tile_dim_shape:3
+rank:W  dimension: 3 6 
+rank:H  dimension: 2 5 
+ *** step 2 *** 
+ *** step 3 *** 
+rank_id C mapping_parallelism=3 binding_parallelism=3
+rank_id N mapping_parallelism=1 binding_parallelism=1
+rank_id H mapping_parallelism=7 binding_parallelism=3
+rank_id W mapping_parallelism=1 binding_parallelism=3
+ *** step 4 *** 
+compute_cycles=1
+ *** step 5 *** 
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x lines]:3     	  frequency_counts:1
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 3  frequency cnt = 1
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x lines]:3     	  frequency_counts:1
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 6  frequency cnt = 0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:4	  frequency_counts:0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 4  frequency cnt = 0
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:4	  frequency_counts:0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 8  frequency cnt = 0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x lines]:3     	  frequency_counts:1
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 6  frequency cnt = 0
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x lines]:3     	  frequency_counts:1
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 12  frequency cnt = 0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:4	  frequency_counts:0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 8  frequency cnt = 0
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:4	  frequency_counts:0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 16  frequency cnt = 0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x lines]:3     	  frequency_counts:1
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 6  frequency cnt = 0
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x lines]:3     	  frequency_counts:1
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 12  frequency cnt = 0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:4	  frequency_counts:0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 8  frequency cnt = 0
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:4	  frequency_counts:0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 16  frequency cnt = 0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x lines]:3     	  frequency_counts:1
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 12  frequency cnt = 0
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x lines]:3     	  frequency_counts:1
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 24  frequency cnt = 0
+rank:W	 Accesses[x lines]:1     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:4	  frequency_counts:0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 16  frequency cnt = 0
+rank:W	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:4	  frequency_counts:0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 32  frequency cnt = 0
+slowdown caused by Inputs is 0.5
+tile.GetDataSpaceName()=Outputs
+Skipping masked data space Outputs
+overall_slowdown_ = 0.0625
+block_size =32
+pvi =0
+iter->first =compression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =decompression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =leak
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+total_naive_accesses =294
+iter->first =random_fill
+iter->second =9408
+stats_.fine_grained_vector_accesses[pvi][iter->first] =294
+pvi =0
+iter->first =random_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =random_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =random_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+total_naive_accesses =32928
+iter->first =random_read
+iter->second =1053696
+stats_.fine_grained_vector_accesses[pvi][iter->first] =32928
+pvi =0
+iter->first =random_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+op name: gated_metadata_fill: 0
+op name: gated_metadata_read: 0
+op name: gated_metadata_update: 0
+op name: random_metadata_fill: 0
+op name: random_metadata_read: 0
+op name: random_metadata_update: 0
+op name: skipped_metadata_fill: 0
+op name: skipped_metadata_read: 0
+op name: skipped_metadata_update: 0
+pvi =1
+iter->first =compression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =decompression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =leak
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+total_naive_accesses =5024
+iter->first =random_fill
+iter->second =160758
+stats_.fine_grained_vector_accesses[pvi][iter->first] =5024
+pvi =1
+iter->first =random_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =random_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =random_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+total_naive_accesses =230496
+iter->first =random_read
+iter->second =7375872
+stats_.fine_grained_vector_accesses[pvi][iter->first] =230496
+pvi =1
+iter->first =random_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+op name: gated_metadata_fill: 0
+op name: gated_metadata_read: 0
+op name: gated_metadata_update: 0
+op name: random_metadata_fill: 0
+op name: random_metadata_read: 0
+op name: random_metadata_update: 0
+op name: skipped_metadata_fill: 0
+op name: skipped_metadata_read: 0
+op name: skipped_metadata_update: 0
+pvi =2
+iter->first =compression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =decompression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =leak
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =random_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =random_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =random_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =random_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =random_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =random_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =skipped_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =skipped_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =skipped_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =skipped_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =skipped_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =skipped_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+op name: gated_metadata_fill: 0
+op name: gated_metadata_read: 0
+op name: gated_metadata_update: 0
+op name: random_metadata_fill: 0
+op name: random_metadata_read: 0
+op name: random_metadata_update: 0
+op name: skipped_metadata_fill: 0
+op name: skipped_metadata_read: 0
+op name: skipped_metadata_update: 0
+op_name: random_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=32928
+op_name: random_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=294
+op_name: random_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: decompression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: compression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: leak   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=230496
+op_name: random_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=5024
+op_name: random_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: decompression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: compression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: leak   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: decompression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: compression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: leak   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+Evaluate Storage Level 2 -- MainMemory
+start layout evaluation
+starting bank conflict evaluation
+crypto_config->datapath=0
+tile.GetDataSpaceName()=Weights
+ *** step 1 *** 
+Q28 C3X M16X P4X S7 R7 Q2 M4 
+dim_id_to_tile_dim_shape: 
+dimID:2  tile_dim_shape:7
+dimID:3  tile_dim_shape:7
+dimID:5  tile_dim_shape:4
+dimID:1  tile_dim_shape:64
+dimID:0  tile_dim_shape:3
+dimID:6  tile_dim_shape:56
+ *** step 2 *** 
+ *** step 3 *** 
+rank_id S mapping_parallelism=7 binding_parallelism=3
+rank_id R mapping_parallelism=7 binding_parallelism=3
+rank_id C mapping_parallelism=3 binding_parallelism=3
+rank_id M mapping_parallelism=64 binding_parallelism=1
+ *** step 4 *** 
+compute_cycles=392
+ *** step 5 *** 
+rank:M	 Accesses[x lines]:64     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:3     	  frequency_counts:1
+rank:S	 Accesses[x lines]:3     	  frequency_counts:1
+Current bucket: total lines requested = 576  frequency cnt = 1
+rank:M	 Accesses[x + 1 lines]:65	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:3     	  frequency_counts:1
+rank:S	 Accesses[x lines]:3     	  frequency_counts:1
+Current bucket: total lines requested = 585  frequency cnt = 0
+rank:M	 Accesses[x lines]:64     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:3     	  frequency_counts:1
+rank:S	 Accesses[x lines]:3     	  frequency_counts:1
+Current bucket: total lines requested = 1152  frequency cnt = 0
+rank:M	 Accesses[x + 1 lines]:65	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:3     	  frequency_counts:1
+rank:S	 Accesses[x lines]:3     	  frequency_counts:1
+Current bucket: total lines requested = 1170  frequency cnt = 0
+rank:M	 Accesses[x lines]:64     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:4	  frequency_counts:0
+rank:S	 Accesses[x lines]:3     	  frequency_counts:1
+Current bucket: total lines requested = 768  frequency cnt = 0
+rank:M	 Accesses[x + 1 lines]:65	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:4	  frequency_counts:0
+rank:S	 Accesses[x lines]:3     	  frequency_counts:1
+Current bucket: total lines requested = 780  frequency cnt = 0
+rank:M	 Accesses[x lines]:64     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:4	  frequency_counts:0
+rank:S	 Accesses[x lines]:3     	  frequency_counts:1
+Current bucket: total lines requested = 1536  frequency cnt = 0
+rank:M	 Accesses[x + 1 lines]:65	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:4	  frequency_counts:0
+rank:S	 Accesses[x lines]:3     	  frequency_counts:1
+Current bucket: total lines requested = 1560  frequency cnt = 0
+rank:M	 Accesses[x lines]:64     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:3     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:4	  frequency_counts:0
+Current bucket: total lines requested = 768  frequency cnt = 0
+rank:M	 Accesses[x + 1 lines]:65	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x lines]:3     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:4	  frequency_counts:0
+Current bucket: total lines requested = 780  frequency cnt = 0
+rank:M	 Accesses[x lines]:64     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:3     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:4	  frequency_counts:0
+Current bucket: total lines requested = 1536  frequency cnt = 0
+rank:M	 Accesses[x + 1 lines]:65	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x lines]:3     	  frequency_counts:1
+rank:S	 Accesses[x + 1 lines]:4	  frequency_counts:0
+Current bucket: total lines requested = 1560  frequency cnt = 0
+rank:M	 Accesses[x lines]:64     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:4	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:4	  frequency_counts:0
+Current bucket: total lines requested = 1024  frequency cnt = 0
+rank:M	 Accesses[x + 1 lines]:65	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+rank:R	 Accesses[x + 1 lines]:4	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:4	  frequency_counts:0
+Current bucket: total lines requested = 1040  frequency cnt = 0
+rank:M	 Accesses[x lines]:64     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:4	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:4	  frequency_counts:0
+Current bucket: total lines requested = 2048  frequency cnt = 0
+rank:M	 Accesses[x + 1 lines]:65	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:R	 Accesses[x + 1 lines]:4	  frequency_counts:0
+rank:S	 Accesses[x + 1 lines]:4	  frequency_counts:0
+Current bucket: total lines requested = 2080  frequency cnt = 0
+slowdown caused by Weights is 1
+tile.GetDataSpaceName()=Inputs
+ *** step 1 *** 
+Q28 C3X M16X P4X S7 R7 Q2 M4 
+dim_id_to_tile_dim_shape: 
+dimID:2  tile_dim_shape:7
+dimID:3  tile_dim_shape:7
+dimID:5  tile_dim_shape:4
+dimID:1  tile_dim_shape:64
+dimID:0  tile_dim_shape:3
+dimID:6  tile_dim_shape:56
+rank:W  dimension: 3 6 
+rank:H  dimension: 2 5 
+ *** step 2 *** 
+ *** step 3 *** 
+rank_id C mapping_parallelism=3 binding_parallelism=3
+rank_id N mapping_parallelism=1 binding_parallelism=1
+rank_id H mapping_parallelism=13 binding_parallelism=3
+rank_id W mapping_parallelism=117 binding_parallelism=3
+ *** step 4 *** 
+compute_cycles=392
+ *** step 5 *** 
+rank:W	 Accesses[x lines]:39     	  frequency_counts:1
+rank:H	 Accesses[x lines]:5     	  frequency_counts:1
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 195  frequency cnt = 1
+rank:W	 Accesses[x + 1 lines]:40	  frequency_counts:0
+rank:H	 Accesses[x lines]:5     	  frequency_counts:1
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 200  frequency cnt = 0
+rank:W	 Accesses[x lines]:39     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:6	  frequency_counts:0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 234  frequency cnt = 0
+rank:W	 Accesses[x + 1 lines]:40	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:6	  frequency_counts:0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 240  frequency cnt = 0
+rank:W	 Accesses[x lines]:39     	  frequency_counts:1
+rank:H	 Accesses[x lines]:5     	  frequency_counts:1
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 390  frequency cnt = 0
+rank:W	 Accesses[x + 1 lines]:40	  frequency_counts:0
+rank:H	 Accesses[x lines]:5     	  frequency_counts:1
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 400  frequency cnt = 0
+rank:W	 Accesses[x lines]:39     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:6	  frequency_counts:0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 468  frequency cnt = 0
+rank:W	 Accesses[x + 1 lines]:40	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:6	  frequency_counts:0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x lines]:1     	  frequency_counts:1
+Current bucket: total lines requested = 480  frequency cnt = 0
+rank:W	 Accesses[x lines]:39     	  frequency_counts:1
+rank:H	 Accesses[x lines]:5     	  frequency_counts:1
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 390  frequency cnt = 0
+rank:W	 Accesses[x + 1 lines]:40	  frequency_counts:0
+rank:H	 Accesses[x lines]:5     	  frequency_counts:1
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 400  frequency cnt = 0
+rank:W	 Accesses[x lines]:39     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:6	  frequency_counts:0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 468  frequency cnt = 0
+rank:W	 Accesses[x + 1 lines]:40	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:6	  frequency_counts:0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 480  frequency cnt = 0
+rank:W	 Accesses[x lines]:39     	  frequency_counts:1
+rank:H	 Accesses[x lines]:5     	  frequency_counts:1
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 780  frequency cnt = 0
+rank:W	 Accesses[x + 1 lines]:40	  frequency_counts:0
+rank:H	 Accesses[x lines]:5     	  frequency_counts:1
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 800  frequency cnt = 0
+rank:W	 Accesses[x lines]:39     	  frequency_counts:1
+rank:H	 Accesses[x + 1 lines]:6	  frequency_counts:0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 936  frequency cnt = 0
+rank:W	 Accesses[x + 1 lines]:40	  frequency_counts:0
+rank:H	 Accesses[x + 1 lines]:6	  frequency_counts:0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:C	 Accesses[x + 1 lines]:2	  frequency_counts:0
+Current bucket: total lines requested = 960  frequency cnt = 0
+slowdown caused by Inputs is 1
+tile.GetDataSpaceName()=Outputs
+ *** step 1 *** 
+Q28 C3X M16X P4X S7 R7 Q2 M4 
+dim_id_to_tile_dim_shape: 
+dimID:2  tile_dim_shape:7
+dimID:3  tile_dim_shape:7
+dimID:5  tile_dim_shape:4
+dimID:1  tile_dim_shape:64
+dimID:0  tile_dim_shape:3
+dimID:6  tile_dim_shape:56
+ *** step 2 *** 
+ *** step 3 *** 
+rank_id P mapping_parallelism=4 binding_parallelism=1
+rank_id M mapping_parallelism=64 binding_parallelism=1
+rank_id Q mapping_parallelism=56 binding_parallelism=32
+rank_id N mapping_parallelism=1 binding_parallelism=1
+ *** step 4 *** 
+compute_cycles=392
+ *** step 5 *** 
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:64     	  frequency_counts:1
+rank:P	 Accesses[x lines]:4     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:2     	  frequency_counts:2
+Current bucket: total lines requested = 512  frequency cnt = 2
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:64     	  frequency_counts:1
+rank:P	 Accesses[x lines]:4     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:2     	  frequency_counts:2
+Current bucket: total lines requested = 1024  frequency cnt = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:65	  frequency_counts:0
+rank:P	 Accesses[x lines]:4     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:2     	  frequency_counts:2
+Current bucket: total lines requested = 520  frequency cnt = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:65	  frequency_counts:0
+rank:P	 Accesses[x lines]:4     	  frequency_counts:1
+rank:Q	 Accesses[x lines]:2     	  frequency_counts:2
+Current bucket: total lines requested = 1040  frequency cnt = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:64     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:Q	 Accesses[x lines]:2     	  frequency_counts:2
+Current bucket: total lines requested = 640  frequency cnt = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:64     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:Q	 Accesses[x lines]:2     	  frequency_counts:2
+Current bucket: total lines requested = 1280  frequency cnt = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:65	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:Q	 Accesses[x lines]:2     	  frequency_counts:2
+Current bucket: total lines requested = 650  frequency cnt = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:65	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:Q	 Accesses[x lines]:2     	  frequency_counts:2
+Current bucket: total lines requested = 1300  frequency cnt = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:64     	  frequency_counts:1
+rank:P	 Accesses[x lines]:4     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:3	  frequency_counts:2
+Current bucket: total lines requested = 768  frequency cnt = 2
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:64     	  frequency_counts:1
+rank:P	 Accesses[x lines]:4     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:3	  frequency_counts:2
+Current bucket: total lines requested = 1536  frequency cnt = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:65	  frequency_counts:0
+rank:P	 Accesses[x lines]:4     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:3	  frequency_counts:2
+Current bucket: total lines requested = 780  frequency cnt = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:65	  frequency_counts:0
+rank:P	 Accesses[x lines]:4     	  frequency_counts:1
+rank:Q	 Accesses[x + 1 lines]:3	  frequency_counts:2
+Current bucket: total lines requested = 1560  frequency cnt = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x lines]:64     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:3	  frequency_counts:2
+Current bucket: total lines requested = 960  frequency cnt = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x lines]:64     	  frequency_counts:1
+rank:P	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:3	  frequency_counts:2
+Current bucket: total lines requested = 1920  frequency cnt = 0
+rank:N	 Accesses[x lines]:1     	  frequency_counts:1
+rank:M	 Accesses[x + 1 lines]:65	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:3	  frequency_counts:2
+Current bucket: total lines requested = 975  frequency cnt = 0
+rank:N	 Accesses[x + 1 lines]:2	  frequency_counts:0
+rank:M	 Accesses[x + 1 lines]:65	  frequency_counts:0
+rank:P	 Accesses[x + 1 lines]:5	  frequency_counts:0
+rank:Q	 Accesses[x + 1 lines]:3	  frequency_counts:2
+Current bucket: total lines requested = 1950  frequency cnt = 0
+slowdown caused by Outputs is 1
+overall_slowdown_ = 1
+block_size =32
+pvi =0
+iter->first =compression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =decompression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =gated_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =leak
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =random_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =random_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =random_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =random_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+total_naive_accesses =294
+iter->first =random_read
+iter->second =9408
+stats_.fine_grained_vector_accesses[pvi][iter->first] =294
+pvi =0
+iter->first =random_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =0
+iter->first =skipped_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+op name: gated_metadata_fill: 0
+op name: gated_metadata_read: 0
+op name: gated_metadata_update: 0
+op name: random_metadata_fill: 0
+op name: random_metadata_read: 0
+op name: random_metadata_update: 0
+op name: skipped_metadata_fill: 0
+op name: skipped_metadata_read: 0
+op name: skipped_metadata_update: 0
+pvi =1
+iter->first =compression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =decompression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =gated_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =leak
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =random_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =random_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =random_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =random_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+total_naive_accesses =5024
+iter->first =random_read
+iter->second =160758
+stats_.fine_grained_vector_accesses[pvi][iter->first] =5024
+pvi =1
+iter->first =random_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =1
+iter->first =skipped_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+op name: gated_metadata_fill: 0
+op name: gated_metadata_read: 0
+op name: gated_metadata_update: 0
+op name: random_metadata_fill: 0
+op name: random_metadata_read: 0
+op name: random_metadata_update: 0
+op name: skipped_metadata_fill: 0
+op name: skipped_metadata_read: 0
+op name: skipped_metadata_update: 0
+pvi =2
+iter->first =compression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =decompression_count
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =gated_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =leak
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =random_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =random_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =random_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =random_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =random_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+total_naive_accesses =25088
+iter->first =random_update
+iter->second =802816
+stats_.fine_grained_vector_accesses[pvi][iter->first] =25088
+pvi =2
+iter->first =skipped_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =skipped_metadata_fill
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =skipped_metadata_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =skipped_metadata_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =skipped_read
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+pvi =2
+iter->first =skipped_update
+iter->second =0
+stats_.fine_grained_vector_accesses[pvi][iter->first] =0
+op name: gated_metadata_fill: 0
+op name: gated_metadata_read: 0
+op name: gated_metadata_update: 0
+op name: random_metadata_fill: 0
+op name: random_metadata_read: 0
+op name: random_metadata_update: 0
+op name: skipped_metadata_fill: 0
+op name: skipped_metadata_read: 0
+op name: skipped_metadata_update: 0
+op_name: random_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=294
+op_name: random_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: decompression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: compression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: leak   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=5024
+op_name: random_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: decompression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: compression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: leak   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=25088
+op_name: gated_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_read   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_fill   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: random_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: gated_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: skipped_metadata_update   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: decompression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: compression_count   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+op_name: leak   stats_.fine_grained_vector_accesses[pv].at(op_name)=0
+stats_.energy[pv]=311306
+stats_.energy_per_algorithmic_access[pv]=0.489008
+stats_.energy_per_access[pv]=0.489008
+stats_.energy_due_to_overflow[pv]=0
+stats_.energy[pv]=0
+stats_.energy_per_algorithmic_access[pv]=-nan
+stats_.energy_per_access[pv]=-nan
+stats_.energy_due_to_overflow[pv]=0
+stats_.energy[pv]=595009
+stats_.energy_per_algorithmic_access[pv]=0.489008
+stats_.energy_per_access[pv]=0.489008
+stats_.energy_due_to_overflow[pv]=0
+stats_.energy[pv]=5.885e+07
+stats_.energy_per_algorithmic_access[pv]=55.3568
+stats_.energy_per_access[pv]=55.3568
+stats_.energy_due_to_overflow[pv]=0
+stats_.energy[pv]=1.04301e+08
+stats_.energy_per_algorithmic_access[pv]=13.8392
+stats_.energy_per_access[pv]=13.8392
+stats_.energy_due_to_overflow[pv]=0
+stats_.energy[pv]=0
+stats_.energy_per_algorithmic_access[pv]=-nan
+stats_.energy_per_access[pv]=-nan
+stats_.energy_due_to_overflow[pv]=0
+stats_.energy[pv]=940800
+stats_.energy_per_algorithmic_access[pv]=100
+stats_.energy_per_access[pv]=100
+stats_.energy_due_to_overflow[pv]=0
+stats_.energy[pv]=1.60768e+07
+stats_.energy_per_algorithmic_access[pv]=100.006
+stats_.energy_per_access[pv]=100.006
+stats_.energy_due_to_overflow[pv]=0
+stats_.energy[pv]=8.02816e+07
+stats_.energy_per_algorithmic_access[pv]=100
+stats_.energy_per_access[pv]=100
+stats_.energy_due_to_overflow[pv]=0
+Utilization = 0.05 | pJ/Compute =    3.931 | Cycles = 9834496
