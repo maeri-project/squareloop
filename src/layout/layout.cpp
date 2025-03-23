@@ -108,22 +108,22 @@ namespace layout
     }
 
     // load targets
+    std::vector<std::string> targets;
     std::unordered_set<std::string> targets_unique;
-    for (int i = 0; i < layoutCount; i++)
+    for (int i = layoutCount-1; i >= 0; i--)
     {
       config::CompoundConfigNode entry = layoutArray[i];
       if (entry.exists("target"))
       {
         std::string cur_target;
         entry.lookupValue("target", cur_target);
-        targets_unique.insert(cur_target);
+        if (targets_unique.find(cur_target) == targets_unique.end())
+        {
+          targets.push_back(cur_target);
+          targets_unique.insert(cur_target);
+        }
       }
     }
-    std::vector<std::string> targets;
-    targets.insert(
-        targets.begin(), targets_unique.begin(),
-        targets_unique
-            .end()); // = {"RegisterFile", "GlobalBuffer", "MainMemory"};
 
     // Convert the sample permutation string into a vector of single-character
     // strings.

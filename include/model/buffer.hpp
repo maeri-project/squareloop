@@ -384,7 +384,6 @@ class BufferLevel : public Level
   bool populate_energy_per_op = false;
   problem::Workload* workload_ = nullptr;
   double overall_slowdown_ = 1.0;
-  std::vector<double> num_access_correction_ratio_per_data_space_;
 
   // Network endpoints.
   std::shared_ptr<Network> network_read_;
@@ -427,8 +426,12 @@ class BufferLevel : public Level
   void ComputeReductionEnergy();
   void ComputeAddrGenEnergy();
   std::pair<double, double> ComputeBankConflictSlowdownPerDataSpace(const layout::Layout layout, const  crypto::CryptoConfig *crypto_config, unsigned data_space_id, uint64_t compute_cycles, std::unordered_map<problem::Shape::FlattenedDimensionID,  int> dim_id_to_mapping_parallelism, const bool assume_zero_padding); // bank conflict analysis for current dataspace
-  tiling::CompoundTile ComputeBankConflictSlowdown(const tiling::CompoundTile& tile, layout::Layout layout, const tiling::CompoundMask &mask, std::vector<loop::Descriptor>& tile_loopnest, crypto::CryptoConfig* crypto_config); // bank conflict analysis
-
+  tiling::CompoundTile ComputeBankConflictSlowdown(const tiling::CompoundTile &tile,
+                                                  layout::Layout layout,
+                                                  const tiling::CompoundMask &mask,
+                                                  std::vector<loop::Descriptor> &subtile_mapping_loopnest,
+                                                  std::vector<loop::Descriptor> &subtile_mapping_parallelism,
+                                                  crypto::CryptoConfig *crypto_config);
   double StorageEnergy(problem::Shape::DataSpaceID pv = problem::GetShape()->NumDataSpaces) const;
   double TemporalReductionEnergy(problem::Shape::DataSpaceID pv = problem::GetShape()->NumDataSpaces) const;
   double AddrGenEnergy(problem::Shape::DataSpaceID pv = problem::GetShape()->NumDataSpaces) const;
@@ -482,12 +485,15 @@ class BufferLevel : public Level
                                 const double confidence_threshold,
                                 const bool break_on_failure) override;
 
-  EvalStatus Evaluate(const tiling::CompoundTile& tile, const tiling::CompoundMask& mask, const layout::Layout layout, 
-                      std::vector<loop::Descriptor>& tile_loopnest,
-                      problem::Workload* workload,
-                      const double confidence_threshold, const std::uint64_t compute_cycles,
-                      const bool break_on_failure,
-                      crypto::CryptoConfig* crypto_config);
+  EvalStatus Evaluate(const tiling::CompoundTile &tile,
+                    const tiling::CompoundMask &mask, layout::Layout layout,
+                    std::vector<loop::Descriptor> &subtile_mapping_loopnest,
+                    std::vector<loop::Descriptor> &subtile_mapping_parallelism,
+                    problem::Workload *workload,
+                    const double confidence_threshold,
+                    const std::uint64_t compute_cycles,
+                    const bool break_on_failure,
+                    crypto::CryptoConfig *crypto_config);
 
   EvalStatus Evaluate(const tiling::CompoundTile& tile, const tiling::CompoundMask& mask,
                       problem::Workload* workload,

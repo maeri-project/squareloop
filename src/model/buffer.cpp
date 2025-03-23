@@ -42,7 +42,7 @@ BOOST_CLASS_EXPORT(model::BufferLevel)
 #include "util/misc.hpp"
 #include "util/numeric.hpp"
 
-// #define DEBUG
+#define DEBUG
 
 namespace model
 {
@@ -1102,16 +1102,17 @@ namespace model
   BufferLevel::ComputeBankConflictSlowdown(const tiling::CompoundTile &tile,
                                            layout::Layout layout,
                                            const tiling::CompoundMask &mask,
-                                           std::vector<loop::Descriptor> &tile_loopnest,
+                                           std::vector<loop::Descriptor> &subtile_mapping_loopnest,
+                                           std::vector<loop::Descriptor> &subtile_mapping_parallelism,
                                            crypto::CryptoConfig *crypto_config)
   {
     overall_slowdown_ = 1.0; // Initialization
     auto dim_id_to_name = problem::GetShape()->FlattenedDimensionIDToName;
     tiling::CompoundTile tile_corrected_access = tile;
+
     // ****************************************************************
     // Pre-Check: Get Subtile Shape and Spatial Data Requirement
     // ****************************************************************
-
     std::vector<std::string> rank_list;
     std::unordered_map<problem::Shape::FlattenedDimensionID, int>
         dim_id_to_mapping_parallelism;
@@ -1122,21 +1123,35 @@ namespace model
     std::cout << "# PreCheck -- return if there is no spatial request or subtile=1" << std::endl;
     std::cout << "mapping Parallelism: ";
 #endif
-    for (auto j : tile.data_movement_info[0].subnest)
+    // For subtile
+    for (auto j : subtile_mapping_parallelism)
     {
 #ifdef DEBUG
       std::cout << j.PrintCompact(dim_id_to_name) << " ";
 #endif
+      if (dim_id_to_mapping_parallelism[j.dimension] == 0)
+        dim_id_to_mapping_parallelism[j.dimension] = 1;
       if (loop::IsSpatial(j.spacetime_dimension))
+        dim_id_to_mapping_parallelism[j.dimension] *= j.end;
+    }
+    // For current tile
+    for (auto j : tile.data_movement_info[0].subnest)
+    {
+      if (dim_id_to_mapping_parallelism[j.dimension] == 0)
+        dim_id_to_mapping_parallelism[j.dimension] = 1;
+      if (loop::IsSpatial(j.spacetime_dimension)){
+#ifdef DEBUG
+        std::cout << j.PrintCompact(dim_id_to_name) << " ";
+#endif
         dim_id_to_mapping_parallelism[j.dimension] = j.end;
+      }
     }
 #ifdef DEBUG
     std::cout << std::endl;
-
     // next subtile check
     std::cout << "subtile size: ";
 #endif
-    for (auto j : tile_loopnest)
+    for (auto j : subtile_mapping_loopnest)
     {
 #ifdef DEBUG
       std::cout << j.PrintCompact(dim_id_to_name) << " ";
@@ -1162,13 +1177,12 @@ namespace model
     // ****************************************************************
     // Idea: compute latency is the product of all temporal iterations.
     uint64_t compute_cycles = 1;
-    for (auto j : tile_loopnest)
+    for (auto j : subtile_mapping_loopnest)
       if (!loop::IsSpatial(j.spacetime_dimension))
         compute_cycles *= j.end;
 #ifdef DEBUG
     std::cout << "compute_cycles=" << compute_cycles << std::endl;
 #endif
-
 
     // Bank Conflict Check Start!
     // each data space (input, weights or output) is analysed independently
@@ -1208,7 +1222,6 @@ namespace model
 #ifdef DEBUG
         std::cout << "Skipping masked data space " << tile.GetDataSpaceName() << std::endl;
 #endif
-        num_access_correction_ratio_per_data_space_.push_back(1.0);
         continue;
       }
 
@@ -1271,7 +1284,6 @@ namespace model
       std::cout << "num_access_ratio=" << num_access_ratio << std::endl;
 #endif
       
-      num_access_correction_ratio_per_data_space_.push_back(num_access_ratio);
       for (auto key_pair : tile_corrected_access.data_movement_info[data_space_id].fine_grained_data_accesses)
         if (key_pair.second != 0) {
           // increase data access. .. ToDo: this does not change energy now.
@@ -1305,7 +1317,8 @@ namespace model
   EvalStatus
   BufferLevel::Evaluate(const tiling::CompoundTile &tile,
                         const tiling::CompoundMask &mask, layout::Layout layout,
-                        std::vector<loop::Descriptor> &tile_loopnest,
+                        std::vector<loop::Descriptor> &subtile_mapping_loopnest,
+                        std::vector<loop::Descriptor> &subtile_mapping_parallelism,
                         problem::Workload *workload,
                         const double confidence_threshold,
                         const std::uint64_t compute_cycles,
@@ -1318,7 +1331,7 @@ namespace model
     std::cout << "start layout evaluation" << std::endl;
 #endif
 
-    auto tile_corrected_access = ComputeBankConflictSlowdown(tile, layout, mask, tile_loopnest, crypto_config);
+    auto tile_corrected_access = ComputeBankConflictSlowdown(tile, layout, mask, subtile_mapping_loopnest, subtile_mapping_parallelism, crypto_config);
 
     auto eval_status = ComputeScalarAccesses(
       tile.data_movement_info, mask, confidence_threshold, break_on_failure);
@@ -2091,17 +2104,11 @@ namespace model
                                      : false;
 
           double total_naive_accesses;
-#ifdef DEBUG
-          std::cout << " data space id = " << pvi ; 
-#endif
           if (!metadata_action)
           {
             total_naive_accesses = (iter->second % block_size == 0)
                                        ? iter->second / block_size
                                        : iter->second / block_size + 1;
-#ifdef DEBUG
-            std::cout << "  metadata_action -- fine_grained_data_accesses: " << iter->second << std::endl;
-#endif
             stats_.fine_grained_vector_accesses[pvi][iter->first] = total_naive_accesses * ratio;
           }
         }

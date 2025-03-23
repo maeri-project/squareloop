@@ -24,6 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import re
 import functools
 import yaml
 import math
@@ -47,6 +48,15 @@ iacts_auto_expanded_ranks = ['H', "W"]
 
 oacts_related_ranks = ['N', "M", "P", "Q"]
 oacts_auto_expanded_ranks = ['P', "Q"]
+
+architect_namelist = ["vector_256"]
+# architect_namelist = ["eyeriss", "sigma", "vector_256"]
+
+arch_yaml_dict = {
+    "eyeriss": "/home/ubuntu/squareloop/benchmarks/arch_designs/eyeriss_like/arch/eyeriss_like.yaml",
+    "sigma": "/home/ubuntu/squareloop/benchmarks/arch_designs/simba_like/arch/simba_like.yaml",
+    "vector_256": "/home/ubuntu/squareloop/benchmarks/arch_designs/vector_256.yaml",
+}
 
 # We use P/Q in the timeloop to represent W/H.
 # Need to make sure each line of iActs, weights, oActs won't exceed 16 elements.
@@ -83,6 +93,43 @@ layout_name_dict = [
 ###########################
 # Analysis Logics
 ###########################
+
+def collect_names(node, depth, levels):
+    # Process "local" nodes
+    if "local" in node:
+        for item in node["local"]:
+            cls = item.get("class", "").lower()
+            # Include nodes whose class indicates DRAM or storage.
+            # Here we check if the class string contains keywords such as "dram",
+            # "storage" or "smartbuffer". We also skip names starting with "DummyBuffer".
+            if (("DRAM" in cls) or ("dram" in cls) or ("SRAM" in cls) or ("sram" in cls) or ("storage" in cls) or ("smartbuffer" in cls)) or ("regfile" in cls):
+                # Remove any bracketed range (e.g. "[0..15]")
+                name = re.sub(r'\[.*?\]', '', item["name"]).strip()
+                # If the (lowercased) name is in our rename map, use the mapped name.
+                levels.setdefault(depth, []).append(name)
+    # Recursively process subtrees
+    if "subtree" in node:
+        for child in node["subtree"]:
+            collect_names(child, depth + 1, levels)
+
+def parse_yaml_hierarchy_from_file(file_path):
+    with open(file_path, 'r') as file:
+        data = yaml.safe_load(file)
+    
+    levels = {}
+    # Start from the top-level subtree under "architecture"
+    arch = data.get("architecture", {})
+    for node in arch.get("subtree", []):
+        collect_names(node, 1, levels)
+    
+    # Build the final result list.
+    # For each depth level, if there is only one name return it as a string;
+    # if there are multiple names, return them as a list.
+    result = []
+    for depth in sorted(levels.keys()):
+        names = levels[depth]
+        result.append(names)
+    return result
 
 
 def prod(l):
@@ -258,7 +305,7 @@ def compute_chunk_params(permutation, total_line_required_glb_buf, spatial_capac
     return chunk_size, chunk_iteration, allocated_tiles, product_val
 
 
-def generate_layout(file_path, layout_policy, workload_bounds):
+def generate_layout(file_path, layout_policy, workload_bounds, memory_hierarchy):
     workload_shape = calculate_workload_shape(workload_bounds)
     print(f"workload_shape:\n{workload_shape}")
 
@@ -327,33 +374,40 @@ def generate_layout(file_path, layout_policy, workload_bounds):
     print(f"total_line_required_dram:\n{total_line_required_dram}")
 
     with open(file_path, "w") as f:
-        f.write("layout:\n")
-        f.write("  - target: MainMemory\n")
-        f.write("    type: interline\n")
-        f.write(f"    factors: R={total_line_required_dram['R']} S={total_line_required_dram['S']} P={total_line_required_dram['P']} Q={total_line_required_dram['Q']} C={total_line_required_dram['C']} M={total_line_required_dram['M']} N={total_line_required_dram['N']} H={total_line_required_dram['H']} W={total_line_required_dram['W']}\n")
-        f.write(f"    permutation: {permutation}\n")
-        f.write("  - target: MainMemory\n")
-        f.write("    type: intraline\n")
-        f.write(f"    factors: R={spatial_capacities_dram['R']} S={spatial_capacities_dram['S']} P={spatial_capacities_dram['P']} Q={spatial_capacities_dram['Q']} C={spatial_capacities_dram['C']} M={spatial_capacities_dram['M']} N={spatial_capacities_dram['N']} H={spatial_capacities_dram['H']} W={spatial_capacities_dram['W']}\n")
-        f.write(f"    permutation: {permutation}\n")
-        f.write("\n")
-        f.write("  - target: GlobalBuffer\n")
-        f.write("    type: interline\n")
-        f.write(f"    factors: R={allocated_lines['R']} S={allocated_lines['S']} P={allocated_lines['P']} Q={allocated_lines['Q']} C={allocated_lines['C']} M={allocated_lines['M']} N={allocated_lines['N']} H={allocated_lines['H']} W={allocated_lines['W']}\n")
-        f.write(f"    permutation: {permutation}\n")
-        f.write("\n")
-        f.write("  - target: GlobalBuffer\n")
-        f.write("    type: intraline\n")
-        f.write(
-            f"    factors: R={spatial_capacities_glb_buf['R']} S={spatial_capacities_glb_buf['S']} P={spatial_capacities_glb_buf['P']} Q={spatial_capacities_glb_buf['Q']} C={spatial_capacities_glb_buf['C']} M={spatial_capacities_glb_buf['M']} N={spatial_capacities_glb_buf['N']} H={spatial_capacities_glb_buf['H']} W={spatial_capacities_glb_buf['W']}\n"
-        )
-        f.write(f"    permutation: {permutation}\n")
-        f.write("\n")
-        f.write("  - target: RegisterFile\n")
-        f.write("    type: interline\n")
-        f.write(f"    factors: R={1} S={1} P={1} Q={1} C={1} M={1} N={1} H={1} W={1}\n")
-        f.write(f"    permutation: {permutation}\n")
-        f.write("\n")
+        for lvl, name_list in enumerate(memory_hierarchy):
+          for name in name_list:
+            if lvl == 0:
+              f.write("layout:\n")
+              f.write(f"  - target: {name}\n")
+              f.write("    type: interline\n")
+              f.write(f"    factors: R={total_line_required_dram['R']} S={total_line_required_dram['S']} P={total_line_required_dram['P']} Q={total_line_required_dram['Q']} C={total_line_required_dram['C']} M={total_line_required_dram['M']} N={total_line_required_dram['N']} H={total_line_required_dram['H']} W={total_line_required_dram['W']}\n")
+              f.write(f"    permutation: {permutation}\n")
+              f.write(f"  - target: {name}\n")
+              f.write("    type: intraline\n")
+              f.write(f"    factors: R={spatial_capacities_dram['R']} S={spatial_capacities_dram['S']} P={spatial_capacities_dram['P']} Q={spatial_capacities_dram['Q']} C={spatial_capacities_dram['C']} M={spatial_capacities_dram['M']} N={spatial_capacities_dram['N']} H={spatial_capacities_dram['H']} W={spatial_capacities_dram['W']}\n")
+              f.write(f"    permutation: {permutation}\n")
+              f.write("\n")
+            elif lvl == 1:
+              f.write(f"  - target: {name}\n")
+              f.write("    type: interline\n")
+              f.write(f"    factors: R={allocated_lines['R']} S={allocated_lines['S']} P={allocated_lines['P']} Q={allocated_lines['Q']} C={allocated_lines['C']} M={allocated_lines['M']} N={allocated_lines['N']} H={allocated_lines['H']} W={allocated_lines['W']}\n")
+              f.write(f"    permutation: {permutation}\n")
+              f.write("\n")
+              f.write(f"  - target: {name}\n")
+              f.write("    type: intraline\n")
+              f.write(
+                  f"    factors: R={spatial_capacities_glb_buf['R']} S={spatial_capacities_glb_buf['S']} P={spatial_capacities_glb_buf['P']} Q={spatial_capacities_glb_buf['Q']} C={spatial_capacities_glb_buf['C']} M={spatial_capacities_glb_buf['M']} N={spatial_capacities_glb_buf['N']} H={spatial_capacities_glb_buf['H']} W={spatial_capacities_glb_buf['W']}\n"
+              )
+              f.write(f"    permutation: {permutation}\n")
+              f.write("\n")
+            elif lvl == 2:
+              f.write(f"  - target: {name}\n")
+              f.write("    type: interline\n")
+              f.write(f"    factors: R={1} S={1} P={1} Q={1} C={1} M={1} N={1} H={1} W={1}\n")
+              f.write(f"    permutation: {permutation}\n")
+              f.write("\n")
+            else:
+                raise ValueError("memory level not configured.")
 
 
 def cli_launch():
@@ -386,26 +440,33 @@ def cli_launch():
 
 
 def python_call():
+    
     this_file_path = os.path.abspath(inspect.getfile(inspect.currentframe()))
     this_directory = os.path.dirname(this_file_path)
     create_folder(this_directory)
 
     sys.path.append(this_directory)
-    # construct problem shapes for each layer
-    for layout_policy in layout_name_dict:
-        for net_id, cnn_layers in enumerate(net_dim_list):
-            net_name = net_name_list[net_id]
-            if not os.path.exists(os.path.join(this_directory, "..", "layout", net_name)):
-                os.makedirs(os.path.join(this_directory, "..", "layout", net_name))
-            for i in range(0, len(cnn_layers)):
-                problem = cnn_layers[i]
-                file_name = f"{layout_policy}_" + str(i + 1) + ".yaml"
-                file_path = os.path.abspath(
-                    os.path.join(this_directory, "..", "layout", net_name, file_name)
-                )
-                generate_layout(file_path, layout_policy, problem)
+    for arch_name in architect_namelist:
+      memory_hierarchy = parse_yaml_hierarchy_from_file(arch_yaml_dict[arch_name])
+      assert(len(memory_hierarchy) == 3)
+      # construct problem shapes for each layer
+      for layout_policy in layout_name_dict:
+          for net_id, cnn_layers in enumerate(net_dim_list):
+              net_name = net_name_list[net_id]
+              if not os.path.exists(os.path.join(this_directory, "..", "layout", net_name)):
+                  os.makedirs(os.path.join(this_directory, "..", "layout", net_name))
+              for i in range(0, len(cnn_layers)):
+                  problem = cnn_layers[i]
+                  file_name = f"{arch_name}_{layout_policy}_" + str(i + 1) + ".yaml"
+                  file_path = os.path.abspath(
+                      os.path.join(this_directory, "..", "layout", net_name, file_name)
+                  )
+                  generate_layout(file_path, layout_policy, problem, memory_hierarchy)
 
 
 if __name__ == "__main__":
     # cli_launch() # if wanna use from command line.
     python_call()
+    # print(parse_yaml_hierarchy_from_file(arch_yaml_dict["sigma"]))
+    # print(parse_yaml_hierarchy_from_file(arch_yaml_dict["eyeriss"]))
+    # print(parse_yaml_hierarchy_from_file(arch_yaml_dict["vector_256"]))
