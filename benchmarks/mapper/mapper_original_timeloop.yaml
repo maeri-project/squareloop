@@ -1,7 +1,7 @@
 mapper:
   optimization_metrics: [ delay, energy ]
   live_status: False
-  num_threads: 1
+  num_threads: 32
   timeout: 1000
   victory_condition: 100
   algorithm: random_pruned

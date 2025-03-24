@@ -35,7 +35,7 @@
  #include "sparse-analysis/sparse-analysis.hpp"
  #include "workload/workload.hpp"
  
- #define DEBUG 
+//  #define DEBUG 
  bool gHideInconsequentialStats =
    (getenv("TIMELOOP_HIDE_INCONSEQUENTIAL_STATS") == NULL) ||
    (strcmp(getenv("TIMELOOP_HIDE_INCONSEQUENTIAL_STATS"), "0") != 0);
