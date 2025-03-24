@@ -44,7 +44,7 @@ arch_dict = {
     "systolic_array": "../arch_designs/systolic_array.yaml",
 }
 
-model_name_list = ["resnet50", "mobv3"]
+model_name_list = ["resnet50", "mobv3", "bert"]
 
 layout_policy_list = [
     "SRCQPMNHW_Cx32",
@@ -93,14 +93,6 @@ if __name__ == "__main__":
         "mobv3": 62,
         "bert": 3
     }
-
-    model_name_list = ["bert"]
-    # model_name_list = ["resnet50", "mobv3", "bert"]
-
-    # layer_num = {
-    #     "resnet50": 1,
-    #     "mobv3": 1
-    # }
 
     model_name_dict= {
         "mobv3": "mobilenet_v3_large",

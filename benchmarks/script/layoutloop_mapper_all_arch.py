@@ -121,8 +121,7 @@ if __name__ == "__main__":
         "bert": 3
     }
 
-    model_name_list = ["bert"]
-    # model_name_list = ["resnet50", "mobv3", "bert"]
+    model_name_list = ["resnet50", "mobv3", "bert"]
 
     for design_name in test_list:
         arch_name = arch_dict[design_name]
