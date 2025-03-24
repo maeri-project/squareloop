@@ -28,6 +28,14 @@ map_constraint_dict = {
     "systolic_array": "../arch_designs/systolic_constraint/mapspace_XY_OS.yaml",
 }
 
+gemm_map_constraint_dict = {
+    "gemmini": "",
+    "eyeriss": "../arch_designs/eyeriss_like/constraints_gemm/*",
+    "simba": "../arch_designs/simba_like/constraints_gemm/*",
+    "medusa": " ",
+    "systolic_array": "",
+}
+
 arch_dict = {
     "gemmini": "gemmini.yaml",
     "eyeriss": "eyeriss_like/arch/eyeriss_like.yaml ../arch_designs/eyeriss_like/arch/components/*",
@@ -79,10 +87,16 @@ if __name__ == "__main__":
     pj_per_compute_list = []
     cycles_list = []
 
+
     layer_num = {
         "resnet50": 53,
-        "mobv3": 62
+        "mobv3": 62,
+        "bert": 3
     }
+
+    model_name_list = ["bert"]
+    # model_name_list = ["resnet50", "mobv3", "bert"]
+
     # layer_num = {
     #     "resnet50": 1,
     #     "mobv3": 1
@@ -91,15 +105,16 @@ if __name__ == "__main__":
     model_name_dict= {
         "mobv3": "mobilenet_v3_large",
         "resnet50": "resnet50",
+        "bert": "bert",
     }
     
     for model_name in model_name_list:
         for layer_id in range(1, layer_num[model_name]+1):
             # Run the command and capture its output
-            print(f"source ~/.setup.sh && timeloop-mapper ../arch_designs/{arch_dict[arch_prefix]} {map_policy_dict[arch_prefix]} {map_constraint_dict[arch_prefix]} ../layer_shapes/{model_name}/{model_name}_{layer_id}.yaml")
-            command_output = subprocess.run([f"source ~/.setup.sh && timeloop-mapper ../arch_designs/{arch_dict[arch_prefix]} {map_policy_dict[arch_prefix]} {map_constraint_dict[arch_prefix]} ../layer_shapes/{model_name}/{model_name_dict[model_name]}_{layer_id}.yaml"], shell=True, check=True, capture_output=True, text=True, executable="/bin/bash") # Ensure using bash if needed
-            # command_output = subprocess.check_output("source ~/.setup.sh", shell=True, universal_newlines=True)
-            # command_output = subprocess.check_output(["source ~/.setup.sh", f"timeloop-mapper ../arch_designs/{arch_dict[arch_prefix]} {map_policy_dict[arch_prefix]} {map_constraint_dict[arch_prefix]} ../layer_shapes/{model_name}/{model_name}_{layer_id}.yaml"], shell=True, universal_newlines=True)
+            if model_name == "bert":
+              command_output = subprocess.run([f"source ~/.setup.sh && timeloop-mapper ../arch_designs/{arch_dict[arch_prefix]} {map_policy_dict[arch_prefix]} {gemm_map_constraint_dict[arch_prefix]} ../layer_shapes/{model_name}/{model_name_dict[model_name]}_{layer_id}.yaml"], shell=True, check=True, capture_output=True, text=True, executable="/bin/bash") # Ensure using bash if needed
+            else:
+              command_output = subprocess.run([f"source ~/.setup.sh && timeloop-mapper ../arch_designs/{arch_dict[arch_prefix]} {map_policy_dict[arch_prefix]} {map_constraint_dict[arch_prefix]} ../layer_shapes/{model_name}/{model_name_dict[model_name]}_{layer_id}.yaml"], shell=True, check=True, capture_output=True, text=True, executable="/bin/bash") # Ensure using bash if needed
             # absolute path
             src_path = os.path.join(work_directory, 'timeloop-mapper.map.yaml')
             dst_path = os.path.join(mapping_directory, f"{model_name}_{layer_id}.yaml")
