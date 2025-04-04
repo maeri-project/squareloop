@@ -966,6 +966,7 @@ namespace model
             rank_id_to_mapping_parallelism[r] = mapping_parallelism;
             rank_id_to_number_of_tiles[r] = number_of_tiles;
             total_data_requested *= mapping_parallelism;
+            rank_id_to_rank_list_index[r] = rank_list.size();
             rank_list.push_back(r);
           }
         }
@@ -1025,10 +1026,10 @@ namespace model
     {
       int binding_parallelism = rank_id_to_binding_parallelism[rank_id];
 #ifdef DEBUG
-      std::cout << "rank_id " << rank_id << " mapping_parallelism=" << mapping_parallelism << " binding_parallelism=" << binding_parallelism << std::endl;
+      std::cout << "rank_id " << rank_id << " mapping_parallelism=" << mapping_parallelism << " binding_parallelism=" << binding_parallelism << " zero_padding=" << layout.rankToZeroPadding.at(rank_id) << std::endl;
 #endif
       // ToDo: Currently only considers zero padding for offchip memory (DRAM), is that ok?  
-      if (assume_zero_padding && specs_.technology.Get() == Technology::DRAM && false && layout.rankToZeroPadding.at(rank_id) > 0)
+      if (assume_zero_padding && specs_.technology.Get() == Technology::DRAM && layout.rankToZeroPadding.at(rank_id) > 0)
       { // rank has zero padding
         int zp = layout.rankToZeroPadding.at(rank_id);
         int num_tiles = rank_id_to_number_of_tiles[rank_id];
@@ -1059,6 +1060,10 @@ namespace model
           frequency_counts[rank_id].first = (binding_parallelism / gcd) - frequency_counts[rank_id].second; // ToDo: Wrong equation when C=3, H=7
       }
     }
+  
+#ifdef DEBUG
+    std::cout << "zp_mask=" << zp_mask << std::endl;
+#endif
 
     // ****************************************************************
     // Step 3.5: Calculate latencies associated with the crypto engine
@@ -1310,7 +1315,9 @@ namespace model
         continue;
       }
 
+      // ToDo: move this to a better place and make configurable
       bool assume_zero_padding = true;
+
       // ****************************************************************
       // Phase 2: Perform Spatial Bank Conflict Check for Current Data Space
       // ****************************************************************
