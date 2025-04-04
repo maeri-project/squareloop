@@ -47,6 +47,8 @@ struct Layout {
   std::map<std::string, std::vector<std::uint32_t>> rankToCoefficientValue;
   std::unordered_map<std::string, std::uint32_t> coefficientToValue;
 
+  std::map<std::string, std::uint32_t> rankToZeroPadding;
+
   bool initialize = false;                   // True if external YAML provided layout for this target
 };
 

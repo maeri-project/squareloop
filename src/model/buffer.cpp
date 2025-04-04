@@ -906,6 +906,7 @@ namespace model
                                                        unsigned data_space_id,
                                                        uint64_t compute_cycles,
                                                        std::unordered_map<problem::Shape::FlattenedDimensionID, int> dim_id_to_mapping_parallelism,
+                                                       std::unordered_map<problem::Shape::FlattenedDimensionID,  int> dim_id_to_number_of_tiles,
                                                        const bool assume_zero_padding)
   {
     (void)assume_zero_padding;
@@ -919,6 +920,10 @@ namespace model
     uint64_t total_data_requested = 1;
     std::vector<std::string> rank_list;
     std::unordered_map<std::string, int>
+        rank_id_to_rank_list_index;
+    std::unordered_map<std::string, int>
+        rank_id_to_number_of_tiles;
+    std::unordered_map<std::string, int>
         rank_id_to_mapping_parallelism;
     {
       auto nest = layout.intraline[data_space_id];
@@ -931,7 +936,9 @@ namespace model
           if (mapping_parallelism > 1)
           { // Skip thoses rank with parallelism as 1 as they won't lead to bank conflict
             rank_id_to_mapping_parallelism[r] = mapping_parallelism;
+            rank_id_to_number_of_tiles[r] = std::max(dim_id_to_number_of_tiles[dimsID[0]], 1);
             total_data_requested *= mapping_parallelism;
+            rank_id_to_rank_list_index[r] = rank_list.size();
             rank_list.push_back(r);
           }
         }
@@ -942,9 +949,11 @@ namespace model
           std::cout << "rank:" << r << "  dimension: ";
 #endif
           int mapping_parallelism = 1;
+          int number_of_tiles = 1;
           for (unsigned index = 0; index < dimsID.size(); index++)
           {
             mapping_parallelism += std::ceil((std::max(dim_id_to_mapping_parallelism[dimsID[index]], 1) - 1) * int(coefficientValue[index]));
+            number_of_tiles *= std::max(dim_id_to_number_of_tiles[dimsID[index]], 1); // ToDo: Is this number of tiles calculation ok?
 #ifdef DEBUG
             std::cout << dimsID[index] << " ";
 #endif
@@ -955,7 +964,9 @@ namespace model
           if (mapping_parallelism > 1)
           { // Skip thoses rank with parallelism as 1 as they won't lead to bank conflict
             rank_id_to_mapping_parallelism[r] = mapping_parallelism;
+            rank_id_to_number_of_tiles[r] = number_of_tiles;
             total_data_requested *= mapping_parallelism;
+            rank_id_to_rank_list_index[r] = rank_list.size();
             rank_list.push_back(r);
           }
         }
@@ -974,6 +985,7 @@ namespace model
     // ****************************************************************
     // Step 2: Get Binding Parallelism (What Layout Provide Per Cycle)
     // ****************************************************************
+    uint64_t auth_block_size = 1;
     std::unordered_map<std::string, int>
         rank_id_to_binding_parallelism;
 #ifdef DEBUG
@@ -985,6 +997,7 @@ namespace model
       {
         int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
         rank_id_to_binding_parallelism[r] = factor;
+        auth_block_size *= factor;
       }
     }
 
@@ -997,10 +1010,15 @@ namespace model
     // frequency_counts stores number of requestes:
     //       .first  stores number of counts requesting x lines.
     //       .second stores number of counts requesting x + 1 lines.
+    // zp_num_lines stores number of lines requested in the edge tiles (which include zero padding)
+    // zp_mask is a bitmask with 1's for dimensions with zero padding
     std::unordered_map<std::string, int>
         num_x_lines;
     std::unordered_map<std::string, std::pair<int, int>>
         frequency_counts;
+    std::unordered_map<std::string, int>
+        zp_num_lines;
+    uint32_t zp_mask = 0;
 #ifdef DEBUG
     std::cout << " *** step 3 *** " << std::endl;
 #endif
@@ -1008,9 +1026,30 @@ namespace model
     {
       int binding_parallelism = rank_id_to_binding_parallelism[rank_id];
 #ifdef DEBUG
-      std::cout << "rank_id " << rank_id << " mapping_parallelism=" << mapping_parallelism << " binding_parallelism=" << binding_parallelism << std::endl;
+      std::cout << "rank_id " << rank_id << " mapping_parallelism=" << mapping_parallelism << " binding_parallelism=" << binding_parallelism << " zero_padding=" << layout.rankToZeroPadding.at(rank_id) << std::endl;
 #endif
-      {
+      // ToDo: Currently only considers zero padding for offchip memory (DRAM), is that ok?  
+      if (assume_zero_padding && specs_.technology.Get() == Technology::DRAM && layout.rankToZeroPadding.at(rank_id) > 0)
+      { // rank has zero padding
+        int zp = layout.rankToZeroPadding.at(rank_id);
+        int num_tiles = rank_id_to_number_of_tiles[rank_id];
+        // minimum overlap of the memory tile on compute tile (without padding), the possible overlaps are all integer increments of this
+        int min_overlap = std::gcd(binding_parallelism, (binding_parallelism-(mapping_parallelism%binding_parallelism))%binding_parallelism); 
+        int num_alignments; // how many times do the compute and memory tiles align at the boundary
+        if(zp % min_overlap != 0) // memory and compute tiles never align
+          num_alignments = 0;
+        else // memory and compute tiles align every (binding_parallelism/min_overlap) compute tiles
+          num_alignments = num_tiles*min_overlap/binding_parallelism;
+        // sum of the numbers of intersecting memory tiles over all compute tiles 
+        int sum_of_counts = std::ceil(((double)(num_tiles-2)*mapping_parallelism+(mapping_parallelism-zp)%binding_parallelism)/binding_parallelism) + num_tiles - num_alignments - 3;
+        num_x_lines[rank_id] = sum_of_counts/std::max(num_tiles-2, 1);
+        frequency_counts[rank_id].second = sum_of_counts % std::max(num_tiles-2, 1);
+        frequency_counts[rank_id].first = num_tiles - 2 - frequency_counts[rank_id].second;
+        zp_num_lines[rank_id] = std::ceil(((double)mapping_parallelism-zp)/binding_parallelism);
+        zp_mask |= (1 << rank_id_to_rank_list_index[rank_id]);
+      }
+      else
+      { // rank does not have zero padding
         num_x_lines[rank_id] = std::ceil((double)mapping_parallelism / binding_parallelism);
         int gcd = std::gcd(binding_parallelism, mapping_parallelism);
         frequency_counts[rank_id].second = (mapping_parallelism / gcd - 1) % (binding_parallelism / gcd); // ToDo: Row Buffer support (optional, add function check in layout definition)
@@ -1021,6 +1060,32 @@ namespace model
           frequency_counts[rank_id].first = (binding_parallelism / gcd) - frequency_counts[rank_id].second; // ToDo: Wrong equation when C=3, H=7
       }
     }
+  
+#ifdef DEBUG
+    std::cout << "zp_mask=" << zp_mask << std::endl;
+#endif
+
+    // ****************************************************************
+    // Step 3.5: Calculate latencies associated with the crypto engine
+    // ****************************************************************
+    double crypto_blocks_per_line = 0;
+    double crypto_latency_per_line = 0;
+    double crypto_hash_reads_per_line = 0;
+    // only consider crypto if config is provided AND only for offchip memory (DRAM)
+    // ToDo: can this be checked in a cleaner way?
+    if (crypto_config != nullptr && specs_.technology.Get() == Technology::DRAM)
+    {
+      double word_size = specs_.word_bits.Get();
+      crypto_blocks_per_line = std::ceil((double)auth_block_size * word_size / (crypto_config->datapath));
+      crypto_latency_per_line = crypto_blocks_per_line * (crypto_config->auth_cycle_per_datapath + crypto_config->enc_cycle_per_datapath) 
+                                        + (crypto_config->auth_additional_cycle_per_block);
+      // assume hashes are always consecutive and in lines of same size as specified by layout
+      crypto_hash_reads_per_line = std::ceil(crypto_blocks_per_line  * (crypto_config->hash_size) / (auth_block_size * word_size));
+    }
+#ifdef DEBUG
+    std::cout << "crypto_latency_per_line:" << crypto_latency_per_line << std::endl;
+    std::cout << "crypto_hash_reads_per_line:" << crypto_hash_reads_per_line << std::endl;
+#endif
 
     // ****************************************************************
     // Step 4: Analyze the Memory Latency and Obtain the Total Latency
@@ -1038,44 +1103,61 @@ namespace model
 #endif
     double overall_lines = 0; // weighted accumulation of lines requested by all buckets
     // iterate over all possible tile types (all combinations of x or x+1)
-    for (int bitmask = 0; bitmask < (1 << rank_list.size()); bitmask++) // 2**d
+    for (uint32_t bitmask = 0; bitmask < ((uint32_t)1 << rank_list.size()); bitmask++) // 2**d
     {
-      double lines = 1;
-      double cnt = 1;
-      for (unsigned idx = 0; idx < rank_list.size(); idx++) // rank index
+      // iterate over all possible combinations of which ranks include zero padding in given tile
+      // assumes zero padded ranks must correspond to a 1 in bitmask, in order to not double count them
+      for (uint32_t zp_bitmask = (-1) & zp_mask & bitmask; /*break condition at the end of the loop*/; zp_bitmask = (zp_bitmask-1) & zp_mask & bitmask)
       {
-        auto rank_id = rank_list[idx];
-#ifdef DEBUG
-        std::cout << "rank:" << rank_id;
-#endif
-        if (bitmask & (1 << idx)) // tile instersects x+1 lines in dimension dim_id
+        double lines = 1;
+        double cnt = 1;
+        for (unsigned idx = 0; idx < rank_list.size(); idx++) // rank index
         {
-          lines *= (num_x_lines[rank_id] + 1);
-          cnt *= frequency_counts[rank_id].second;
+          auto rank_id = rank_list[idx];
 #ifdef DEBUG
-          std::cout << "\t Accesses[x + 1 lines]:" << num_x_lines[rank_id] + 1 << "\t  frequency_counts:" << frequency_counts[rank_id].second;
+          std::cout << "rank:" << rank_id;
+#endif
+          if (zp_bitmask & (1<<idx)) // tile is at the edge of the layer in dimension dim_id and includes zero padding
+          {
+            lines *= zp_num_lines[rank_id];
+            cnt *= 2;
+#ifdef DEBUG
+            std::cout << "\t Accesses[zero padded]:" << zp_num_lines[rank_id] << "\t  frequency_counts:" << 2;
+#endif
+          }
+          else if (bitmask & (1 << idx)) // tile instersects x+1 lines in dimension dim_id
+          {
+            lines *= (num_x_lines[rank_id] + 1);
+            cnt *= frequency_counts[rank_id].second;
+#ifdef DEBUG
+            std::cout << "\t Accesses[x + 1 lines]:" << num_x_lines[rank_id] + 1 << "\t  frequency_counts:" << frequency_counts[rank_id].second;
+#endif
+          }
+          else // tile instersects x lines in dimension dim_id
+          {
+            lines *= num_x_lines[rank_id];
+            cnt *= frequency_counts[rank_id].first;
+#ifdef DEBUG
+            std::cout << "\t Accesses[x lines]:" << num_x_lines[rank_id] << "   \t  frequency_counts:" << frequency_counts[rank_id].first;
+#endif
+          }
+#ifdef DEBUG
+          std::cout << std::endl;
 #endif
         }
-        else // tile instersects x lines in dimension dim_id
-        {
-          lines *= num_x_lines[rank_id];
-          cnt *= frequency_counts[rank_id].first;
+        total_cnt += cnt;
+        overall_critical_path_latency += cnt * std::max({(double)compute_cycles,
+                                                        std::ceil((lines + crypto_hash_reads_per_line) / layout.num_read_ports),
+                                                        crypto_latency_per_line*lines});
+        overall_lines += lines * cnt;
 #ifdef DEBUG
-          std::cout << "\t Accesses[x lines]:" << num_x_lines[rank_id] << "   \t  frequency_counts:" << frequency_counts[rank_id].first;
-#endif
-        }
-#ifdef DEBUG
-        std::cout << std::endl;
-#endif
+        std::cout << "Current bucket: total lines requested = " << lines << "  frequency counts = " << cnt << std::endl
+                  << std::endl;
+#endif 
+        // check loop break condition (needs to be at the end to not skip zp_bitmask=0 case)
+        if (zp_bitmask == 0)
+          break;
       }
-      total_cnt += cnt;
-      overall_critical_path_latency += cnt * std::max((double)compute_cycles,
-                                                      std::ceil(lines / layout.num_read_ports));
-      overall_lines += lines * cnt;
-#ifdef DEBUG
-      std::cout << "Current bucket: total lines requested = " << lines << "  frequency counts = " << cnt << std::endl
-                << std::endl;
-#endif
     }
 
     // ****************************************************************
@@ -1201,6 +1283,14 @@ namespace model
       // (2) how many data next subtile needed from current memory hierarchy -- rank_id_to_subtile_shape
       // "SubTile" refers to the tile in the next-lower memory hierarchy.
       //
+      
+      // Find number of tiles per dimension
+      std::unordered_map<problem::Shape::FlattenedDimensionID, int> 
+          dim_id_to_number_of_tiles;
+      for (auto j : tile.subnest)
+        {
+          dim_id_to_number_of_tiles[j.dimension] = j.residual_end;
+        }
 
 #ifdef DEBUG
       std::cout << "tile.GetDataSpaceName()=" << tile.GetDataSpaceName() << std::endl;
@@ -1225,7 +1315,9 @@ namespace model
         continue;
       }
 
+      // ToDo: move this to a better place and make configurable
       bool assume_zero_padding = true;
+
       // ****************************************************************
       // Phase 2: Perform Spatial Bank Conflict Check for Current Data Space
       // ****************************************************************
@@ -1238,7 +1330,7 @@ namespace model
       double spatial_check_num_access_ratio_bw_over_layout = 1.0;
       std::pair<double, double> spatial_bc_analysis_result;
       if (dim_id_to_mapping_parallelism.size() > 0){
-        spatial_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(layout, crypto_config, data_space_id, 1.0, dim_id_to_mapping_parallelism, assume_zero_padding);
+        spatial_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(layout, crypto_config, data_space_id, 1.0, dim_id_to_mapping_parallelism, dim_id_to_number_of_tiles, assume_zero_padding);
         slowdown_spatial_check = spatial_bc_analysis_result.first;
         spatial_check_num_access_ratio_bw_over_layout = spatial_bc_analysis_result.second;
       }
@@ -1257,7 +1349,7 @@ namespace model
       double subtile_check_num_access_ratio_bw_over_layout = 1.0;
       std::pair<double, double> subtile_bc_analysis_result;
       if (dim_id_to_subtile_shape.size() > 0){
-        subtile_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(layout, crypto_config, data_space_id, compute_cycles, dim_id_to_subtile_shape, assume_zero_padding);
+        subtile_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(layout, crypto_config, data_space_id, compute_cycles, dim_id_to_subtile_shape, dim_id_to_number_of_tiles, assume_zero_padding);
         slowdown_subtile_check = subtile_bc_analysis_result.first;
         subtile_check_num_access_ratio_bw_over_layout = subtile_bc_analysis_result.second;
       }

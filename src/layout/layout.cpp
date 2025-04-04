@@ -82,6 +82,14 @@ namespace layout
       rankToCoefficientValue[map_pair.first] = coefficientValue;
     }
 
+    // ToDo: Read zero padding from layer shape 
+    std::map<std::string, uint32_t> rankToZeroPadding;
+    for (auto &[rank, dimNames] : rankToDimensionName)
+    {
+      // Temporary fix, needs to be changed for reading zero padding size from layer shape
+      rankToZeroPadding[rank] = (dimNames.size() > 1 ? 1 : 0);
+    }
+
     std::map<std::string, unsigned> dimensionToDimID = workload.GetShape()->FactorizedDimensionNameToID;
     const std::vector<std::int32_t> dimension_bound = workload.GetFactorizedBounds().GetCoordinates();
 
@@ -202,6 +210,7 @@ namespace layout
       layout.rankToFactorizedDimensionID = rankToFactorizedDimensionID;
       layout.dimensionToDimID = dimensionToDimID;
       layout.coefficientToValue = coefficientToValue;
+      layout.rankToZeroPadding = rankToZeroPadding;
       layout.dim_order = computedDimOrder;
       layout.rank_list = globalRankList;
 
