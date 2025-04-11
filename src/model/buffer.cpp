@@ -1025,40 +1025,100 @@ namespace model
     for (auto [rank_id, mapping_parallelism] : rank_id_to_mapping_parallelism)
     {
       int binding_parallelism = rank_id_to_binding_parallelism[rank_id];
+      int zero_padding = 0;
+      if (assume_zero_padding && specs_.technology.Get() == Technology::DRAM && layout.rankToZeroPadding.at(rank_id) > 0)
+      { // rank has zero padding
+        zero_padding = layout.rankToZeroPadding.at(rank_id);
+        zp_num_lines[rank_id] = std::ceil(((double)mapping_parallelism - zero_padding) / binding_parallelism);
+        zp_mask |= (1 << rank_id_to_rank_list_index[rank_id]);
+      }
 #ifdef DEBUG
       std::cout << "rank_id " << rank_id << " mapping_parallelism=" << mapping_parallelism << " binding_parallelism=" << binding_parallelism << " zero_padding=" << layout.rankToZeroPadding.at(rank_id) << std::endl;
 #endif
-      // ToDo: Currently only considers zero padding for offchip memory (DRAM), is that ok?  
-      if (assume_zero_padding && specs_.technology.Get() == Technology::DRAM && layout.rankToZeroPadding.at(rank_id) > 0)
-      { // rank has zero padding
-        int zp = layout.rankToZeroPadding.at(rank_id);
-        int num_tiles = rank_id_to_number_of_tiles[rank_id];
-        // minimum overlap of the memory tile on compute tile (without padding), the possible overlaps are all integer increments of this
-        int min_overlap = std::gcd(binding_parallelism, (binding_parallelism-(mapping_parallelism%binding_parallelism))%binding_parallelism); 
-        int num_alignments; // how many times do the compute and memory tiles align at the boundary
-        if(zp % min_overlap != 0) // memory and compute tiles never align
-          num_alignments = 0;
-        else // memory and compute tiles align every (binding_parallelism/min_overlap) compute tiles
-          num_alignments = num_tiles*min_overlap/binding_parallelism;
-        // sum of the numbers of intersecting memory tiles over all compute tiles 
-        int sum_of_counts = std::ceil(((double)(num_tiles-2)*mapping_parallelism+(mapping_parallelism-zp)%binding_parallelism)/binding_parallelism) + num_tiles - num_alignments - 3;
-        num_x_lines[rank_id] = sum_of_counts/std::max(num_tiles-2, 1);
-        frequency_counts[rank_id].second = sum_of_counts % std::max(num_tiles-2, 1);
-        frequency_counts[rank_id].first = num_tiles - 2 - frequency_counts[rank_id].second;
-        zp_num_lines[rank_id] = std::ceil(((double)mapping_parallelism-zp)/binding_parallelism);
-        zp_mask |= (1 << rank_id_to_rank_list_index[rank_id]);
+      num_x_lines[rank_id] = std::ceil((double)mapping_parallelism / binding_parallelism);
+      auto dimsID = layout.rankToFactorizedDimensionID.at(rank_id);
+      std::vector<std::uint32_t> coefficientValue = layout.rankToCoefficientValue.at(rank_id);
+      std::vector<int> dim_jump(dimsID.size(), 0); // by how much does index jump every iteration in a given dimension
+      std::vector<int> dim_it(dimsID.size(), 0); // vector of iterators for each dimension associated with current rank
+      int offset = 0;
+      int total_size = mapping_parallelism;
+      for (size_t i = 0; i < dim_jump.size(); i++) 
+      {
+        dim_jump[i] = std::max(dim_id_to_mapping_parallelism[dimsID[i]], 1) * int(coefficientValue[i]);
+        total_size += dim_jump[i] * (std::max(dim_id_to_number_of_tiles[i], 1) - 1);
       }
-      else
-      { // rank does not have zero padding
-        num_x_lines[rank_id] = std::ceil((double)mapping_parallelism / binding_parallelism);
-        int gcd = std::gcd(binding_parallelism, mapping_parallelism);
-        frequency_counts[rank_id].second = (mapping_parallelism / gcd - 1) % (binding_parallelism / gcd); // ToDo: Row Buffer support (optional, add function check in layout definition)
-        // ToDo: tile_req / gcd is total number of lines in a pattern group.
-        if (frequency_counts[rank_id].second < 1) // Just checking frequency_counts[rank_id].second == 0;
-          frequency_counts[rank_id].first = 1;
+      int offset_bound = (mapping_parallelism % binding_parallelism) == 0 ? binding_parallelism : (mapping_parallelism % binding_parallelism);
+      // ToDo: maybe this while would just be better as a recursive function
+      while (true) 
+      { // checks break condition at the end of the loop
+        // decide if tile requests x or x+1 lines based on offset
+        int offset_mod = ((offset-zero_padding) % binding_parallelism) == 0 ? binding_parallelism : ((offset-zero_padding) % binding_parallelism);
+        if (offset < zero_padding || offset + mapping_parallelism == total_size - zero_padding)
+        {
+          // do nothing, zero padded tiles are dealt with separately
+          // ToDo: Is it possible to have more than 2 zero padded tiles? Also consider the ending zero padded tile to have different number of lines then the beginning one 
+        }
+        else if (offset_mod < offset_bound)
+        {
+          frequency_counts[rank_id].second ++;
+        }
         else
-          frequency_counts[rank_id].first = (binding_parallelism / gcd) - frequency_counts[rank_id].second; // ToDo: Wrong equation when C=3, H=7
+        {
+          frequency_counts[rank_id].first ++;
+        }
+        // advance to next tile
+        int i = 0;
+        for (; (size_t)i < dim_it.size(); i++) \
+        {
+          if (dim_it[i] < std::max(dim_id_to_number_of_tiles[i], 1) - 1) 
+          {
+            dim_it[i]++;
+            offset += dim_jump[i];
+            for (i--; i>=0; i--) 
+            {
+              offset -= dim_it[i] * dim_jump[i];
+              dim_it[i] = 0;
+            }
+            break;
+          }
+        }
+        if ((size_t)i >= dim_it.size()) 
+        {
+          break;
+        }
       }
+
+
+      //if (assume_zero_padding && specs_.technology.Get() == Technology::DRAM && layout.rankToZeroPadding.at(rank_id) > 0)
+      //{ // rank has zero padding
+      //  int zp = layout.rankToZeroPadding.at(rank_id);
+      //  int num_tiles = rank_id_to_number_of_tiles[rank_id];
+      //  // minimum overlap of the memory tile on compute tile (without padding), the possible overlaps are all integer increments of this
+      //  int min_overlap = std::gcd(binding_parallelism, (binding_parallelism-(mapping_parallelism%binding_parallelism))%binding_parallelism); 
+      //  int num_alignments; // how many times do the compute and memory tiles align at the boundary
+      //  if(zp % min_overlap != 0) // memory and compute tiles never align
+      //    num_alignments = 0;
+      //  else // memory and compute tiles align every (binding_parallelism/min_overlap) compute tiles
+      //    num_alignments = num_tiles*min_overlap/binding_parallelism;
+      //  // sum of the numbers of intersecting memory tiles over all compute tiles 
+      //  int sum_of_counts = std::ceil(((double)(num_tiles-2)*mapping_parallelism+(mapping_parallelism-zp)%binding_parallelism)/binding_parallelism) + num_tiles - num_alignments - 3;
+      //  num_x_lines[rank_id] = sum_of_counts/std::max(num_tiles-2, 1);
+      //  frequency_counts[rank_id].second = sum_of_counts % std::max(num_tiles-2, 1);
+      //  frequency_counts[rank_id].first = num_tiles - 2 - frequency_counts[rank_id].second;
+      //  zp_num_lines[rank_id] = std::ceil(((double)mapping_parallelism-zp)/binding_parallelism);
+      //  zp_mask |= (1 << rank_id_to_rank_list_index[rank_id]);
+      //}
+      //else
+      //{ // rank does not have zero padding
+      //  num_x_lines[rank_id] = std::ceil((double)mapping_parallelism / binding_parallelism);
+      //  int gcd = std::gcd(binding_parallelism, mapping_parallelism);
+      //  frequency_counts[rank_id].second = (mapping_parallelism / gcd - 1) % (binding_parallelism / gcd); // ToDo: Row Buffer support (optional, add function check in layout definition)
+      //  // ToDo: tile_req / gcd is total number of lines in a pattern group.
+      //  if (frequency_counts[rank_id].second < 1) // Just checking frequency_counts[rank_id].second == 0;
+      //    frequency_counts[rank_id].first = 1;
+      //  else
+      //    frequency_counts[rank_id].first = (binding_parallelism / gcd) - frequency_counts[rank_id].second; // ToDo: Wrong equation when C=3, H=7
+      //}
     }
   
 #ifdef DEBUG
