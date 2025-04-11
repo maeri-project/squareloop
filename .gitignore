@@ -172,3 +172,4 @@ benchmarks/script/crosslayer_search/**/*.txt
 benchmarks/script/crosslayer_search/**/*.xml
 benchmarks/script/crosslayer_search/**/*.csv
 benchmarks/layout/alexnet/
+benchmarks/layout/testnet2/

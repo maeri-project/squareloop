@@ -25,7 +25,7 @@ def check_layout_dependency(layout1, layout2, workload1, workload2):
     Constraint:
     Layout1's output layout == Layout2's input layout
     """
-    
+    # print(layout1, layout2)
     # 1) Check two workloads and determine ranks and projections
     with open(workload1, 'r') as f:
         w1 = yaml.safe_load(f)
@@ -94,6 +94,7 @@ def check_layout_dependency(layout1, layout2, workload1, workload2):
         # i_proj = next_input_projection[idx]
         interline_layout_match = interline_layout_match & (prev_layout_intra[o_rank] == next_layout_intra[i_rank])
 
+    # print(intraline_layout_match, interline_layout_match)
     return (interline_layout_match & intraline_layout_match)
 
 if __name__ == '__main__':

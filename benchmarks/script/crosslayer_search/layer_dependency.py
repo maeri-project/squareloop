@@ -37,7 +37,7 @@ def generate_torchlens_history(module, input, save_to):
     df = module_history.to_pandas()
     df.to_csv(save_to, index=False)
 
-def generate_workload_yaml(df, model, workload_name, workload_save_to):
+def generate_workload_yaml(df, model, workload_name, workload_save_to, exclude_layer_types=[]):
     layer_cnt = 1
     supported_layer_types = ['conv2d', 'linear']
     # type_to_torch_module = {'conv2d': nn.Conv2d, 'linear': nn.Linear}
@@ -53,8 +53,10 @@ def generate_workload_yaml(df, model, workload_name, workload_save_to):
         else:
             continue
 
+    layer_types = [x for x in supported_layer_types if x not in exclude_layer_types]
+
     for idx, row in df.iterrows():
-        if row['layer_type'] in supported_layer_types:
+        if row['layer_type'] in layer_types:
             output_tensor_shape = eval(row['tensor_shape'])
 
             module_name_list = eval(row['modules_exited'])
@@ -75,8 +77,8 @@ def generate_workload_yaml(df, model, workload_name, workload_save_to):
 
             # generate the yaml file
             N = output_tensor_shape[0]
-            P = output_tensor_shape[2] if len(output_tensor_shape) == 3 else 1
-            Q = output_tensor_shape[3] if len(output_tensor_shape) == 3 else 1
+            P = output_tensor_shape[2] if len(output_tensor_shape) == 4 else 1
+            Q = output_tensor_shape[3] if len(output_tensor_shape) == 4 else 1
             M = weight_tensor_info['M']
             C = weight_tensor_info['C']
             
@@ -136,7 +138,7 @@ def generate_workload_yaml(df, model, workload_name, workload_save_to):
             
             layer_cnt += 1
     
-def determine_dependency(df, workload_name, save_to):
+def determine_dependency(df, workload_name, save_to, exclude_layer_types=[]):
     # iterate through conv2d/linear layers, and find the parent layer
     # if parent is another conv2d/lienar -> direct dependency
     # if parent is non-conv2d/linear layer
@@ -145,6 +147,8 @@ def determine_dependency(df, workload_name, save_to):
 
     supported_layer_types = ['conv2d', 'linear']
     onthefly_types = ['relu', 'dropout']
+
+    layer_types = [x for x in supported_layer_types if x not in exclude_layer_types]
 
     def find_consecutive_layers(name):
         result = set()
@@ -159,7 +163,7 @@ def determine_dependency(df, workload_name, save_to):
                 return
             for p in parents:
                 p_type = df.loc[df['layer_label'] == p, 'layer_type'].values[0]
-                if p_type in supported_layer_types:
+                if p_type in layer_types:
                     result.add(p)
                 else:
                     dfs(p)
@@ -200,7 +204,7 @@ def determine_dependency(df, workload_name, save_to):
                 graph[parent].append(layer)
                 parents[layer].append(parent)
 
-        if row['layer_type'] in supported_layer_types:
+        if row['layer_type'] in layer_types:
             layer_label_to_idx[layer] = layer_cnt
             layer_cnt += 1
                 
@@ -269,7 +273,7 @@ def determine_dependency(df, workload_name, save_to):
     with open(os.path.join(save_to, '{}_dependent.yaml'.format(workload_name)), 'w') as f:
         yaml.dump(dependent_dict, f)
 
-def model_analysis(model, input, save_dir, model_tag):
+def model_analysis(model, input, save_dir, model_tag, exclude_layer_types=[]):
     # check if save_dir exists, if not create
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
@@ -277,8 +281,31 @@ def model_analysis(model, input, save_dir, model_tag):
     torchlens_save_path = os.path.join(save_dir, 'torchlens.csv')
     generate_torchlens_history(model, input, torchlens_save_path)
     df = pd.read_csv(torchlens_save_path)
-    generate_workload_yaml(df, model, model_tag, save_dir)
-    determine_dependency(df, model_tag, save_dir)
+    generate_workload_yaml(df, model, model_tag, save_dir, exclude_layer_types=exclude_layer_types)
+    determine_dependency(df, model_tag, save_dir, exclude_layer_types=exclude_layer_types)
+
+
+if __name__ == '__main__':
+    model = torchvision.models.AlexNet()
+    x = torch.rand(1, 3, 224, 224)
+    model_analysis(model, x, 'test/alexnet', 'AlexNet', exclude_layer_types=['linear'])
+
+    class testnet2(nn.Module):
+        def __init__(self):
+            super().__init__()
+
+            self.conv1 = nn.Conv2d(64, 64, 3, 2, 1)
+            self.conv2 = nn.Conv2d(64, 128, 3, 1, 1)
+
+        def forward(self, x):
+            x = F.relu(self.conv1(x))
+            x = F.relu(self.conv2(x))
+            return x
+    
+    model = testnet2()
+    x = torch.rand(1, 64, 64, 64)
+
+    model_analysis(model, x, 'test/testnet2', 'testnet2')
     
 
 
