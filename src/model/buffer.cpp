@@ -42,7 +42,7 @@ BOOST_CLASS_EXPORT(model::BufferLevel)
 #include "util/misc.hpp"
 #include "util/numeric.hpp"
 
-// #define DEBUG
+#define DEBUG
 
 namespace model
 {
@@ -1037,7 +1037,11 @@ namespace model
 #endif
       num_x_lines[rank_id] = std::ceil((double)mapping_parallelism / binding_parallelism);
       auto dimsID = layout.rankToFactorizedDimensionID.at(rank_id);
-      std::vector<std::uint32_t> coefficientValue = layout.rankToCoefficientValue.at(rank_id);
+      std::vector<std::uint32_t> coefficientValue(1,1);
+      if (dimsID.size() > 1)
+      {
+        coefficientValue = layout.rankToCoefficientValue.at(rank_id);
+      }
       std::vector<int> dim_jump(dimsID.size(), 0); // by how much does index jump every iteration in a given dimension
       std::vector<int> dim_it(dimsID.size(), 0); // vector of iterators for each dimension associated with current rank
       int offset = 0;
@@ -1053,7 +1057,7 @@ namespace model
       { // checks break condition at the end of the loop
         // decide if tile requests x or x+1 lines based on offset
         int offset_mod = ((offset-zero_padding) % binding_parallelism) == 0 ? binding_parallelism : ((offset-zero_padding) % binding_parallelism);
-        if (offset < zero_padding || offset + mapping_parallelism == total_size - zero_padding)
+        if (offset < zero_padding || offset + mapping_parallelism > total_size - zero_padding)
         {
           // do nothing, zero padded tiles are dealt with separately
           // ToDo: Is it possible to have more than 2 zero padded tiles? Also consider the ending zero padded tile to have different number of lines then the beginning one 
