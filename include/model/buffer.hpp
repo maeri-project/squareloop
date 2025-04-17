@@ -431,6 +431,8 @@ class BufferLevel : public Level
                                                                     uint64_t compute_cycles, 
                                                                     std::unordered_map<problem::Shape::FlattenedDimensionID,  int> dim_id_to_mapping_parallelism, 
                                                                     std::unordered_map<problem::Shape::FlattenedDimensionID,  int> dim_id_to_number_of_tiles,
+                                                                    std::unordered_map<problem::Shape::FlattenedDimensionID,  int> dim_id_to_outer_loop_order,
+                                                                    const bool assume_row_buffer,
                                                                     const bool assume_zero_padding); // bank conflict analysis for current dataspace
   tiling::CompoundTile ComputeBankConflictSlowdown(const tiling::CompoundTile &tile,
                                                   layout::Layout layout,
