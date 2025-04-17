@@ -1,5 +1,5 @@
 /* Copyright (c) 2019, NVIDIA CORPORATION. All rights reserved.
- *
+ * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -11,7 +11,7 @@
  *  * Neither the name of NVIDIA CORPORATION nor the names of its
  *    contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
- *
+ * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -39,210 +39,218 @@
 #include "workload/util/per-problem-dimension.hpp"
 #include "nest-analysis-tile-info.hpp"
 
-namespace analysis {
-    class NestAnalysis {
-    private:
-        // Cached copy of loop nest under evaluation (used for speedup).
-        loop::Nest cached_nest;
+namespace analysis
+{
+class NestAnalysis
+{
+ private:
+  // Cached copy of loop nest under evaluation (used for speedup).
+  loop::Nest cached_nest;
+  
+  // layout modeling
+  layout::Layouts layout_;
+  bool layout_initialized_ = false;
 
-        // layout modeling
-        layout::Layouts layout_;
-        bool layout_initialized_ = false;
+  // Properties of the nest being analyzed (copied over during construction).
+  std::vector<uint64_t> storage_tiling_boundaries_;
 
-        // Properties of the nest being analyzed (copied over during construction).
-        std::vector<uint64_t> storage_tiling_boundaries_;
+  // Live state.
+  std::vector<analysis::LoopState> nest_state_;
+  std::vector<int> indices_;
+  std::uint64_t num_epochs_;
+  
+  // Identifies the spatial element
+  // whose working set is currently being computed.
+  // Dynamically updated by recursive calls.
+  std::uint64_t spatial_id_;
+  
+  CompoundDataMovementNest working_sets_;
+  std::map<std::vector<unsigned>, ComputeInfo> compute_info_;
+  CompoundComputeNest compute_info_sets_;
 
-        // Live state.
-        std::vector<analysis::LoopState> nest_state_;
-        std::vector<int> indices_;
-        std::uint64_t num_epochs_;
+  // Memoization structures to accelerate IndexToOperationPoint()
+  std::vector<problem::OperationPoint> vector_strides_;
+  std::vector<problem::OperationPoint> mold_low_;
+  std::vector<problem::OperationPoint> mold_high_;
+  std::vector<problem::OperationPoint> mold_high_residual_;
+  problem::OperationPoint cur_transform_;
 
-        // Identifies the spatial element
-        // whose working set is currently being computed.
-        // Dynamically updated by recursive calls.
-        std::uint64_t spatial_id_;
+  // per-level properties.
+  std::vector<double> utilized_spatial_elems_; // with imperfect factorization.
+  std::vector<uint64_t> num_spatial_elems_;
+  std::vector<uint64_t> logical_fanouts_;
 
-        CompoundDataMovementNest working_sets_;
-        std::map<std::vector<unsigned>, ComputeInfo> compute_info_;
-        CompoundComputeNest compute_info_sets_;
+  // used to accelerate to IndexToOperationPoint computation
+  // relevant only for master spatial levels.
+  std::vector<uint64_t> logical_fanoutX_;
+  std::vector<uint64_t> logical_fanoutY_;
 
-        // Memoization structures to accelerate IndexToOperationPoint()
-        std::vector<problem::OperationPoint> vector_strides_;
-        std::vector<problem::OperationPoint> mold_low_;
-        std::vector<problem::OperationPoint> mold_high_;
-        std::vector<problem::OperationPoint> mold_high_residual_;
-        problem::OperationPoint cur_transform_;
+  // records if a level corresponds to the starting
+  // point of a new storage tile.
+  std::vector<bool> storage_boundary_level_;
+  
+  // architectural storage level corresponding to a given loop level.
+  std::vector<unsigned> arch_storage_level_;
 
-        // per-level properties.
-        std::vector<double> utilized_spatial_elems_; // with imperfect factorization.
-        std::vector<uint64_t> num_spatial_elems_;
-        std::vector<uint64_t> logical_fanouts_;
+  // extrapolation may be disabled at certain levels.
+  std::vector<bool> disable_temporal_extrapolation_;
 
-        // used to accelerate to IndexToOperationPoint computation
-        // relevant only for master spatial levels.
-        std::vector<uint64_t> logical_fanoutX_;
-        std::vector<uint64_t> logical_fanoutY_;
+  // any level which is at the transition point from temporal to
+  // spatial nests is a master spatial level.
+  // there should be one such level between each set of
+  // consecutive physical storage levels.
+  std::vector<bool> master_spatial_level_;
+  
+  // true if the spatial elements at a given master spatial
+  // level are connected by on-chip links.
+  std::vector<bool> linked_spatial_level_;
 
-        // records if a level corresponds to the starting
-        // point of a new storage tile.
-        std::vector<bool> storage_boundary_level_;
+  // The following data structures are used for skew calculation. We can
+  // possibly optimize the implementation by holding the data in a few
+  // OperationPoints instead of these maps. At each storage tiling
+  // boundary, we initiate a new loop gist that captures the information
+  // for all the loops in that block (i.e., before the next-inner
+  // storage tiling boundary).
+  struct LoopGist
+  {
+    int index = 0;
+    int bound = 1;
+  };
+  // Hold the gists in a vector instead of a map. This is because trivial
+  // unit-loops are omitted from the loop nest, which means the gist may
+  // not be complete by the time we arrive at the innermost
+  // FillSpatialDeltas in a loop block. Using a vector (along with the
+  // default values in the struct above) allows us to pre-initialize all
+  // loops. Just be careful to expand them in the Reset() call.
+  std::vector<LoopGist> loop_gists_temporal_;
+  std::vector<LoopGist> loop_gists_spatial_;
 
-        // architectural storage level corresponding to a given loop level.
-        std::vector<unsigned> arch_storage_level_;
+  // Storage level to fanout map.
+  std::map<unsigned, std::uint64_t> physical_fanoutX_; 
+  std::map<unsigned, std::uint64_t> physical_fanoutY_; 
 
-        // extrapolation may be disabled at certain levels.
-        std::vector<bool> disable_temporal_extrapolation_;
+  std::unordered_map<unsigned, loop::Nest::SkewDescriptor> packed_skew_descriptors_; // per storage level.
+  std::unordered_map<unsigned, loop::Nest::SkewDescriptor> skew_descriptors_; // per loop level.
+  loop::Nest::SkewDescriptor* cur_skew_descriptor_ = nullptr;
 
-        // any level which is at the transition point from temporal to
-        // spatial nests is a master spatial level.
-        // there should be one such level between each set of
-        // consecutive physical storage levels.
-        std::vector<bool> master_spatial_level_;
+  std::unordered_map<unsigned, problem::PerDataSpace<bool>> no_link_transfer_;
+  std::unordered_map<unsigned, problem::PerDataSpace<bool>> no_multicast_;
+  std::unordered_map<unsigned, problem::PerDataSpace<bool>> no_temporal_reuse_;
+  std::unordered_map<unsigned, problem::PerDataSpace<bool>> rmw_first_update_;
+  std::unordered_map<unsigned, problem::PerDataSpace<bool>> no_coalesce_;
 
-        // true if the spatial elements at a given master spatial
-        // level are connected by on-chip links.
-        std::vector<bool> linked_spatial_level_;
+  // Other state.
 
-        // The following data structures are used for skew calculation. We can
-        // possibly optimize the implementation by holding the data in a few
-        // OperationPoints instead of these maps. At each storage tiling
-        // boundary, we initiate a new loop gist that captures the information
-        // for all the loops in that block (i.e., before the next-inner
-        // storage tiling boundary).
-        struct LoopGist {
-            int index = 0;
-            int bound = 1;
-        };
-        // Hold the gists in a vector instead of a map. This is because trivial
-        // unit-loops are omitted from the loop nest, which means the gist may
-        // not be complete by the time we arrive at the innermost
-        // FillSpatialDeltas in a loop block. Using a vector (along with the
-        // default values in the struct above) allows us to pre-initialize all
-        // loops. Just be careful to expand them in the Reset() call.
-        std::vector<LoopGist> loop_gists_temporal_;
-        std::vector<LoopGist> loop_gists_spatial_;
+  bool working_sets_computed_ = false;
+  bool imperfectly_factorized_ = false;
+  std::unordered_map<problem::Shape::FlattenedDimensionID, int> dim_imperfectly_factorized_at_;
 
-        // Storage level to fanout map.
-        std::map<unsigned, std::uint64_t> physical_fanoutX_;
-        std::map<unsigned, std::uint64_t> physical_fanoutY_;
+  problem::Workload* workload_ = nullptr;
 
-        std::unordered_map<unsigned, loop::Nest::SkewDescriptor> packed_skew_descriptors_; // per storage level.
-        std::unordered_map<unsigned, loop::Nest::SkewDescriptor> skew_descriptors_;        // per loop level.
-        loop::Nest::SkewDescriptor *cur_skew_descriptor_ = nullptr;
+  std::vector<unsigned> time_stamp_;
+  std::vector<unsigned> space_stamp_;
 
-        std::unordered_map<unsigned, problem::PerDataSpace<bool>> no_link_transfer_;
-        std::unordered_map<unsigned, problem::PerDataSpace<bool>> no_multicast_;
-        std::unordered_map<unsigned, problem::PerDataSpace<bool>> no_temporal_reuse_;
-        std::unordered_map<unsigned, problem::PerDataSpace<bool>> rmw_first_update_;
-        std::unordered_map<unsigned, problem::PerDataSpace<bool>> no_coalesce_;
+  // Internal helper methods.
+  void ComputeWorkingSets();
 
-        // Other state.
+  void DetectImperfectFactorization();
+  bool NeedsToRunImperfectIteration(std::vector<analysis::LoopState>::reverse_iterator cur);
+  void InitializeNestProperties();
+  void InitNumSpatialElems();
+  void InitStorageBoundaries();
+  void InitSpatialFanouts();
+  void InitPerLevelDimScales();
 
-        bool working_sets_computed_ = false;
-        bool imperfectly_factorized_ = false;
-        std::unordered_map<problem::Shape::FlattenedDimensionID, int> dim_imperfectly_factorized_at_;
+  void InitializeLiveState();
+  void CollectWorkingSets();
 
-        problem::Workload *workload_ = nullptr;
+  problem::OperationPoint IndexToOperationPoint_(const std::vector<int>& indices) const;
+  bool IsLastGlobalIteration_(int level, problem::Shape::FlattenedDimensionID dim) const;
+  problem::OperationSpace GetCurrentWorkingSet(std::vector<analysis::LoopState>::reverse_iterator cur);
+  problem::PerDataSpace<Point> GetCurrentTranslationVectors(std::vector<analysis::LoopState>::reverse_iterator cur);
 
-        std::vector<unsigned> time_stamp_;
-        std::vector<unsigned> space_stamp_;
+  problem::OperationSpace ComputeDeltas(std::vector<analysis::LoopState>::reverse_iterator cur);
 
-        // Internal helper methods.
-        void ComputeWorkingSets();
+  void ComputeTemporalWorkingSet(std::vector<analysis::LoopState>::reverse_iterator cur,
+                                 analysis::ElementState& cur_state);
+  void ComputeSpatialWorkingSet(std::vector<analysis::LoopState>::reverse_iterator cur);
 
-        void DetectImperfectFactorization();
-        bool NeedsToRunImperfectIteration(std::vector<analysis::LoopState>::reverse_iterator cur);
-        void InitializeNestProperties();
-        void InitNumSpatialElems();
-        void InitStorageBoundaries();
-        void InitSpatialFanouts();
-        void InitPerLevelDimScales();
+  void FillSpatialDeltas(std::vector<analysis::LoopState>::reverse_iterator cur,
+                         std::unordered_map<std::uint64_t, problem::OperationSpace>& spatial_deltas,
+                         std::unordered_map<std::uint64_t, std::uint64_t>& skew_table,
+                         std::uint64_t base_index,
+                         int depth,
+                         int extrapolation_stride,
+                         std::vector<analysis::LoopState>::reverse_iterator extrapolation_level);
 
-        void InitializeLiveState();
-        void CollectWorkingSets();
+  std::uint64_t ApplySkew(std::uint64_t unskewed_index);
 
-        problem::OperationPoint IndexToOperationPoint_(const std::vector<int> &indices) const;
-        bool IsLastGlobalIteration_(int level, problem::Shape::FlattenedDimensionID dim) const;
-        problem::OperationSpace GetCurrentWorkingSet(std::vector<analysis::LoopState>::reverse_iterator cur);
-        problem::PerDataSpace<Point> GetCurrentTranslationVectors(std::vector<analysis::LoopState>::reverse_iterator cur);
+  void ComputeAccurateMulticastedAccesses(
+      std::vector<analysis::LoopState>::reverse_iterator cur,
+      const std::unordered_map<std::uint64_t, problem::OperationSpace>& spatial_deltas,
+      problem::PerDataSpace<std::unordered_set<std::uint64_t>>& unaccounted_delta,
+      problem::PerDataSpace<AccessStatMatrix>& access_stats);
 
-        problem::OperationSpace ComputeDeltas(std::vector<analysis::LoopState>::reverse_iterator cur);
+  void ComputeNetworkLinkTransfers(
+      std::vector<analysis::LoopState>::reverse_iterator cur,
+      const std::unordered_map<std::uint64_t, problem::OperationSpace>& cur_spatial_deltas,
+      problem::PerDataSpace<std::unordered_set<std::uint64_t>>& unaccounted_delta,
+      problem::PerDataSpace<std::uint64_t>& link_transfers);
+ 
+  void CompareSpatioTemporalDeltas(
+    const std::unordered_map<std::uint64_t, problem::OperationSpace>& cur_spatial_deltas,
+    const std::unordered_map<std::uint64_t, problem::OperationSpace>& prev_spatial_deltas,
+    const std::uint64_t cur_spatial_index,
+    const std::uint64_t prev_spatial_index,
+    std::vector<problem::PerDataSpace<bool>>& inter_elem_reuse,
+    const problem::PerDataSpace<bool>& ignore_dataspaces);
+  
+  void ComputeDataDensity();
+  void PrintSpaceTimeStamp();
 
-        void ComputeTemporalWorkingSet(std::vector<analysis::LoopState>::reverse_iterator cur,
-                                       analysis::ElementState &cur_state);
-        void ComputeSpatialWorkingSet(std::vector<analysis::LoopState>::reverse_iterator cur);
+ public:  
+  // API
+  NestAnalysis();
+  void Init(problem::Workload* wc, const loop::Nest* nest,
+            std::map<unsigned, std::uint64_t> fanoutX_map,
+            std::map<unsigned, std::uint64_t> fanoutY_map);
+  void Init(problem::Workload* wc, const loop::Nest* nest, const layout::Layouts layout,
+            std::map<unsigned, std::uint64_t> fanoutX_map,
+            std::map<unsigned, std::uint64_t> fanoutY_map);
+  void Reset();
+ 
+  std::vector<problem::PerDataSpace<std::size_t>> GetWorkingSetSizes_LTW() const;
 
-        void FillSpatialDeltas(std::vector<analysis::LoopState>::reverse_iterator cur,
-                               std::unordered_map<std::uint64_t, problem::OperationSpace> &spatial_deltas,
-                               std::unordered_map<std::uint64_t, std::uint64_t> &skew_table,
-                               std::uint64_t base_index,
-                               int depth,
-                               int extrapolation_stride,
-                               std::vector<analysis::LoopState>::reverse_iterator extrapolation_level);
+  CompoundDataMovementNest GetWorkingSets();
+  CompoundComputeNest GetComputeInfo();
+  problem::Workload* GetWorkload();
+  layout::Layouts GetLayout();
+  bool IsLayoutInitialized();
 
-        std::uint64_t ApplySkew(std::uint64_t unskewed_index);
+  std::uint64_t GetLoopOuterSize(
+    const loop::Descriptor &loop, 
+    const std::vector<problem::Shape::FlattenedDimensionID> &dims
+  ) const; // currently need this for imperfect factorization in bank conflict computation
 
-        void ComputeAccurateMulticastedAccesses(
-            std::vector<analysis::LoopState>::reverse_iterator cur,
-            const std::unordered_map<std::uint64_t, problem::OperationSpace> &spatial_deltas,
-            problem::PerDataSpace<std::unordered_set<std::uint64_t>> &unaccounted_delta,
-            problem::PerDataSpace<AccessStatMatrix> &access_stats);
+  // Serialization.
+  friend class boost::serialization::access;
 
-        void ComputeNetworkLinkTransfers(
-            std::vector<analysis::LoopState>::reverse_iterator cur,
-            const std::unordered_map<std::uint64_t, problem::OperationSpace> &cur_spatial_deltas,
-            problem::PerDataSpace<std::unordered_set<std::uint64_t>> &unaccounted_delta,
-            problem::PerDataSpace<std::uint64_t> &link_transfers);
+  template <class Archive>
+  void serialize(Archive& ar, const unsigned int version=0) 
+  {
+    if(version == 0)
+    {
+      ar& BOOST_SERIALIZATION_NVP(nest_state_);
+      ar& boost::serialization::make_nvp("work_sets_",boost::serialization::make_array(working_sets_.data(),working_sets_.size()));
+      ar& BOOST_SERIALIZATION_NVP(working_sets_computed_);
+      // ar& BOOST_SERIALIZATION_NVP(compute_cycles_);
+    }
+  }
 
-        void CompareSpatioTemporalDeltas(
-            const std::unordered_map<std::uint64_t, problem::OperationSpace> &cur_spatial_deltas,
-            const std::unordered_map<std::uint64_t, problem::OperationSpace> &prev_spatial_deltas,
-            const std::uint64_t cur_spatial_index,
-            const std::uint64_t prev_spatial_index,
-            std::vector<problem::PerDataSpace<bool>> &inter_elem_reuse,
-            const problem::PerDataSpace<bool> &ignore_dataspaces);
+  friend std::ostream& operator << (std::ostream& out, const NestAnalysis& n);  
+};
 
-        void ComputeDataDensity();
-        void PrintSpaceTimeStamp();
-
-    public:
-        // API
-        NestAnalysis();
-        void Init(problem::Workload *wc, const loop::Nest *nest,
-                  std::map<unsigned, std::uint64_t> fanoutX_map,
-                  std::map<unsigned, std::uint64_t> fanoutY_map);
-        void Init(problem::Workload *wc, const loop::Nest *nest, const layout::Layouts layout,
-                  std::map<unsigned, std::uint64_t> fanoutX_map,
-                  std::map<unsigned, std::uint64_t> fanoutY_map);
-        void Reset();
-
-        std::vector<problem::PerDataSpace<std::size_t>> GetWorkingSetSizes_LTW() const;
-
-        CompoundDataMovementNest GetWorkingSets();
-        CompoundComputeNest GetComputeInfo();
-        problem::Workload *GetWorkload();
-        layout::Layouts GetLayout();
-        bool IsLayoutInitialized();
-
-        std::uint64_t GetLoopOuterSize(const loop::Descriptor &loop, const std::vector<problem::Shape::FlattenedDimensionID> &dims) const; // currently need this for imperfect factorization in bank conflict computation
-
-        // Serialization.
-        friend class boost::serialization::access;
-
-        template <class Archive>
-        void serialize(Archive &ar, const unsigned int version = 0) {
-            if (version == 0) {
-                ar &BOOST_SERIALIZATION_NVP(nest_state_);
-                ar &boost::serialization::make_nvp("work_sets_", boost::serialization::make_array(working_sets_.data(), working_sets_.size()));
-                ar &BOOST_SERIALIZATION_NVP(working_sets_computed_);
-                // ar& BOOST_SERIALIZATION_NVP(compute_cycles_);
-            }
-        }
-
-        friend std::ostream &operator<<(std::ostream &out, const NestAnalysis &n);
-    };
-
-    NestAnalysis ComputeWorkingSets(const problem::Workload &workload,
-                                    const loop::Nest &nest);
+NestAnalysis ComputeWorkingSets(const problem::Workload& workload,
+                                const loop::Nest& nest);
 
 } // namespace analysis
