@@ -21,7 +21,7 @@ architecture:
       - name: GlobalBuffer
         class: SRAM
         attributes:
-          depth: 8192
+          depth: 131072
           width: 64
           block_size: 8
           word_bits: 8

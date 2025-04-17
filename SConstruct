@@ -38,6 +38,9 @@ AddOption('--clang', dest='clang', default=(str(Platform())=='darwin'), action='
 
 env = Environment(ENV = os.environ)
 
+if GetOption('debug'):
+  env.Append(CPPDEFINES=['DEBUG'])
+
 if GetOption('clang'):
   print('Building with clang instead of gcc.')
 
