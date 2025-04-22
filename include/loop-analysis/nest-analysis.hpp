@@ -227,6 +227,11 @@ class NestAnalysis
   layout::Layouts GetLayout();
   bool IsLayoutInitialized();
 
+  std::uint64_t GetLoopOuterSize(
+    const loop::Descriptor &loop, 
+    const std::vector<problem::Shape::FlattenedDimensionID> &dims
+  ) const; // currently need this for imperfect factorization in bank conflict computation
+
   // Serialization.
   friend class boost::serialization::access;
 
