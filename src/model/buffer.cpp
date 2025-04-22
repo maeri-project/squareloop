@@ -900,6 +900,192 @@ namespace model
     return eval_status;
   }
 
+  std::pair<double, double> BufferLevel::ComputeBankConflictSlowdownPerDataSpace(
+    const layout::Layout layout, const crypto::CryptoConfig *crypto_config,
+    unsigned data_space_id, uint64_t compute_cycles,
+    std::unordered_map<problem::Shape::FlattenedDimensionID,
+                       std::pair<int, int>>
+        dim_id_to_mapping_parallelism,
+    std::unordered_map<problem::Shape::FlattenedDimensionID, int>
+        dim_id_to_number_of_tiles,
+    std::unordered_map<problem::Shape::FlattenedDimensionID, std::uint64_t>
+        dim_id_to_outer_size,
+    const bool assume_zero_padding) 
+  {
+    // ****************************************************************
+    // Step 0: Find All Ranks With Imperfect Factorization
+    // ****************************************************************
+#ifdef DEBUG
+    std::cout << " *** step 0 *** " << std::endl;
+#endif
+    std::vector<std::string> imperfect_ranks;
+    auto nest = layout.intraline[data_space_id];
+    for (const auto &r : nest.ranks) {
+      auto dimsID = layout.rankToFactorizedDimensionID.at(r);
+      for (unsigned index = 0; index < dimsID.size(); index++) {
+        if (dim_id_to_mapping_parallelism[dimsID[index]].first !=
+            dim_id_to_mapping_parallelism[dimsID[index]].second) {
+            imperfect_ranks.push_back(r);
+            break;
+        }
+      }
+    }
+#ifdef DEBUG
+    std::cout << "found " << imperfect_ranks.size()
+              << " ranks with imperfect factorization" << std::endl;
+#endif
+    std::unordered_map<std::string, std::uint64_t> rank_id_to_outer_size;
+    for (const auto &r : imperfect_ranks) {
+      auto dimsID = layout.rankToFactorizedDimensionID.at(r);
+      bool found = false;
+      for (unsigned index = 0; index < dimsID.size(); index++) {
+        if (dim_id_to_outer_size.find(dimsID[index]) != dim_id_to_outer_size.end()) {
+          rank_id_to_outer_size.insert({r, dim_id_to_outer_size[dimsID[index]]});
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        std::cout << "Failed to find imperfect rank!" << std::endl;
+      }
+    }
+
+    // ****************************************************************
+    // Step 1: Get Binding Parallelism (What Layout Provide Per Cycle)
+    // ****************************************************************
+    uint64_t auth_block_size = 1;
+    std::unordered_map<std::string, int> rank_id_to_binding_parallelism;
+#ifdef DEBUG
+     std::cout << " *** step 1 *** " << std::endl;
+#endif
+    {
+      auto nest = layout.intraline[data_space_id];
+      for (const auto &r : nest.ranks) // Analyze slowdown per rank
+      {
+        int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
+        rank_id_to_binding_parallelism[r] = factor;
+        auth_block_size *= factor;
+      }
+    }
+
+    // ****************************************************************
+    // Step 2: Get All Mapping Parallelisms (What Mapping Requested)
+    // ****************************************************************
+#ifdef DEBUG
+    std::cout << " *** step 2 *** " << std::endl;
+#endif
+    int num_imperfect_ranks = imperfect_ranks.size();
+    std::vector<double> imperfect_weights((uint32_t)1 << num_imperfect_ranks);
+    std::vector<double> all_slowdowns((uint32_t)1 << num_imperfect_ranks);
+    std::vector<double> all_correction_ratios((uint32_t)1 << num_imperfect_ranks);
+    for (uint32_t bitmask = 0; bitmask < ((uint32_t)1 << num_imperfect_ranks); bitmask++) {
+      // Compute weight for this particular subset of imperfect ranks
+      double weight = 1.0;
+      for (int i = 0; i < num_imperfect_ranks; i++) {
+        if (bitmask & ((uint32_t)1 << i)) {
+          weight *= (1.0 / rank_id_to_outer_size[imperfect_ranks[i]]);
+        } else {
+          weight *= (1.0 - 1.0 / rank_id_to_outer_size[imperfect_ranks[i]]);
+        }
+      }
+      imperfect_weights[bitmask] = weight;
+
+      uint64_t total_data_requested = 1;
+      std::vector<std::string> rank_list;
+      std::unordered_map<std::string, int> rank_id_to_rank_list_index;
+      std::unordered_map<std::string, int> rank_id_to_number_of_tiles;
+      std::unordered_map<std::string, int> rank_id_to_mapping_parallelism;
+      for (const auto &r : nest.ranks) {
+        auto dimsID = layout.rankToFactorizedDimensionID.at(r);
+        if (dimsID.size() == 1) {
+          int mapping_parallelism;
+          if (find(imperfect_ranks.begin(), imperfect_ranks.end(), r) != imperfect_ranks.end()) {
+            mapping_parallelism = std::max(dim_id_to_mapping_parallelism[dimsID[0]].second, 1);
+          } else {
+            mapping_parallelism = std::max(dim_id_to_mapping_parallelism[dimsID[0]].first, 1);
+          }
+          if (mapping_parallelism > 1) { // Skip thoses rank with parallelism as 1
+                                         // as they won't lead to bank conflict
+            rank_id_to_mapping_parallelism[r] = mapping_parallelism;
+            rank_id_to_number_of_tiles[r] = std::max(dim_id_to_number_of_tiles[dimsID[0]], 1);
+            total_data_requested *= mapping_parallelism;
+            rank_id_to_rank_list_index[r] = rank_list.size();
+            rank_list.push_back(r);
+          }
+        } else {
+          std::vector<std::uint32_t> coefficientValue = layout.rankToCoefficientValue.at(r);
+#ifdef DEBUG
+          std::cout << "rank:" << r << "  dimension: ";
+#endif
+          int mapping_parallelism = 1;
+          int number_of_tiles = 1;
+          for (unsigned index = 0; index < dimsID.size(); index++) {
+            if (find(imperfect_ranks.begin(), imperfect_ranks.end(), r) != imperfect_ranks.end()) {
+              mapping_parallelism += std::ceil(
+                (std::max(dim_id_to_mapping_parallelism[dimsID[index]].second, 1) - 1) *
+                int(coefficientValue[index]));
+            } else {
+              mapping_parallelism += std::ceil(
+                (std::max(dim_id_to_mapping_parallelism[dimsID[index]].first, 1) - 1) *
+                int(coefficientValue[index]));
+            }
+            number_of_tiles *=
+              std::max(dim_id_to_number_of_tiles[dimsID[index]], 1); // ToDo: Is this number of tiles calculation ok?
+#ifdef DEBUG
+            std::cout << dimsID[index] << " ";
+#endif
+          }
+#ifdef DEBUG
+          std::cout << std::endl;
+#endif
+          if (mapping_parallelism > 1) { // Skip thoses rank with parallelism as 1
+                                         // as they won't lead to bank conflict
+            rank_id_to_mapping_parallelism[r] = mapping_parallelism;
+            rank_id_to_number_of_tiles[r] = number_of_tiles;
+            total_data_requested *= mapping_parallelism;
+            rank_id_to_rank_list_index[r] = rank_list.size();
+            rank_list.push_back(r);
+          }
+        }
+      }
+
+      if (rank_id_to_mapping_parallelism.size() == 0) {
+#ifdef DEBUG
+        std::cout << "all related rank has mapping parallelism = 1" << std::endl;
+#endif
+        // No bank conflict if no rank is found
+        all_slowdowns[bitmask] = 1.0;
+        all_correction_ratios[bitmask] = 1.0;
+        continue;
+      }
+
+      std::pair<double, double> result = ComputeBankConflictSlowdownIndividual(
+        layout, crypto_config, compute_cycles, auth_block_size,
+        total_data_requested, rank_list, rank_id_to_rank_list_index,
+        rank_id_to_number_of_tiles, rank_id_to_mapping_parallelism,
+        rank_id_to_binding_parallelism, assume_zero_padding);
+      all_slowdowns[bitmask] = result.first;
+      all_correction_ratios[bitmask] = result.second;
+    }
+
+    double final_slowdown = 0.0, final_correction_ratio = 0.0;
+    for (uint32_t i = 0; i < (uint32_t)1 << num_imperfect_ranks; i++) {
+      final_slowdown += imperfect_weights[i] * all_slowdowns[i];
+      final_correction_ratio += imperfect_weights[i] * all_correction_ratios[i];
+    }
+
+#ifdef DEBUG
+    std::cout << "final slowdown current dataspace = " << final_slowdown
+              << std::endl;
+    std::cout << "final correction ratio = " << final_correction_ratio
+              << std::endl;
+#endif
+
+    assert(final_correction_ratio <= 1);
+
+    return std::pair<double, double>{final_slowdown, final_correction_ratio};
+  }
+
   std::pair<double, double> BufferLevel::ComputeBankConflictSlowdownIndividual(
       const layout::Layout layout, const crypto::CryptoConfig *crypto_config,
       uint64_t compute_cycles, uint64_t auth_block_size,
@@ -1122,192 +1308,6 @@ namespace model
 
     return std::pair<double, double>{slowdown_current_dataspace,
                                    num_lines_correction_ratio};
-  }
-
-  std::pair<double, double> BufferLevel::ComputeBankConflictSlowdownPerDataSpace(
-    const layout::Layout layout, const crypto::CryptoConfig *crypto_config,
-    unsigned data_space_id, uint64_t compute_cycles,
-    std::unordered_map<problem::Shape::FlattenedDimensionID,
-                       std::pair<int, int>>
-        dim_id_to_mapping_parallelism,
-    std::unordered_map<problem::Shape::FlattenedDimensionID, int>
-        dim_id_to_number_of_tiles,
-    std::unordered_map<problem::Shape::FlattenedDimensionID, std::uint64_t>
-        dim_id_to_outer_size,
-    const bool assume_zero_padding) 
-  {
-    // ****************************************************************
-    // Step 0: Find All Ranks With Imperfect Factorization
-    // ****************************************************************
-#ifdef DEBUG
-    std::cout << " *** step 0 *** " << std::endl;
-#endif
-    std::vector<std::string> imperfect_ranks;
-    auto nest = layout.intraline[data_space_id];
-    for (const auto &r : nest.ranks) {
-      auto dimsID = layout.rankToFactorizedDimensionID.at(r);
-      for (unsigned index = 0; index < dimsID.size(); index++) {
-        if (dim_id_to_mapping_parallelism[dimsID[index]].first !=
-            dim_id_to_mapping_parallelism[dimsID[index]].second) {
-            imperfect_ranks.push_back(r);
-            break;
-        }
-      }
-    }
-#ifdef DEBUG
-    std::cout << "found " << imperfect_ranks.size()
-              << " ranks with imperfect factorization" << std::endl;
-#endif
-    std::unordered_map<std::string, std::uint64_t> rank_id_to_outer_size;
-    for (const auto &r : imperfect_ranks) {
-      auto dimsID = layout.rankToFactorizedDimensionID.at(r);
-      bool found = false;
-      for (unsigned index = 0; index < dimsID.size(); index++) {
-        if (dim_id_to_outer_size.find(dimsID[index]) != dim_id_to_outer_size.end()) {
-          rank_id_to_outer_size.insert({r, dim_id_to_outer_size[dimsID[index]]});
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        std::cout << "Failed to find imperfect rank!" << std::endl;
-      }
-    }
-
-    // ****************************************************************
-    // Step 1: Get Binding Parallelism (What Layout Provide Per Cycle)
-    // ****************************************************************
-    uint64_t auth_block_size = 1;
-    std::unordered_map<std::string, int> rank_id_to_binding_parallelism;
-#ifdef DEBUG
-     std::cout << " *** step 1 *** " << std::endl;
-#endif
-    {
-      auto nest = layout.intraline[data_space_id];
-      for (const auto &r : nest.ranks) // Analyze slowdown per rank
-      {
-        int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
-        rank_id_to_binding_parallelism[r] = factor;
-        auth_block_size *= factor;
-      }
-    }
-
-    // ****************************************************************
-    // Step 2: Get All Mapping Parallelisms (What Mapping Requested)
-    // ****************************************************************
-#ifdef DEBUG
-    std::cout << " *** step 2 *** " << std::endl;
-#endif
-    int num_imperfect_ranks = imperfect_ranks.size();
-    std::vector<double> imperfect_weights((uint32_t)1 << num_imperfect_ranks);
-    std::vector<double> all_slowdowns((uint32_t)1 << num_imperfect_ranks);
-    std::vector<double> all_correction_ratios((uint32_t)1 << num_imperfect_ranks);
-    for (uint32_t bitmask = 0; bitmask < ((uint32_t)1 << num_imperfect_ranks); bitmask++) {
-      // Compute weight for this particular subset of imperfect ranks
-      double weight = 1.0;
-      for (int i = 0; i < num_imperfect_ranks; i++) {
-        if (bitmask & ((uint32_t)1 << i)) {
-          weight *= (1.0 / rank_id_to_outer_size[imperfect_ranks[i]]);
-        } else {
-          weight *= (1.0 - 1.0 / rank_id_to_outer_size[imperfect_ranks[i]]);
-        }
-      }
-      imperfect_weights[bitmask] = weight;
-
-      uint64_t total_data_requested = 1;
-      std::vector<std::string> rank_list;
-      std::unordered_map<std::string, int> rank_id_to_rank_list_index;
-      std::unordered_map<std::string, int> rank_id_to_number_of_tiles;
-      std::unordered_map<std::string, int> rank_id_to_mapping_parallelism;
-      for (const auto &r : nest.ranks) {
-        auto dimsID = layout.rankToFactorizedDimensionID.at(r);
-        if (dimsID.size() == 1) {
-          int mapping_parallelism;
-          if (find(imperfect_ranks.begin(), imperfect_ranks.end(), r) != imperfect_ranks.end()) {
-            mapping_parallelism = std::max(dim_id_to_mapping_parallelism[dimsID[0]].second, 1);
-          } else {
-            mapping_parallelism = std::max(dim_id_to_mapping_parallelism[dimsID[0]].first, 1);
-          }
-          if (mapping_parallelism > 1) { // Skip thoses rank with parallelism as 1
-                                         // as they won't lead to bank conflict
-            rank_id_to_mapping_parallelism[r] = mapping_parallelism;
-            rank_id_to_number_of_tiles[r] = std::max(dim_id_to_number_of_tiles[dimsID[0]], 1);
-            total_data_requested *= mapping_parallelism;
-            rank_id_to_rank_list_index[r] = rank_list.size();
-            rank_list.push_back(r);
-          }
-        } else {
-          std::vector<std::uint32_t> coefficientValue = layout.rankToCoefficientValue.at(r);
-#ifdef DEBUG
-          std::cout << "rank:" << r << "  dimension: ";
-#endif
-          int mapping_parallelism = 1;
-          int number_of_tiles = 1;
-          for (unsigned index = 0; index < dimsID.size(); index++) {
-            if (find(imperfect_ranks.begin(), imperfect_ranks.end(), r) != imperfect_ranks.end()) {
-              mapping_parallelism += std::ceil(
-                (std::max(dim_id_to_mapping_parallelism[dimsID[index]].second, 1) - 1) *
-                int(coefficientValue[index]));
-            } else {
-              mapping_parallelism += std::ceil(
-                (std::max(dim_id_to_mapping_parallelism[dimsID[index]].first, 1) - 1) *
-                int(coefficientValue[index]));
-            }
-            number_of_tiles *=
-              std::max(dim_id_to_number_of_tiles[dimsID[index]], 1); // ToDo: Is this number of tiles calculation ok?
-#ifdef DEBUG
-            std::cout << dimsID[index] << " ";
-#endif
-          }
-#ifdef DEBUG
-          std::cout << std::endl;
-#endif
-          if (mapping_parallelism > 1) { // Skip thoses rank with parallelism as 1
-                                         // as they won't lead to bank conflict
-            rank_id_to_mapping_parallelism[r] = mapping_parallelism;
-            rank_id_to_number_of_tiles[r] = number_of_tiles;
-            total_data_requested *= mapping_parallelism;
-            rank_id_to_rank_list_index[r] = rank_list.size();
-            rank_list.push_back(r);
-          }
-        }
-      }
-
-      if (rank_id_to_mapping_parallelism.size() == 0) {
-#ifdef DEBUG
-        std::cout << "all related rank has mapping parallelism = 1" << std::endl;
-#endif
-        // No bank conflict if no rank is found
-        all_slowdowns[bitmask] = 1.0;
-        all_correction_ratios[bitmask] = 1.0;
-        continue;
-      }
-
-      std::pair<double, double> result = ComputeBankConflictSlowdownIndividual(
-        layout, crypto_config, compute_cycles, auth_block_size,
-        total_data_requested, rank_list, rank_id_to_rank_list_index,
-        rank_id_to_number_of_tiles, rank_id_to_mapping_parallelism,
-        rank_id_to_binding_parallelism, assume_zero_padding);
-      all_slowdowns[bitmask] = result.first;
-      all_correction_ratios[bitmask] = result.second;
-    }
-
-    double final_slowdown = 0.0, final_correction_ratio = 0.0;
-    for (uint32_t i = 0; i < (uint32_t)1 << num_imperfect_ranks; i++) {
-      final_slowdown += imperfect_weights[i] * all_slowdowns[i];
-      final_correction_ratio += imperfect_weights[i] * all_correction_ratios[i];
-    }
-
-#ifdef DEBUG
-    std::cout << "final slowdown current dataspace = " << final_slowdown
-              << std::endl;
-    std::cout << "final correction ratio = " << final_correction_ratio
-              << std::endl;
-#endif
-
-    assert(final_correction_ratio <= 1);
-
-    return std::pair<double, double>{final_slowdown, final_correction_ratio};
   }
 
   tiling::CompoundTile BufferLevel::ComputeBankConflictSlowdown(
