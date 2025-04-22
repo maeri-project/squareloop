@@ -178,6 +178,7 @@ def run_crosslayer_search(workload_path, workload_name_prefix, layout_path, arch
 
     next_layer_dependency = {key: [k for k in layer_dependency.keys() if key in layer_dependency[k]] for key in layer_dependency.keys()}
     
+    # (all) TODO: How to determine cross layer search policy: order, how many revisits, etc. 
     if crosslayer_policy == 'sequential':
         layer_visit_order = layer_idx
     elif crosslayer_policy == 'random':
@@ -270,6 +271,10 @@ def run_crosslayer_search(workload_path, workload_name_prefix, layout_path, arch
         visited.append(idx)
 
     # add any rehashing costs
+    # (@ Jan) TODO: cryptographic engine (ideal) cost for consecutive but not dependent layers
+    # -> rehashing: read output feature map of previous layer, decrypt & authenticate. 
+    #               Next, re-encrypt and authenticate according to the next layer's input feature map authentication block (DRAM layout)
+    # -> this cost should be added/reported as a penalty for 'breaking' the dependency
 
     # report end-to-end performance/energy
 
