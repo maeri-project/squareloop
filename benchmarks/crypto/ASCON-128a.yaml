@@ -1,0 +1,14 @@
+crypto:
+  auth-additional-cycle-per-block: 8
+  auth-additional-energy-per-block: 0
+  auth-cycle-per-datapath: 0
+  auth-enc-parallel: true
+  auth-energy-per-datapath: 0
+  datapath: 128
+  enc-cycle-per-datapath: 5
+  enc-energy-per-datapath: 0
+  family: ASCON-128a
+  hash-size: 128
+  name: Unrollx4
+  xor-cycle: 0
+  xor-energy-per-datapath: 0

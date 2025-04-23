@@ -1307,7 +1307,7 @@ namespace model
 #endif
 
     // ToDo: removed for now, because with row buffering layout analysis may be better, should fix  
-    // assert(num_lines_correction_ratio <= 1);
+    assert(assume_reuse || assume_row_buffer || num_lines_correction_ratio <= 1);
 
 
     return std::pair<double, double> {slowdown_current_dataspace, num_lines_correction_ratio};

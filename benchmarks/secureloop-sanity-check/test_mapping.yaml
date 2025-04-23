@@ -1,0 +1,56 @@
+mapping:
+- factors: 'N=1 M=1 C=1 P=1 Q=1 R=1 S=1 '
+  permutation: QNMCPRS
+  target: input_activation_reg
+  type: temporal
+- bypass:
+  - Weights
+  - Outputs
+  keep:
+  - Inputs
+  target: input_activation_reg
+  type: bypass
+- factors: 'N=1 M=1 C=1 P=1 Q=1 R=1 S=1 '
+  permutation: QNMCPRS
+  target: weight_reg
+  type: temporal
+- bypass:
+  - Inputs
+  - Outputs
+  keep:
+  - Weights
+  target: weight_reg
+  type: bypass
+- factors: 'N=1 M=1 C=1 P=1 Q=1 R=1 S=1 '
+  permutation: QNMCPRS
+  target: output_activation_reg
+  type: temporal
+- bypass:
+  - Weights
+  - Inputs
+  keep:
+  - Outputs
+  target: output_activation_reg
+  type: bypass
+
+
+- factors: 'N=1 M=16 C=1 P=1 Q=16 R=1 S=1'
+  permutation: QMPNCRS
+  target: global_buffer
+  type: spatial
+  split: 1
+- factors: 'N=1 M=2 C=64 P=16 Q=1 R=3 S=3 '
+  permutation: QSRCPMN
+  target: global_buffer
+  type: temporal
+- bypass:
+  - Outputs
+  keep:
+  - Inputs
+  - Weights
+  target: global_buffer
+  type: bypass
+- factors: 'N=1 M=2 C=1 P=2 Q=2 R=1 S=1 '
+  permutation: PQMNCRS
+  target: DRAM
+  type: temporal
