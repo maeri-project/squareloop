@@ -946,7 +946,7 @@ namespace model
         }
       }
       if (!found) {
-        std::cout << "Failed to find imperfect rank!" << std::endl;
+        std::cout << "Failed to find imperfect rank " << r << std::endl;
       }
     }
 
@@ -1329,6 +1329,8 @@ namespace model
       dim_id_to_mapping_parallelism;
     std::unordered_map<problem::Shape::FlattenedDimensionID, std::pair<int, int>>
       dim_id_to_subtile_shape;
+    std::unordered_map<problem::Shape::FlattenedDimensionID, uint64_t>
+      dim_id_to_outer_size;
 
 #ifdef DEBUG
     std::cout
@@ -1349,6 +1351,7 @@ namespace model
       if (loop::IsSpatial(j.spacetime_dimension)) {
         dim_id_to_mapping_parallelism[j.dimension].first = j.end;
         dim_id_to_mapping_parallelism[j.dimension].second = j.residual_end;
+        dim_id_to_outer_size[j.dimension] = analysis->GetLoopOuterSize(j);
       }
     }
     // For current tile
@@ -1361,6 +1364,7 @@ namespace model
 #endif
         dim_id_to_mapping_parallelism[j.dimension].first = j.end;
         dim_id_to_mapping_parallelism[j.dimension].second = j.residual_end;
+        dim_id_to_outer_size[j.dimension] = analysis->GetLoopOuterSize(j);
       }
     }
 #ifdef DEBUG
@@ -1368,6 +1372,7 @@ namespace model
     // next subtile check
     std::cout << "subtile size: ";
 #endif
+    std::unordered_map<problem::Shape::FlattenedDimensionID, bool> found_imperfect;
     for (auto j : subtile_mapping_loopnest) {
 #ifdef DEBUG
       std::cout << j.PrintCompact(dim_id_to_name) << " ";
@@ -1375,7 +1380,13 @@ namespace model
       if (!dim_id_to_subtile_shape.count(j.dimension))
         dim_id_to_subtile_shape[j.dimension] = {1, 1};
       dim_id_to_subtile_shape[j.dimension].first *= j.end;
-      dim_id_to_subtile_shape[j.dimension].second *= j.end; // ignore imperfect factorization for subtile loopnest
+      if (!found_imperfect[j.dimension])
+        dim_id_to_subtile_shape[j.dimension].second *= j.residual_end;
+      if (j.end != j.residual_end)
+        found_imperfect[j.dimension] = true;
+
+      if (loop::IsSpatial(j.spacetime_dimension))
+        dim_id_to_outer_size[j.dimension] = analysis->GetLoopOuterSize(j);
     }
 #ifdef DEBUG
     std::cout << std::endl;
@@ -1464,22 +1475,6 @@ namespace model
 #ifdef DEBUG
       std::cout << "## Phase 2 -- spatial bank conflict checking" << std::endl;
 #endif
-      // Compute the outer sizes for each spatial dimension (for imperfect
-      // factorization)
-      std::unordered_map<problem::Shape::FlattenedDimensionID, uint64_t>
-        dim_id_to_outer_size;
-      auto nest = layout.intraline[data_space_id];
-      std::vector<problem::Shape::FlattenedDimensionID> data_space_dims;
-      for (auto &r : nest.ranks) {
-        for (auto dim : layout.rankToFactorizedDimensionID.at(r)) {
-          data_space_dims.push_back(dim);
-        }
-      }
-      for (auto j : tile.subnest) {
-        if (loop::IsSpatial(j.spacetime_dimension)) {
-          dim_id_to_outer_size[j.dimension] = analysis->GetLoopOuterSize(j, data_space_dims);
-        }
-      }
 
       double slowdown_spatial_check = 1.0;
       double spatial_check_num_access_ratio_bw_over_layout = 1.0;

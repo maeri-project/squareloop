@@ -2386,7 +2386,7 @@ problem::OperationSpace NestAnalysis::GetCurrentWorkingSet(std::vector<analysis:
   return problem::OperationSpace(workload_, low_problem_point, high_problem_point);
 }
 
-std::uint64_t NestAnalysis::GetLoopOuterSize(const loop::Descriptor &loop, const std::vector<problem::Shape::FlattenedDimensionID> &dims) const {
+std::uint64_t NestAnalysis::GetLoopOuterSize(const loop::Descriptor &loop) const {
   bool found = false;
   analysis::LoopState found_loop;
   for (auto nest_loop : nest_state_) {
@@ -2405,7 +2405,7 @@ std::uint64_t NestAnalysis::GetLoopOuterSize(const loop::Descriptor &loop, const
   for (auto loop2 = nest_state_.rbegin(); loop2 != nest_state_.rend(); loop2++) {
     if (loop2->level == found_loop.level) {
       break;
-    } else if (find(dims.begin(), dims.end(), loop2->descriptor.dimension) != dims.end()) {
+    } else if (loop2->descriptor.dimension == loop.dimension) {
       int end = loop2->descriptor.end;
       int residual_end = loop2->descriptor.residual_end;
       outer_size = (outer_size - 1) * end + residual_end;
