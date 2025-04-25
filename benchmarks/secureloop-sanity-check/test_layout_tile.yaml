@@ -1,0 +1,33 @@
+layout:
+  - target: DRAM
+    type: interline
+    factors: R=3 S=3 P=32 Q=2 C=4 M=64 N=1 H=2 W=32
+    permutation: QPHWCMSRN
+  - target: DRAM
+    type: intraline
+    factors: R=1 S=1 P=1 Q=16 C=16 M=1 N=1 H=16 W=1
+    permutation: QPCMSRNHW
+
+  - target: global_buffer
+    type: interline
+    factors: R=3 S=3 P=32 Q=2 C=64 M=2 N=1 H=2 W=32
+    permutation: QPHWCMSRN
+  - target: global_buffer
+    type: intraline
+    factors: R=1 S=1 P=1 Q=16 C=1 M=16 N=1 H=16 W=1
+    permutation: QPCMSRNHW
+
+
+  - target: output_activation_reg
+    type: interline
+    factors: R=1 S=1 P=1 Q=1 C=1 M=1 N=1 H=1 W=1
+    permutation: QPCMSRNHW
+  - target: weight_reg
+    type: interline
+    factors: R=1 S=1 P=1 Q=1 C=1 M=1 N=1 H=1 W=1
+    permutation: QPCMSRNHW
+  - target: input_activation_reg
+    type: interline
+    factors: R=1 S=1 P=1 Q=1 C=1 M=1 N=1 H=1 W=1
+    permutation: QPCMSRNHW
+

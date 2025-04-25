@@ -214,6 +214,11 @@ namespace layout
       layout.dim_order = computedDimOrder;
       layout.rank_list = globalRankList;
 
+      // ToDo: make these configurable, and also separately configurable per memory level
+      layout.assume_zero_padding = true;
+      layout.assume_row_buffer = true;
+      layout.assume_reuse = true;
+
       // For each data space, create loop nests.
       for (const auto &ds : layout.data_space)
       {
