@@ -49,6 +49,10 @@ struct Layout {
 
   std::map<std::string, std::uint32_t> rankToZeroPadding;
 
+  bool assume_zero_padding;
+  bool assume_row_buffer;
+  bool assume_reuse;
+
   bool initialize = false;                   // True if external YAML provided layout for this target
 };
 

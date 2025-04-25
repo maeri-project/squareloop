@@ -1,0 +1,355 @@
+input file: test_arch.yaml
+input file: components/reg_storage.yaml
+input file: components/smartbuffer_RF.yaml
+input file: components/smartbuffer_SRAM.yaml
+input file: test_layer.yaml
+input file: test_mapping.yaml
+input file: test_layout_tile.yaml
+Warning: Hyphenated keyword CNN-Layer found in inputs. Hyphenated keywords are deprecated and to be replaced with underscores. Please use the the scripts/hyphens2underscores.py in the in the Timeloop repository to update your inputs.
+Warning: Hyphenated keyword word-bits found in inputs. Hyphenated keywords are deprecated and to be replaced with underscores. Please use the the scripts/hyphens2underscores.py in the in the Timeloop repository to update your inputs.
+Warning: Hyphenated keyword block-size found in inputs. Hyphenated keywords are deprecated and to be replaced with underscores. Please use the the scripts/hyphens2underscores.py in the in the Timeloop repository to update your inputs.
+Warning: Hyphenated keyword read-write found in inputs. Hyphenated keywords are deprecated and to be replaced with underscores. Please use the the scripts/hyphens2underscores.py in the in the Timeloop repository to update your inputs.
+Warning: Hyphenated keyword data-spaces found in inputs. Hyphenated keywords are deprecated and to be replaced with underscores. Please use the the scripts/hyphens2underscores.py in the in the Timeloop repository to update your inputs.
+Warning: neither block size nor cluster size specified, set according to specified storage width: block size: 1  cluster_size: 1
+Warning: neither block size nor cluster size specified, set according to specified storage width: block size: 1  cluster_size: 1
+Warning: neither block size nor cluster size specified, set according to specified storage width: block size: 1  cluster_size: 1
+Start Parsering Crypto
+No Crypto specified
+Start Parsering Layout
+Target: weight_reg
+  num_read_ports: 2, num_write_ports: 2
+  max_dim_perline: { 1 1 1 1 1 1 1 }
+  Factor order: { C M R S N P Q }
+  Interline nest:
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 1, 1) iter->residual_end=1
+    iter->dimension=3-S in [0, 1, 1) iter->residual_end=1
+    iter->dimension=1-M in [0, 1, 1) iter->residual_end=1
+    iter->dimension=0-C in [0, 1, 1) iter->residual_end=1
+    iter->dimension=5-P in [0, 1, 1) iter->residual_end=1
+    iter->dimension=6-Q in [0, 1, 1) iter->residual_end=1
+  Intraline nest:
+    iter->dimension=0-C in [0, 1, 1) iter->residual_end=1
+    iter->dimension=1-M in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 1, 1) iter->residual_end=1
+    iter->dimension=3-S in [0, 1, 1) iter->residual_end=1
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=5-P in [0, 1, 1) iter->residual_end=1
+    iter->dimension=6-Q in [0, 1, 1) iter->residual_end=1
+
+Target: input_activation_reg
+  num_read_ports: 2, num_write_ports: 2
+  max_dim_perline: { 1 1 1 1 1 1 1 }
+  Factor order: { C M R S N P Q }
+  Interline nest:
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 1, 1) iter->residual_end=1
+    iter->dimension=3-S in [0, 1, 1) iter->residual_end=1
+    iter->dimension=1-M in [0, 1, 1) iter->residual_end=1
+    iter->dimension=0-C in [0, 1, 1) iter->residual_end=1
+    iter->dimension=5-P in [0, 1, 1) iter->residual_end=1
+    iter->dimension=6-Q in [0, 1, 1) iter->residual_end=1
+  Intraline nest:
+    iter->dimension=0-C in [0, 1, 1) iter->residual_end=1
+    iter->dimension=1-M in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 1, 1) iter->residual_end=1
+    iter->dimension=3-S in [0, 1, 1) iter->residual_end=1
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=5-P in [0, 1, 1) iter->residual_end=1
+    iter->dimension=6-Q in [0, 1, 1) iter->residual_end=1
+
+Target: output_activation_reg
+  num_read_ports: 2, num_write_ports: 2
+  max_dim_perline: { 1 1 1 1 1 1 1 }
+  Factor order: { C M R S N P Q }
+  Interline nest:
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 1, 1) iter->residual_end=1
+    iter->dimension=3-S in [0, 1, 1) iter->residual_end=1
+    iter->dimension=1-M in [0, 1, 1) iter->residual_end=1
+    iter->dimension=0-C in [0, 1, 1) iter->residual_end=1
+    iter->dimension=5-P in [0, 1, 1) iter->residual_end=1
+    iter->dimension=6-Q in [0, 1, 1) iter->residual_end=1
+  Intraline nest:
+    iter->dimension=0-C in [0, 1, 1) iter->residual_end=1
+    iter->dimension=1-M in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 1, 1) iter->residual_end=1
+    iter->dimension=3-S in [0, 1, 1) iter->residual_end=1
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=5-P in [0, 1, 1) iter->residual_end=1
+    iter->dimension=6-Q in [0, 1, 1) iter->residual_end=1
+
+Target: global_buffer
+  num_read_ports: 2, num_write_ports: 2
+  max_dim_perline: { 64 32 3 3 1 32 32 }
+  Factor order: { C M R S N P Q }
+  Interline nest:
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 3, 1) iter->residual_end=3
+    iter->dimension=3-S in [0, 3, 1) iter->residual_end=3
+    iter->dimension=1-M in [0, 2, 1) iter->residual_end=2
+    iter->dimension=0-C in [0, 64, 1) iter->residual_end=64
+    iter->dimension=5-P in [0, 32, 1) iter->residual_end=32
+    iter->dimension=6-Q in [0, 2, 1) iter->residual_end=2
+  Intraline nest:
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 1, 1) iter->residual_end=1
+    iter->dimension=3-S in [0, 1, 1) iter->residual_end=1
+    iter->dimension=1-M in [0, 16, 1) iter->residual_end=16
+    iter->dimension=0-C in [0, 1, 1) iter->residual_end=1
+    iter->dimension=5-P in [0, 1, 1) iter->residual_end=1
+    iter->dimension=6-Q in [0, 16, 1) iter->residual_end=16
+
+Target: DRAM
+  num_read_ports: 2, num_write_ports: 2
+  max_dim_perline: { 64 64 3 3 1 32 32 }
+  Factor order: { C M R S N P Q }
+  Interline nest:
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 3, 1) iter->residual_end=3
+    iter->dimension=3-S in [0, 3, 1) iter->residual_end=3
+    iter->dimension=1-M in [0, 64, 1) iter->residual_end=64
+    iter->dimension=0-C in [0, 4, 1) iter->residual_end=4
+    iter->dimension=5-P in [0, 32, 1) iter->residual_end=32
+    iter->dimension=6-Q in [0, 2, 1) iter->residual_end=2
+  Intraline nest:
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 1, 1) iter->residual_end=1
+    iter->dimension=3-S in [0, 1, 1) iter->residual_end=1
+    iter->dimension=1-M in [0, 1, 1) iter->residual_end=1
+    iter->dimension=0-C in [0, 16, 1) iter->residual_end=16
+    iter->dimension=5-P in [0, 1, 1) iter->residual_end=1
+    iter->dimension=6-Q in [0, 16, 1) iter->residual_end=16
+
+Crypto Configuration:
+  Name: 
+  Family: 
+  Datapath: 0
+  Auth Additional Cycle Per Block: 0
+  Auth Additional Energy Per Block: 0
+  Auth Cycle Per Datapath: 0
+  Auth Enc Parallel: false
+  Auth Energy Per Datapath: 0
+  Enc Cycle Per Datapath: 0
+  Enc Energy Per Datapath: 0
+  Hash Size: 0
+  Xor Cycle: 0
+  Xor Energy Per Datapath: 0
+mapping analysis
+iter->dimension=1-M in [0, 2, 1) iter->residual_end=2
+iter->dimension=6-Q in [0, 2, 1) iter->residual_end=2
+iter->dimension=5-P in [0, 2, 1) iter->residual_end=2
+iter->dimension=1-M in [0, 2, 1) iter->residual_end=2
+iter->dimension=5-P in [0, 16, 1) iter->residual_end=16
+iter->dimension=0-C in [0, 64, 1) iter->residual_end=64
+iter->dimension=2-R in [0, 3, 1) iter->residual_end=3
+iter->dimension=3-S in [0, 3, 1) iter->residual_end=3
+iter->dimension=1-M in [0, 16, 1) iter->residual_end=16
+iter->dimension=6-Q in [0, 16, 1) iter->residual_end=16
+iter->dimension=6-Q in [0, 1, 1) iter->residual_end=1
+iter->dimension=6-Q in [0, 1, 1) iter->residual_end=1
+iter->dimension=6-Q in [0, 1, 1) iter->residual_end=1
+nest->storage_tiling_boundaries[0]=0
+nest->storage_tiling_boundaries[1]=1
+nest->storage_tiling_boundaries[2]=2
+nest->storage_tiling_boundaries[3]=9
+nest->storage_tiling_boundaries[4]=12
+Evaluate Storage Level 0 -- weight_reg
+start layout evaluation
+i.GetDataSpaceName()=Weights
+i.GetHasMetaData()=0
+i.GetNumMetaDataRanks()=0
+Q1 
+i.GetDataSpaceName()=Inputs
+i.GetHasMetaData()=0
+i.GetNumMetaDataRanks()=0
+Q1 
+i.GetDataSpaceName()=Outputs
+i.GetHasMetaData()=0
+i.GetNumMetaDataRanks()=0
+Q1 
+layout at a Buffer level - = 
+Target: weight_reg
+  num_read_ports: 2, num_write_ports: 2
+  max_dim_perline: { 1 1 1 1 1 1 1 }
+  Factor order: { C M R S N P Q }
+  Interline nest:
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 1, 1) iter->residual_end=1
+    iter->dimension=3-S in [0, 1, 1) iter->residual_end=1
+    iter->dimension=1-M in [0, 1, 1) iter->residual_end=1
+    iter->dimension=0-C in [0, 1, 1) iter->residual_end=1
+    iter->dimension=5-P in [0, 1, 1) iter->residual_end=1
+    iter->dimension=6-Q in [0, 1, 1) iter->residual_end=1
+  Intraline nest:
+    iter->dimension=0-C in [0, 1, 1) iter->residual_end=1
+    iter->dimension=1-M in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 1, 1) iter->residual_end=1
+    iter->dimension=3-S in [0, 1, 1) iter->residual_end=1
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=5-P in [0, 1, 1) iter->residual_end=1
+    iter->dimension=6-Q in [0, 1, 1) iter->residual_end=1
+
+ overall_slowdown_: 1
+Evaluate Storage Level 1 -- input_activation_reg
+start layout evaluation
+i.GetDataSpaceName()=Weights
+i.GetHasMetaData()=0
+i.GetNumMetaDataRanks()=0
+Q1 
+i.GetDataSpaceName()=Inputs
+i.GetHasMetaData()=0
+i.GetNumMetaDataRanks()=0
+Q1 
+i.GetDataSpaceName()=Outputs
+i.GetHasMetaData()=0
+i.GetNumMetaDataRanks()=0
+Q1 
+layout at a Buffer level - = 
+Target: input_activation_reg
+  num_read_ports: 2, num_write_ports: 2
+  max_dim_perline: { 1 1 1 1 1 1 1 }
+  Factor order: { C M R S N P Q }
+  Interline nest:
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 1, 1) iter->residual_end=1
+    iter->dimension=3-S in [0, 1, 1) iter->residual_end=1
+    iter->dimension=1-M in [0, 1, 1) iter->residual_end=1
+    iter->dimension=0-C in [0, 1, 1) iter->residual_end=1
+    iter->dimension=5-P in [0, 1, 1) iter->residual_end=1
+    iter->dimension=6-Q in [0, 1, 1) iter->residual_end=1
+  Intraline nest:
+    iter->dimension=0-C in [0, 1, 1) iter->residual_end=1
+    iter->dimension=1-M in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 1, 1) iter->residual_end=1
+    iter->dimension=3-S in [0, 1, 1) iter->residual_end=1
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=5-P in [0, 1, 1) iter->residual_end=1
+    iter->dimension=6-Q in [0, 1, 1) iter->residual_end=1
+
+ overall_slowdown_: 1
+Evaluate Storage Level 2 -- output_activation_reg
+start layout evaluation
+i.GetDataSpaceName()=Weights
+i.GetHasMetaData()=0
+i.GetNumMetaDataRanks()=0
+Q1 
+i.GetDataSpaceName()=Inputs
+i.GetHasMetaData()=0
+i.GetNumMetaDataRanks()=0
+Q1 
+i.GetDataSpaceName()=Outputs
+i.GetHasMetaData()=0
+i.GetNumMetaDataRanks()=0
+Q1 
+layout at a Buffer level - = 
+Target: output_activation_reg
+  num_read_ports: 2, num_write_ports: 2
+  max_dim_perline: { 1 1 1 1 1 1 1 }
+  Factor order: { C M R S N P Q }
+  Interline nest:
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 1, 1) iter->residual_end=1
+    iter->dimension=3-S in [0, 1, 1) iter->residual_end=1
+    iter->dimension=1-M in [0, 1, 1) iter->residual_end=1
+    iter->dimension=0-C in [0, 1, 1) iter->residual_end=1
+    iter->dimension=5-P in [0, 1, 1) iter->residual_end=1
+    iter->dimension=6-Q in [0, 1, 1) iter->residual_end=1
+  Intraline nest:
+    iter->dimension=0-C in [0, 1, 1) iter->residual_end=1
+    iter->dimension=1-M in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 1, 1) iter->residual_end=1
+    iter->dimension=3-S in [0, 1, 1) iter->residual_end=1
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=5-P in [0, 1, 1) iter->residual_end=1
+    iter->dimension=6-Q in [0, 1, 1) iter->residual_end=1
+
+ overall_slowdown_: 1
+Evaluate Storage Level 3 -- global_buffer
+start layout evaluation
+i.GetDataSpaceName()=Weights
+i.GetHasMetaData()=0
+i.GetNumMetaDataRanks()=0
+Q16X M16Y S3 R3 C64 P16 M2 
+i.GetDataSpaceName()=Inputs
+i.GetHasMetaData()=0
+i.GetNumMetaDataRanks()=0
+Q16X M16Y S3 R3 C64 P16 M2 
+i.GetDataSpaceName()=Outputs
+i.GetHasMetaData()=0
+i.GetNumMetaDataRanks()=0
+Q16X M16Y S3 R3 C64 P16 M2 
+layout at a Buffer level - = 
+Target: global_buffer
+  num_read_ports: 2, num_write_ports: 2
+  max_dim_perline: { 64 32 3 3 1 32 32 }
+  Factor order: { C M R S N P Q }
+  Interline nest:
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 3, 1) iter->residual_end=3
+    iter->dimension=3-S in [0, 3, 1) iter->residual_end=3
+    iter->dimension=1-M in [0, 2, 1) iter->residual_end=2
+    iter->dimension=0-C in [0, 64, 1) iter->residual_end=64
+    iter->dimension=5-P in [0, 32, 1) iter->residual_end=32
+    iter->dimension=6-Q in [0, 2, 1) iter->residual_end=2
+  Intraline nest:
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 1, 1) iter->residual_end=1
+    iter->dimension=3-S in [0, 1, 1) iter->residual_end=1
+    iter->dimension=1-M in [0, 16, 1) iter->residual_end=16
+    iter->dimension=0-C in [0, 1, 1) iter->residual_end=1
+    iter->dimension=5-P in [0, 1, 1) iter->residual_end=1
+    iter->dimension=6-Q in [0, 16, 1) iter->residual_end=16
+
+dimension: 1 spatial_data_requirement: 16 avail_layout_spatial: 16 average_rows_accessed: 1
+dimension: 6 spatial_data_requirement: 16 avail_layout_spatial: 16 average_rows_accessed: 1
+ overall_slowdown_: 1
+Evaluate Storage Level 4 -- DRAM
+start layout evaluation
+i.GetDataSpaceName()=Weights
+i.GetHasMetaData()=0
+i.GetNumMetaDataRanks()=0
+P2 Q2 M2 
+i.GetDataSpaceName()=Inputs
+i.GetHasMetaData()=0
+i.GetNumMetaDataRanks()=0
+P2 Q2 M2 
+i.GetDataSpaceName()=Outputs
+i.GetHasMetaData()=0
+i.GetNumMetaDataRanks()=0
+P2 Q2 M2 
+layout at a Buffer level - = 
+Target: DRAM
+  num_read_ports: 2, num_write_ports: 2
+  max_dim_perline: { 64 64 3 3 1 32 32 }
+  Factor order: { C M R S N P Q }
+  Interline nest:
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 3, 1) iter->residual_end=3
+    iter->dimension=3-S in [0, 3, 1) iter->residual_end=3
+    iter->dimension=1-M in [0, 64, 1) iter->residual_end=64
+    iter->dimension=0-C in [0, 4, 1) iter->residual_end=4
+    iter->dimension=5-P in [0, 32, 1) iter->residual_end=32
+    iter->dimension=6-Q in [0, 2, 1) iter->residual_end=2
+  Intraline nest:
+    iter->dimension=4-N in [0, 1, 1) iter->residual_end=1
+    iter->dimension=2-R in [0, 1, 1) iter->residual_end=1
+    iter->dimension=3-S in [0, 1, 1) iter->residual_end=1
+    iter->dimension=1-M in [0, 1, 1) iter->residual_end=1
+    iter->dimension=0-C in [0, 16, 1) iter->residual_end=16
+    iter->dimension=5-P in [0, 1, 1) iter->residual_end=1
+    iter->dimension=6-Q in [0, 16, 1) iter->residual_end=16
+
+Q16X M16Y S3 R3 C64 P16 M2 
+Q1 
+dim_id 5 tile_req=16 layout_avail=1
+dim_id 0 tile_req=64 layout_avail=16
+dim_id 2 tile_req=3 layout_avail=1
+dim_id 3 tile_req=3 layout_avail=1
+dim_id 1 tile_req=32 layout_avail=1
+dim_id 6 tile_req=16 layout_avail=16
+ total_cnt: 2
+ total_latency: 294912
+ compute_cycles: 147456
+ overall_slowdown_: 1
+Utilization = 1.00 | pJ/Compute =    9.185 | Cycles = 147456

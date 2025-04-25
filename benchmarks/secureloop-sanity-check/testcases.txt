@@ -1,0 +1,17 @@
+timeloop-model test_arch.yaml test_layout_tile.yaml test_mapping.yaml test_layer.yaml ../crypto/ASCON-128a.yaml
+
+DRAM Weights: 0.888889
+DRAM Inputs: 0.893023
+DRAM Outputs: 1
+Overall: 0.793798
+
+
+
+
+
+timeloop-model test_arch.yaml test_layout.yaml test_mapping.yaml test_layer.yaml ../crypto/ASCON-128a.yaml
+
+DRAM Weights: 0.888889
+DRAM Inputs: 1
+DRAM Outputs: 0.346254
+Overall: 0.307692
