@@ -1453,9 +1453,9 @@ namespace model
       }
 
       // ToDo: move this to a better place and make configurable
-      bool assume_zero_padding = true;
-      bool assume_row_buffer = true;
-      bool assume_reuse = true;
+      bool assume_zero_padding = layout.assume_zero_padding;
+      bool assume_row_buffer = layout.assume_row_buffer;
+      bool assume_reuse = layout.assume_reuse;
 
       // ****************************************************************
       // Phase 2: Perform Spatial Bank Conflict Check for Current Data Space
