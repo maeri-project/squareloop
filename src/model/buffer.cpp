@@ -906,9 +906,10 @@ namespace model
                                                        const crypto::CryptoConfig *crypto_config,
                                                        unsigned data_space_id,
                                                        uint64_t compute_cycles,
-                                                       std::unordered_map<problem::Shape::FlattenedDimensionID, std::pair<int, int>>> dim_id_to_mapping_parallelism,
+                                                       std::unordered_map<problem::Shape::FlattenedDimensionID, std::pair<int, int>> dim_id_to_mapping_parallelism,
                                                        std::unordered_map<problem::Shape::FlattenedDimensionID, int> dim_id_to_number_of_tiles,
                                                        std::unordered_map<problem::Shape::FlattenedDimensionID, std::uint64_t> dim_id_to_outer_size,
+                                                       std::unordered_map<problem::Shape::FlattenedDimensionID,  int> dim_id_to_outer_loop_order,
                                                        bool assume_row_buffer,
                                                        const bool assume_reuse,
                                                        const bool assume_zero_padding)
@@ -1001,56 +1002,89 @@ namespace model
       std::unordered_map<std::string, int> rank_id_to_rank_list_index;
       std::unordered_map<std::string, int> rank_id_to_number_of_tiles;
       std::unordered_map<std::string, int> rank_id_to_mapping_parallelism;
-      for (const auto &r : nest.ranks) {
-        auto dimsID = layout.rankToFactorizedDimensionID.at(r);
-        if (dimsID.size() == 1) {
-          int mapping_parallelism;
-          if (find(imperfect_ranks.begin(), imperfect_ranks.end(), r) != imperfect_ranks.end()) {
-            mapping_parallelism = std::max(dim_id_to_mapping_parallelism[dimsID[0]].second, 1);
-          } else {
-            mapping_parallelism = std::max(dim_id_to_mapping_parallelism[dimsID[0]].first, 1);
-          }
-          if (mapping_parallelism > 1) { // Skip thoses rank with parallelism as 1
-                                         // as they won't lead to bank conflict
-            rank_id_to_mapping_parallelism[r] = mapping_parallelism;
-            rank_id_to_number_of_tiles[r] = std::max(dim_id_to_number_of_tiles[dimsID[0]], 1);
-            total_data_requested *= mapping_parallelism;
-            rank_id_to_rank_list_index[r] = rank_list.size();
-            rank_list.push_back(r);
-          }
-        } else {
-          std::vector<std::uint32_t> coefficientValue = layout.rankToCoefficientValue.at(r);
-#ifdef DEBUG
-          std::cout << "rank:" << r << "  dimension: ";
-#endif
-          int mapping_parallelism = 1;
-          int number_of_tiles = 1;
-          for (unsigned index = 0; index < dimsID.size(); index++) {
-            if (find(imperfect_ranks.begin(), imperfect_ranks.end(), r) != imperfect_ranks.end()) {
-              mapping_parallelism += std::ceil(
-                (std::max(dim_id_to_mapping_parallelism[dimsID[index]].second, 1) - 1) *
-                int(coefficientValue[index]));
-            } else {
-              mapping_parallelism += std::ceil(
-                (std::max(dim_id_to_mapping_parallelism[dimsID[index]].first, 1) - 1) *
-                int(coefficientValue[index]));
+      std::unordered_map<std::string, std::vector<int>> rank_id_to_dim_jumps;
+      std::string row_buffered_rank_id;
+      problem::Shape::FlattenedDimensionID row_buffered_dim_id;
+      int row_buffer_max_order = -1;
+      {
+        auto nest = layout.intraline[data_space_id];
+        for (const auto &r : nest.ranks) // Analyze slowdown per rank
+        {
+          auto dimsID = layout.rankToFactorizedDimensionID.at(r);
+          if (dimsID.size() == 1)
+          {
+            if (dim_id_to_outer_loop_order[dimsID[0]] > row_buffer_max_order)
+            {
+              row_buffered_rank_id = r;
+              row_buffered_dim_id = dimsID[0];
+              row_buffer_max_order = dim_id_to_outer_loop_order[dimsID[0]];
             }
-            number_of_tiles *=
-              std::max(dim_id_to_number_of_tiles[dimsID[index]], 1); // ToDo: Is this number of tiles calculation ok?
-#ifdef DEBUG
-            std::cout << dimsID[index] << " ";
-#endif
+            int mapping_parallelism = std::max(dim_id_to_mapping_parallelism[dimsID[0]].first, 1);
+            // adjust mapping parallelism for imperfect ranks
+            auto imperfect_rank_it = find(imperfect_ranks.begin(), imperfect_ranks.end(), r);
+            if (imperfect_rank_it != imperfect_ranks.end()) 
+            {
+              int imperfect_rank_idx = imperfect_rank_it - imperfect_ranks.begin();
+              if (bitmask & ((uint32_t)1 << imperfect_rank_idx))
+              {
+                mapping_parallelism = std::max(dim_id_to_mapping_parallelism[dimsID[0]].second, 1);
+              }
+            }
+            rank_id_to_dim_jumps[r].push_back(mapping_parallelism);
+            if (mapping_parallelism > 1)
+            { // Skip thoses rank with parallelism as 1 as they won't lead to bank conflict
+              rank_id_to_mapping_parallelism[r] = mapping_parallelism;
+              rank_id_to_number_of_tiles[r] = std::max(dim_id_to_number_of_tiles[dimsID[0]], 1);
+              total_data_requested *= mapping_parallelism;
+              rank_id_to_rank_list_index[r] = rank_list.size();
+              rank_list.push_back(r);
+            }
           }
+          else
+          {
+            std::vector<std::uint32_t> coefficientValue = layout.rankToCoefficientValue.at(r);
 #ifdef DEBUG
-          std::cout << std::endl;
+            std::cout << "rank:" << r << "  dimension: ";
 #endif
-          if (mapping_parallelism > 1) { // Skip thoses rank with parallelism as 1
-                                         // as they won't lead to bank conflict
-            rank_id_to_mapping_parallelism[r] = mapping_parallelism;
-            rank_id_to_number_of_tiles[r] = number_of_tiles;
-            total_data_requested *= mapping_parallelism;
-            rank_id_to_rank_list_index[r] = rank_list.size();
-            rank_list.push_back(r);
+            int mapping_parallelism = 1;
+            int number_of_tiles = 1;
+            for (unsigned index = 0; index < dimsID.size(); index++)
+            {
+              if (dim_id_to_outer_loop_order[dimsID[index]] > row_buffer_max_order)
+              {
+                row_buffered_rank_id = r;
+                row_buffered_dim_id = dimsID[index];
+                row_buffer_max_order = dim_id_to_outer_loop_order[dimsID[index]];
+              }
+              int cur_mapping_parallelism = (std::max(dim_id_to_mapping_parallelism[dimsID[index]].first, 1) - 1) * int(coefficientValue[index]);
+              // adjust mapping parallelism for imperfect ranks
+              auto imperfect_rank_it = find(imperfect_ranks.begin(), imperfect_ranks.end(), r);
+              if (imperfect_rank_it != imperfect_ranks.end())
+              {
+                int imperfect_rank_idx = imperfect_rank_it - imperfect_ranks.begin();
+                if (bitmask & ((uint32_t)1 << imperfect_rank_idx))
+                {
+                  cur_mapping_parallelism = (std::max(dim_id_to_mapping_parallelism[dimsID[index]].second, 1) - 1) * int(coefficientValue[index]);
+                }
+              }
+              mapping_parallelism += cur_mapping_parallelism;
+              rank_id_to_dim_jumps[r].push_back(cur_mapping_parallelism + int(coefficientValue[index]));
+              number_of_tiles *= std::max(dim_id_to_number_of_tiles[dimsID[index]], 1); // ToDo: Is this number of tiles calculation ok?
+#ifdef DEBUG
+              std::cout << dimsID[index] << " ";
+#endif
+            }
+#ifdef DEBUG
+            std::cout << std::endl;
+#endif
+            if (mapping_parallelism > 1)
+            { // Skip thoses rank with parallelism as 1 as they won't lead to bank conflict
+              rank_id_to_mapping_parallelism[r] = mapping_parallelism;
+              rank_id_to_number_of_tiles[r] = number_of_tiles;
+              total_data_requested *= mapping_parallelism;
+              rank_id_to_rank_list_index[r] = rank_list.size();
+              rank_list.push_back(r);
+            }
           }
         }
       }
@@ -1067,9 +1101,11 @@ namespace model
 
       std::pair<double, double> result = ComputeBankConflictSlowdownIndividual(
         layout, crypto_config, compute_cycles, auth_block_size,
-        total_data_requested, rank_list, rank_id_to_rank_list_index,
-        rank_id_to_number_of_tiles, rank_id_to_mapping_parallelism,
-        rank_id_to_binding_parallelism, assume_zero_padding);
+        total_data_requested, rank_list, dim_id_to_number_of_tiles, 
+        rank_id_to_rank_list_index, rank_id_to_number_of_tiles, 
+        rank_id_to_mapping_parallelism, rank_id_to_binding_parallelism, 
+        rank_id_to_dim_jumps, row_buffered_rank_id, row_buffered_dim_id, 
+        assume_row_buffer, assume_reuse, assume_zero_padding);
       all_slowdowns[bitmask] = result.first;
       all_correction_ratios[bitmask] = result.second;
     }
@@ -1096,12 +1132,20 @@ namespace model
       const layout::Layout layout, const crypto::CryptoConfig *crypto_config,
       uint64_t compute_cycles, uint64_t auth_block_size,
       uint64_t total_data_requested, const std::vector<std::string> &rank_list,
+      std::unordered_map<problem::Shape::FlattenedDimensionID, int> dim_id_to_number_of_tiles,
       std::unordered_map<std::string, int> &rank_id_to_rank_list_index,
       std::unordered_map<std::string, int> &rank_id_to_number_of_tiles,
       std::unordered_map<std::string, int> &rank_id_to_mapping_parallelism,
       std::unordered_map<std::string, int> &rank_id_to_binding_parallelism,
+      std::unordered_map<std::string, std::vector<int>> &rank_id_to_dim_jumps,
+      std::string row_buffered_rank_id,
+      problem::Shape::FlattenedDimensionID row_buffered_dim_id,
+      const bool assume_row_buffer,
+      const bool assume_reuse,
       const bool assume_zero_padding) 
   {
+    (void)rank_id_to_number_of_tiles;
+
     // ****************************************************************
     // Step 3: Analyze "Average" Number of Lines Accessed Per Cycle
     // ****************************************************************
@@ -1116,6 +1160,7 @@ namespace model
     // zero padding
     std::unordered_map<std::string, int> num_x_lines;
     std::unordered_map<std::string, std::pair<int, int>> frequency_counts;
+    std::unordered_map<int, int> row_buffer_num_lines[3];
     std::unordered_map<std::string, int> zp_num_lines;
     uint32_t zp_mask = 0;
 #ifdef DEBUG
@@ -1123,12 +1168,15 @@ namespace model
 #endif
     for (auto [rank_id, mapping_parallelism] : rank_id_to_mapping_parallelism) {
       int binding_parallelism = rank_id_to_binding_parallelism[rank_id];
+      int zero_padding = 0;
+      if (assume_zero_padding && specs_.technology.Get() == Technology::DRAM && layout.rankToZeroPadding.at(rank_id) > 0)
+      { // rank has zero padding
+        zero_padding = layout.rankToZeroPadding.at(rank_id);
+        zp_num_lines[rank_id] = std::ceil(((double)mapping_parallelism - zero_padding) / binding_parallelism);
+        zp_mask |= (1 << rank_id_to_rank_list_index[rank_id]);
+      }
 #ifdef DEBUG
-      std::cout << "rank:" << rank_id
-              << " mapping_parallelism=" << mapping_parallelism
-              << " binding_parallelism=" << binding_parallelism
-              << " zero_padding=" << layout.rankToZeroPadding.at(rank_id)
-              << std::endl;
+      std::cout << "rank_id " << rank_id << " mapping_parallelism=" << mapping_parallelism << " binding_parallelism=" << binding_parallelism << " zero_padding=" << layout.rankToZeroPadding.at(rank_id) << std::endl;
 #endif
       num_x_lines[rank_id] = std::ceil((double)mapping_parallelism / binding_parallelism);
       auto dimsID = layout.rankToFactorizedDimensionID.at(rank_id);
@@ -1144,7 +1192,8 @@ namespace model
       int row_buffer_index = 0;
       for (size_t i = 0; i < dim_jump.size(); i++) 
       {
-        dim_jump[i] = std::max(dim_id_to_mapping_parallelism[dimsID[i]], 1) * int(coefficientValue[i]);
+        // dim_jump[i] = std::max(dim_id_to_mapping_parallelism[dimsID[i]], 1) * int(coefficientValue[i]);
+        dim_jump[i] = rank_id_to_dim_jumps[rank_id][i];
         total_size += dim_jump[i] * (std::max(dim_id_to_number_of_tiles[i], 1) - 1);
         if (dimsID[i] == row_buffered_dim_id)
         {
@@ -1185,7 +1234,33 @@ namespace model
           }
         }
         else
-          frequency_counts[rank_id].first = (binding_parallelism / gcd) - frequency_counts[rank_id].second; // ToDo: Wrong equation when C=3, H=7
+        {
+          frequency_counts[rank_id].first ++;
+          if (assume_row_buffer && rank_id == row_buffered_rank_id)
+          {
+            row_buffer_num_lines[0][row_buffer_lines] ++;
+          }
+        }
+        // advance to next tile
+        int i = 0;
+        for (; (size_t)i < dim_it.size(); i++) \
+        {
+          if (dim_it[i] < std::max(dim_id_to_number_of_tiles[i], 1) - 1) 
+          {
+            dim_it[i]++;
+            offset += dim_jump[i];
+            for (i--; i>=0; i--) 
+            {
+              offset -= dim_it[i] * dim_jump[i];
+              dim_it[i] = 0;
+            }
+            break;
+          }
+        }
+        if (i == (int)dim_it.size()) 
+        {
+          break;
+        }
       }
     }
 
@@ -1245,6 +1320,7 @@ namespace model
       for (uint32_t zp_bitmask = (-1) & zp_mask & bitmask;
         /*break condition at the end of the loop*/;
         zp_bitmask = (zp_bitmask - 1) & zp_mask & bitmask) {
+        int row_buffered_idx = -1;
         double lines = 1;
         double cnt = 1;
         for (unsigned idx = 0; idx < rank_list.size(); idx++) // rank index
@@ -1253,6 +1329,11 @@ namespace model
 #ifdef DEBUG
           std::cout << "rank:" << rank_id;
 #endif
+          if (assume_row_buffer && rank_id == row_buffered_rank_id) // deal with row buffered dimension separately
+          {
+            row_buffered_idx = idx;
+            continue;
+          }
           if (zp_bitmask & (1 << idx)) // tile is at the edge of the layer in dimension dim_id
                                        // and includes zero padding
           {
@@ -1341,6 +1422,7 @@ namespace model
                   << "  frequency counts = " << cnt << std::endl
                   << std::endl;
 #endif
+        }
         // check loop break condition (needs to be at the end to not skip
         // zp_bitmask=0 case)
         if (zp_bitmask == 0)
@@ -1510,8 +1592,13 @@ namespace model
       // Find number of tiles per dimension
       std::unordered_map<problem::Shape::FlattenedDimensionID, int>
         dim_id_to_number_of_tiles;
-      for (auto j : tile.subnest) {
+      std::unordered_map<problem::Shape::FlattenedDimensionID, int>
+        dim_id_to_outer_loop_order;
+      for (size_t i = 0; i < tile.subnest.size(); i++)
+      {
+        auto j = tile.subnest[i];
         dim_id_to_number_of_tiles[j.dimension] = j.end;
+        dim_id_to_outer_loop_order[j.dimension] = i;
       }
 
 #ifdef DEBUG
@@ -1562,7 +1649,8 @@ namespace model
         spatial_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(
           layout, crypto_config, data_space_id, 1.0,
           dim_id_to_mapping_parallelism, dim_id_to_number_of_tiles,
-          dim_id_to_outer_size, assume_row_buffer, assume_reuse, assume_zero_padding);
+          dim_id_to_outer_size, dim_id_to_outer_loop_order, 
+          assume_row_buffer, assume_reuse, assume_zero_padding);
 
         slowdown_spatial_check = spatial_bc_analysis_result.first;
         spatial_check_num_access_ratio_bw_over_layout = spatial_bc_analysis_result.second;
@@ -1585,7 +1673,8 @@ namespace model
         subtile_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(
           layout, crypto_config, data_space_id, compute_cycles,
           dim_id_to_subtile_shape, dim_id_to_number_of_tiles,
-          dim_id_to_outer_size, assume_row_buffer, assume_reuse, assume_zero_padding);
+          dim_id_to_outer_size, dim_id_to_outer_loop_order, 
+          assume_row_buffer, assume_reuse, assume_zero_padding);
 
         slowdown_subtile_check = subtile_bc_analysis_result.first;
         subtile_check_num_access_ratio_bw_over_layout = subtile_bc_analysis_result.second;
