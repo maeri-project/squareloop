@@ -1457,6 +1457,7 @@
 #endif
        assert(layout.size() > storage_level_id);
        auto s = storage_level->Evaluate(tiles[storage_level_id], keep_masks[storage_level_id], layout[storage_level_id], 
+                                      analysis,
                                       subtile_mapping_loopnest,
                                       subtile_mapping_parallelism,
                                       workload,
