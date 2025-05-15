@@ -438,8 +438,8 @@ class BufferLevel : public Level
                                                                   std::unordered_map<std::string, int> &rank_id_to_mapping_parallelism,
                                                                   std::unordered_map<std::string, int> &rank_id_to_binding_parallelism,
                                                                   std::unordered_map<std::string, std::vector<int>> &rank_id_to_dim_jumps,
-                                                                  std::string row_buffered_rank_id,
-                                                                  problem::Shape::FlattenedDimensionID row_buffered_dim_id,
+                                                                  std::string reused_rank_id,
+                                                                  problem::Shape::FlattenedDimensionID reused_dim_id,
                                                                   const bool assume_row_buffer,
                                                                   const bool assume_reuse,
                                                                   const bool assume_zero_padding);
@@ -451,7 +451,7 @@ class BufferLevel : public Level
                                                                     std::unordered_map<problem::Shape::FlattenedDimensionID, int> dim_id_to_number_of_tiles,
                                                                     std::unordered_map<problem::Shape::FlattenedDimensionID, std::uint64_t> dim_id_to_outer_size,
                                                                     std::unordered_map<problem::Shape::FlattenedDimensionID,  int> dim_id_to_outer_loop_order,
-                                                                    bool assume_row_buffer,
+                                                                    const bool assume_row_buffer,
                                                                     const bool assume_reuse,
                                                                     const bool assume_zero_padding); // bank conflict analysis for current dataspace
   tiling::CompoundTile ComputeBankConflictSlowdown(const tiling::CompoundTile &tile,

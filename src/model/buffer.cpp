@@ -910,14 +910,12 @@ namespace model
                                                        std::unordered_map<problem::Shape::FlattenedDimensionID, int> dim_id_to_number_of_tiles,
                                                        std::unordered_map<problem::Shape::FlattenedDimensionID, std::uint64_t> dim_id_to_outer_size,
                                                        std::unordered_map<problem::Shape::FlattenedDimensionID,  int> dim_id_to_outer_loop_order,
-                                                       bool assume_row_buffer,
+                                                       const bool assume_row_buffer,
                                                        const bool assume_reuse,
                                                        const bool assume_zero_padding)
   {
     (void)assume_zero_padding;
     (void)crypto_config;
-
-    assume_row_buffer = assume_row_buffer || assume_reuse; // reuse implies the same optimizations as row buffer
 
     // ****************************************************************
     // Step 0: Find All Ranks With Imperfect Factorization
@@ -1003,9 +1001,9 @@ namespace model
       std::unordered_map<std::string, int> rank_id_to_number_of_tiles;
       std::unordered_map<std::string, int> rank_id_to_mapping_parallelism;
       std::unordered_map<std::string, std::vector<int>> rank_id_to_dim_jumps;
-      std::string row_buffered_rank_id;
-      problem::Shape::FlattenedDimensionID row_buffered_dim_id;
-      int row_buffer_max_order = -1;
+      std::string reused_rank_id;
+      problem::Shape::FlattenedDimensionID reused_dim_id;
+      int reuse_max_order = -1;
       {
         auto nest = layout.intraline[data_space_id];
         for (const auto &r : nest.ranks) // Analyze slowdown per rank
@@ -1013,11 +1011,11 @@ namespace model
           auto dimsID = layout.rankToFactorizedDimensionID.at(r);
           if (dimsID.size() == 1)
           {
-            if (dim_id_to_outer_loop_order[dimsID[0]] > row_buffer_max_order)
+            if (dim_id_to_outer_loop_order[dimsID[0]] > reuse_max_order)
             {
-              row_buffered_rank_id = r;
-              row_buffered_dim_id = dimsID[0];
-              row_buffer_max_order = dim_id_to_outer_loop_order[dimsID[0]];
+              reused_rank_id = r;
+              reused_dim_id = dimsID[0];
+              reuse_max_order = dim_id_to_outer_loop_order[dimsID[0]];
             }
             int mapping_parallelism = std::max(dim_id_to_mapping_parallelism[dimsID[0]].first, 1);
             // adjust mapping parallelism for imperfect ranks
@@ -1050,11 +1048,11 @@ namespace model
             int number_of_tiles = 1;
             for (unsigned index = 0; index < dimsID.size(); index++)
             {
-              if (dim_id_to_outer_loop_order[dimsID[index]] > row_buffer_max_order)
+              if (dim_id_to_outer_loop_order[dimsID[index]] > reuse_max_order)
               {
-                row_buffered_rank_id = r;
-                row_buffered_dim_id = dimsID[index];
-                row_buffer_max_order = dim_id_to_outer_loop_order[dimsID[index]];
+                reused_rank_id = r;
+                reused_dim_id = dimsID[index];
+                reuse_max_order = dim_id_to_outer_loop_order[dimsID[index]];
               }
               int cur_mapping_parallelism = (std::max(dim_id_to_mapping_parallelism[dimsID[index]].first, 1) - 1) * int(coefficientValue[index]);
               // adjust mapping parallelism for imperfect ranks
@@ -1104,7 +1102,7 @@ namespace model
         total_data_requested, rank_list, dim_id_to_number_of_tiles, 
         rank_id_to_rank_list_index, rank_id_to_number_of_tiles, 
         rank_id_to_mapping_parallelism, rank_id_to_binding_parallelism, 
-        rank_id_to_dim_jumps, row_buffered_rank_id, row_buffered_dim_id, 
+        rank_id_to_dim_jumps, reused_rank_id, reused_dim_id, 
         assume_row_buffer, assume_reuse, assume_zero_padding);
       all_slowdowns[bitmask] = result.first;
       all_correction_ratios[bitmask] = result.second;
@@ -1123,7 +1121,7 @@ namespace model
               << std::endl;
 #endif
 
-    assert(final_correction_ratio <= 1);
+    assert(assume_reuse || assume_row_buffer || final_correction_ratio <= 1);
 
     return std::pair<double, double>{final_slowdown, final_correction_ratio};
   }
@@ -1138,8 +1136,8 @@ namespace model
       std::unordered_map<std::string, int> &rank_id_to_mapping_parallelism,
       std::unordered_map<std::string, int> &rank_id_to_binding_parallelism,
       std::unordered_map<std::string, std::vector<int>> &rank_id_to_dim_jumps,
-      std::string row_buffered_rank_id,
-      problem::Shape::FlattenedDimensionID row_buffered_dim_id,
+      std::string reused_rank_id,
+      problem::Shape::FlattenedDimensionID reused_dim_id,
       const bool assume_row_buffer,
       const bool assume_reuse,
       const bool assume_zero_padding) 
@@ -1160,7 +1158,7 @@ namespace model
     // zero padding
     std::unordered_map<std::string, int> num_x_lines;
     std::unordered_map<std::string, std::pair<int, int>> frequency_counts;
-    std::unordered_map<int, int> row_buffer_num_lines[3];
+    std::unordered_map<int, int> reuse_num_lines[3];
     std::unordered_map<std::string, int> zp_num_lines;
     uint32_t zp_mask = 0;
 #ifdef DEBUG
@@ -1189,15 +1187,15 @@ namespace model
       std::vector<int> dim_it(dimsID.size(), 0); // vector of iterators for each dimension associated with current rank
       int offset = 0;
       int total_size = mapping_parallelism;
-      int row_buffer_index = 0;
+      int reused_index = 0;
       for (size_t i = 0; i < dim_jump.size(); i++) 
       {
         // dim_jump[i] = std::max(dim_id_to_mapping_parallelism[dimsID[i]], 1) * int(coefficientValue[i]);
         dim_jump[i] = rank_id_to_dim_jumps[rank_id][i];
         total_size += dim_jump[i] * (std::max(dim_id_to_number_of_tiles[i], 1) - 1);
-        if (dimsID[i] == row_buffered_dim_id)
+        if (dimsID[i] == reused_dim_id)
         {
-          row_buffer_index = i;
+          reused_index = i;
         }
       }
       int offset_bound = (mapping_parallelism % binding_parallelism) == 0 ? binding_parallelism : (mapping_parallelism % binding_parallelism);
@@ -1206,39 +1204,43 @@ namespace model
       { // checks break condition at the end of the loop
         int offset_mod = binding_parallelism - ((offset-zero_padding) % binding_parallelism);
         // calculate number of lines in row buffer
-        int row_buffer_lines = 0;
-        int common = mapping_parallelism - dim_jump[row_buffer_index];
-        if (!assume_row_buffer || common <= offset_mod - binding_parallelism || dim_it[row_buffer_index] == 0)
+        int reuse_lines = 0;
+        int common = mapping_parallelism - dim_jump[reused_index];
+        if (common <= offset_mod - binding_parallelism || dim_it[reused_index] == 0)
         {
-          row_buffer_lines = 0;
+          reuse_lines = 0;
         }
         else
         {
-          row_buffer_lines = 1 + std::max(0., std::ceil(((double)common - offset_mod) / binding_parallelism));
+          reuse_lines = 1 + std::max(0., std::ceil(((double)common - offset_mod) / binding_parallelism));
+          if (!assume_row_buffer && !assume_reuse && (common - offset_mod) % binding_parallelism != 0)
+          {
+            reuse_lines --;
+          } 
         }
         // decide if tile requests x or x+1 lines based on offset
         if (offset < zero_padding || offset + mapping_parallelism > total_size - zero_padding)
         {
-          if (assume_row_buffer && rank_id == row_buffered_rank_id)
+          if (rank_id == reused_rank_id)
           {
-            row_buffer_num_lines[2][row_buffer_lines] ++;
+            reuse_num_lines[2][reuse_lines] ++;
           }
           // ToDo: Is it possible to have more than 2 zero padded tiles? Also consider the ending zero padded tile to have different number of lines then the beginning one 
         }
         else if (offset_mod < offset_bound) 
         {
           frequency_counts[rank_id].second ++;
-          if (assume_row_buffer && rank_id == row_buffered_rank_id)
+          if (rank_id == reused_rank_id)
           {
-            row_buffer_num_lines[1][row_buffer_lines] ++;
+            reuse_num_lines[1][reuse_lines] ++;
           }
         }
         else
         {
           frequency_counts[rank_id].first ++;
-          if (assume_row_buffer && rank_id == row_buffered_rank_id)
+          if (rank_id == reused_rank_id)
           {
-            row_buffer_num_lines[0][row_buffer_lines] ++;
+            reuse_num_lines[0][reuse_lines] ++;
           }
         }
         // advance to next tile
@@ -1320,7 +1322,7 @@ namespace model
       for (uint32_t zp_bitmask = (-1) & zp_mask & bitmask;
         /*break condition at the end of the loop*/;
         zp_bitmask = (zp_bitmask - 1) & zp_mask & bitmask) {
-        int row_buffered_idx = -1;
+        int reused_idx = -1;
         double lines = 1;
         double cnt = 1;
         for (unsigned idx = 0; idx < rank_list.size(); idx++) // rank index
@@ -1329,9 +1331,9 @@ namespace model
 #ifdef DEBUG
           std::cout << "rank:" << rank_id;
 #endif
-          if (assume_row_buffer && rank_id == row_buffered_rank_id) // deal with row buffered dimension separately
+          if (rank_id == reused_rank_id) // deal with row buffered dimension separately
           {
-            row_buffered_idx = idx;
+            reused_idx = idx;
             continue;
           }
           if (zp_bitmask & (1 << idx)) // tile is at the edge of the layer in dimension dim_id
@@ -1367,35 +1369,35 @@ namespace model
 #endif
         }
 
-        if (row_buffered_idx != -1)
+        if (reused_idx != -1)
         {
           int base_lines = 0;
           int tile_type = 0;
-          if (zp_bitmask & (1<<row_buffered_idx)) // tile is at the edge of the layer in dimension dim_id and includes zero padding
+          if (zp_bitmask & (1<<reused_idx)) // tile is at the edge of the layer in dimension dim_id and includes zero padding
           {
-            base_lines = zp_num_lines[row_buffered_rank_id];
+            base_lines = zp_num_lines[reused_rank_id];
             tile_type = 2;
           }
-          else if (bitmask & (1 << row_buffered_idx)) // tile instersects x+1 lines in dimension dim_id
+          else if (bitmask & (1 << reused_idx)) // tile instersects x+1 lines in dimension dim_id
           {
-            base_lines = (num_x_lines[row_buffered_rank_id] + 1);
+            base_lines = (num_x_lines[reused_rank_id] + 1);
             tile_type = 1;
           }
           else // tile instersects x lines in dimension dim_id
           {
-            base_lines = num_x_lines[row_buffered_rank_id];
+            base_lines = num_x_lines[reused_rank_id];
             tile_type = 0;
           }
-          for (auto [rb_size, num_of_rb] : row_buffer_num_lines[tile_type])
+          for (auto [rb_size, num_of_rb] : reuse_num_lines[tile_type])
           {
             double lines_rb = lines * base_lines;
-            if (assume_reuse) 
-            {
-              lines_rb -= lines * rb_size;
-            }
-            else if (assume_row_buffer)
+            if (assume_row_buffer && !assume_reuse)
             {
               lines_rb -= std::min(lines * rb_size, (double)layout.num_read_ports);
+            }
+            else
+            {
+              lines_rb -= lines * rb_size;
             }
             double cnt_rb = cnt * num_of_rb;
             total_cnt += cnt_rb;
