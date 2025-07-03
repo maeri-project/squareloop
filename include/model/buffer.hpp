@@ -372,6 +372,47 @@ class BufferLevel : public Level
     }
   };
 
+  struct SlowdownIntermediateData
+  {
+    std::unordered_map<problem::Shape::FlattenedDimensionID,  int> dim_id_to_outer_loop_order;
+
+    std::set<problem::Shape::FlattenedDimensionID> ineffective_dims;
+    uint64_t access_frequency;
+
+    uint64_t auth_block_size;
+
+    std::string reused_rank_id;
+    problem::Shape::FlattenedDimensionID reused_dim_id;
+
+    int reuse_max_order = -1;
+
+    double crypto_latency_per_line = 0;
+    double crypto_hash_reads_per_line = 0;
+  };
+
+  struct TileTypeDescriptor
+  {
+    std::vector<int> num_lines;
+    std::vector<bool> dataspace_mask;
+    std::vector<bool> dataspace_rb;
+
+    bool operator<(const TileTypeDescriptor& other) const
+    {
+        if (dataspace_mask != other.dataspace_mask)
+          return dataspace_mask < other.dataspace_mask;
+        if (num_lines != other.num_lines)
+          return num_lines < other.num_lines;
+        return dataspace_rb < other.dataspace_rb;
+    }
+  };
+
+  struct LatencyStats
+  {
+    uint64_t total_cnt;
+    uint64_t overall_critical_path_latency;
+    uint64_t overall_lines;
+  };
+
   //
   // Data
   //
@@ -426,38 +467,100 @@ class BufferLevel : public Level
   void ComputeBufferEnergy(const tiling::CompoundDataMovementInfo& data_movement_info);
   void ComputeReductionEnergy();
   void ComputeAddrGenEnergy();
+  unsigned FindRankGroupRepresentative(std::vector<unsigned>& rep, unsigned idx);
+  std::pair<std::vector<std::vector<std::string>>, std::vector<std::vector<problem::Shape::FlattenedDimensionID>>> 
+    GroupRelatedRanks(const layout::Layout layout);
+  
+  std::map<BufferLevel::TileTypeDescriptor, int>
+    CountPerGroupTileTypes(const layout::Layout& layout,
+                           std::vector<std::string>& ranks,
+                           std::vector<problem::Shape::FlattenedDimensionID>& dims,
+                           std::unordered_map<std::string, int>& rank_id_to_mapping_parallelism,
+                           std::unordered_map<std::string, int>& rank_id_to_binding_parallelism,
+                           std::unordered_map<std::string, std::vector<int>>& rank_id_to_dim_jumps,
+                           std::unordered_map<problem::Shape::FlattenedDimensionID, int>& dim_id_to_number_of_tiles,
+                           std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
+                           bool assume_zero_padding,
+                           bool assume_row_buffer);
+  void CountPerGroupTileTypesRecursive(const layout::Layout& layout,
+                                       std::vector<std::string>& ranks,
+                                       std::vector<problem::Shape::FlattenedDimensionID>& dims,
+                                       std::unordered_map<std::string, int>& rank_id_to_mapping_parallelism,
+                                       std::unordered_map<std::string, int>& rank_id_to_binding_parallelism,
+                                       std::unordered_map<std::string, std::vector<int>>& rank_id_to_dim_jumps,
+                                       std::unordered_map<problem::Shape::FlattenedDimensionID, int>& dim_id_to_number_of_tiles,
+                                       std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
+                                       bool assume_zero_padding,
+                                       bool assume_row_buffer,
+                                       std::unordered_map<problem::Shape::FlattenedDimensionID, unsigned>& dim_it_idx,
+                                       std::vector<unsigned>& dims_it,
+                                       unsigned dim_idx,
+                                       std::map<TileTypeDescriptor, int>& cnt_tile_types);
+  void CountPerGroupTileTypesBase(const layout::Layout& layout,
+                                  std::vector<std::string>& ranks,
+                                  std::vector<problem::Shape::FlattenedDimensionID>& dims,
+                                  std::unordered_map<std::string, int>& rank_id_to_mapping_parallelism,
+                                  std::unordered_map<std::string, int>& rank_id_to_binding_parallelism,
+                                  std::unordered_map<std::string, std::vector<int>>& rank_id_to_dim_jumps,
+                                  std::unordered_map<problem::Shape::FlattenedDimensionID, int>& dim_id_to_number_of_tiles,
+                                  std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
+                                  bool assume_zero_padding,
+                                  bool assume_row_buffer,
+                                  std::unordered_map<problem::Shape::FlattenedDimensionID, unsigned>& dim_it_idx,
+                                  std::vector<unsigned>& dims_it,
+                                  std::map<TileTypeDescriptor, int>& cnt_tile_types);
+  LatencyStats CheckTileTypes(const layout::Layout& layout,
+                                   std::vector<std::vector<std::string>>& rank_groups,
+                                   std::vector<std::map<TileTypeDescriptor, int>>& cnt_tile_types,
+                                   std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
+                                   uint64_t compute_cycles);
+  LatencyStats CheckTileTypesRecursive(const layout::Layout& layout,
+                                            std::vector<std::vector<std::string>>& rank_groups,
+                                            std::vector<std::map<TileTypeDescriptor, int>>& cnt_tile_types,
+                                            std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
+                                            uint64_t compute_cycles,
+                                            std::unordered_map<std::string, int>& rank_id_to_lines,
+                                            std::vector<bool> dataspace_mask,
+                                            std::vector<bool> dataspace_rb,
+                                            uint64_t cur_cnt,
+                                            unsigned group_it_idx);
+  LatencyStats CheckTileTypesBase(const layout::Layout& layout,
+                                       std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
+                                       uint64_t compute_cycles,
+                                       std::unordered_map<std::string, int>& rank_id_to_lines,
+                                       std::vector<bool> dataspace_mask,
+                                       std::vector<bool> dataspace_rb,
+                                       uint64_t cur_cnt);
   std::pair<double, double> ComputeBankConflictSlowdownIndividual(const layout::Layout layout,
                                                                   const crypto::CryptoConfig *crypto_config,
                                                                   uint64_t compute_cycles,
-                                                                  uint64_t auth_block_size,
                                                                   uint64_t total_data_requested,
-                                                                  const std::vector<std::string> &rank_list,
+                                                                  //const std::vector<std::string> &rank_list,
                                                                   std::unordered_map<problem::Shape::FlattenedDimensionID, int> dim_id_to_number_of_tiles,
-                                                                  std::unordered_map<std::string, int> &rank_id_to_rank_list_index,
-                                                                  std::unordered_map<std::string, int> &rank_id_to_number_of_tiles,
+                                                                  //std::unordered_map<std::string, int> &rank_id_to_rank_list_index,
+                                                                  //std::unordered_map<std::string, int> &rank_id_to_number_of_tiles,
                                                                   std::unordered_map<std::string, int> &rank_id_to_mapping_parallelism,
                                                                   std::unordered_map<std::string, int> &rank_id_to_binding_parallelism,
                                                                   std::unordered_map<std::string, std::vector<int>> &rank_id_to_dim_jumps,
-                                                                  std::string row_buffered_rank_id,
-                                                                  problem::Shape::FlattenedDimensionID row_buffered_dim_id,
+                                                                  std::unordered_map<unsigned, SlowdownIntermediateData> per_dataspace_base,
                                                                   const bool assume_row_buffer,
                                                                   const bool assume_reuse,
                                                                   const bool assume_zero_padding);
   std::pair<double, double> ComputeBankConflictSlowdownPerDataSpace(const layout::Layout layout,
                                                                     const crypto::CryptoConfig *crypto_config,
-                                                                    unsigned data_space_id,
                                                                     uint64_t compute_cycles,
                                                                     std::unordered_map<problem::Shape::FlattenedDimensionID, std::pair<int, int>> dim_id_to_mapping_parallelism,
                                                                     std::unordered_map<problem::Shape::FlattenedDimensionID, int> dim_id_to_number_of_tiles,
                                                                     std::unordered_map<problem::Shape::FlattenedDimensionID, std::uint64_t> dim_id_to_outer_size,
-                                                                    std::unordered_map<problem::Shape::FlattenedDimensionID,  int> dim_id_to_outer_loop_order,
-                                                                    bool assume_row_buffer,
+                                                                    std::unordered_map<unsigned, SlowdownIntermediateData> per_dataspace_base,
+                                                                    const bool assume_row_buffer,
                                                                     const bool assume_reuse,
                                                                     const bool assume_zero_padding); // bank conflict analysis for current dataspace
   tiling::CompoundTile ComputeBankConflictSlowdown(const tiling::CompoundTile &tile,
                                                   layout::Layout layout,
                                                   const tiling::CompoundMask &mask,
                                                   const analysis::NestAnalysis *analysis,
+                                                  std::vector<loop::Descriptor> &current_level_loopnest,
                                                   std::vector<loop::Descriptor> &subtile_mapping_loopnest,
                                                   std::vector<loop::Descriptor> &subtile_mapping_parallelism,
                                                   crypto::CryptoConfig *crypto_config);
@@ -517,6 +620,7 @@ class BufferLevel : public Level
   EvalStatus Evaluate(const tiling::CompoundTile &tile,
                     const tiling::CompoundMask &mask, layout::Layout layout,
                     const analysis::NestAnalysis *analysis,
+                    std::vector<loop::Descriptor> &current_level_loopnest,
                     std::vector<loop::Descriptor> &subtile_mapping_loopnest,
                     std::vector<loop::Descriptor> &subtile_mapping_parallelism,
                     problem::Workload *workload,
