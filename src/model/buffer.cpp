@@ -1186,11 +1186,13 @@ namespace model
       // TODO: this shouldnt hardcode the dataspace id for writes
       if (data_space_id == 2)
       {
-        memory_latency_write += lines + std::ceil(ds.crypto_hash_reads_per_line * lines);
+        memory_latency_write += std::ceil(lines * (double)ds.auth_block_size / specs_.block_size.Get()) 
+                              + std::ceil(ds.crypto_hash_reads_per_line * lines);
       }
       else
       {
-        memory_latency_read += lines + std::ceil(ds.crypto_hash_reads_per_line * lines);
+        memory_latency_read += std::ceil(lines * (double)ds.auth_block_size / specs_.block_size.Get()) 
+                              + std::ceil(ds.crypto_hash_reads_per_line * lines);
       }
       // TODO: make this configurable between one vs multiple crypto engines (sum vs max)
       crypto_latency = std::max(crypto_latency, (uint64_t)(ds.crypto_latency_per_line * lines));
@@ -1557,7 +1559,7 @@ namespace model
         // assume hashes are always consecutive and in lines of same size as
         // specified by layout
         ds.crypto_hash_reads_per_line =
-          crypto_blocks_per_line * (crypto_config->hash_size) / (ds.auth_block_size * word_size);
+          crypto_blocks_per_line * (crypto_config->hash_size) / (specs_.block_size.Get() * word_size);
       }
 #ifdef DEBUG
       std::cout << "data_space_id:" << data_space_id
