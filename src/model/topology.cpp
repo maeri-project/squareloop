@@ -1449,6 +1449,12 @@
            GetStorageLevel(parent_level_id)->GetSpecs().name.Get();
        }
      }
+
+     std::vector<loop::Descriptor> current_level_loopnest;
+     for(unsigned i = current_storage_boundary; i <= mapping.loop_nest.storage_tiling_boundaries[storage_level_id]; i++)
+     {
+      current_level_loopnest.push_back(mapping.loop_nest.loops[i]);
+     }
      
      // if analysis
      if(analysis->IsLayoutInitialized()){
@@ -1458,6 +1464,7 @@
        assert(layout.size() > storage_level_id);
        auto s = storage_level->Evaluate(tiles[storage_level_id], keep_masks[storage_level_id], layout[storage_level_id], 
                                       analysis,
+                                      current_level_loopnest,
                                       subtile_mapping_loopnest,
                                       subtile_mapping_parallelism,
                                       workload,

@@ -59,6 +59,17 @@ namespace layout
     std::map<std::string, std::vector<std::string>> rankToDimensionName = workload.GetShape()->RankNameToDimensionName;
     std::map<std::string, std::vector<std::string>> rankToCoefficient = workload.GetShape()->RankNameToCoefficient;
     std::map<std::string, std::vector<std::string>> dataSpaceToRank = workload.GetShape()->DataSpaceNameToRankName;
+    for (auto [ds, ranks] : dataSpaceToRank)
+    {
+      if (ranks.empty())
+      {
+        std::cerr << "Ranks need to be defined in the problem file for each dataspace. No ranks were provided for "
+                  << ds
+                  << "."
+                  << std::endl;
+        exit(1);
+      }
+    }
     std::vector<std::string> data_space_vec;
     for (unsigned j = 0; j < problem::GetShape()->NumDataSpaces; j++)
     {
