@@ -1179,7 +1179,7 @@ namespace model
       }
       if (dataspace_rb[data_space_id])
       {
-        lines--;
+        lines -= layout.num_read_ports;
       }
       lines /= ds.access_frequency; // if the access does not happen on every tile
 
@@ -1197,17 +1197,22 @@ namespace model
       // TODO: make this configurable between one vs multiple crypto engines (sum vs max)
       crypto_latency = std::max(crypto_latency, (uint64_t)(ds.crypto_latency_per_line * lines));
       latency_stats.overall_lines += lines * cur_cnt;
+#ifdef DEBUG
       std::cout << "DS " << data_space_id << " num_lines " << lines << " cnt " << cur_cnt << std::endl;
       std::cout << "CRYPTO_LAT " << data_space_id << " " << crypto_latency*cur_cnt << std::endl;
       std::cout << "MEM_LAT_READ " << data_space_id << " " << memory_latency_read*cur_cnt << std::endl;
       std::cout << "MEM_LAT_WRITE " << data_space_id << " " << memory_latency_write*cur_cnt << std::endl;
+      std::cout << std::endl;
+#endif
     }
     uint64_t memory_latency = std::max((memory_latency_read + layout.num_read_ports-1) / layout.num_read_ports,
                                        (memory_latency_write + layout.num_write_ports-1) / layout.num_write_ports);
 
     latency_stats.overall_critical_path_latency = cur_cnt * std::max({compute_cycles, memory_latency, crypto_latency});
     latency_stats.total_cnt = cur_cnt;
+#ifdef DEBUG
     std::cout << "CUR_CNT=" << cur_cnt << std::endl;
+#endif 
     return latency_stats;
   }
 
@@ -1344,6 +1349,7 @@ namespace model
 #endif
         ds.reused_rank_id = "";
         ds.reused_dim_id = -1;
+        ds.reuse_max_order = -1;
         for (const auto &r : nest.ranks) // Analyze slowdown per rank
         {
           if (rank_id_to_rank_list_index.count(r) != 0)
@@ -1353,7 +1359,7 @@ namespace model
           auto dimsID = layout.rankToFactorizedDimensionID.at(r);
           if (dimsID.size() == 1)
           {
-            if (ds.dim_id_to_outer_loop_order[dimsID[0]] > ds.reuse_max_order)
+            if (ds.dim_id_to_outer_loop_order[dimsID[0]] < ds.reuse_max_order)
             {
               ds.reused_rank_id = r;
               ds.reused_dim_id = dimsID[0];
@@ -1390,7 +1396,7 @@ namespace model
             int number_of_tiles = 1;
             for (unsigned index = 0; index < dimsID.size(); index++)
             {
-              if (ds.dim_id_to_outer_loop_order[dimsID[index]] > ds.reuse_max_order)
+              if (ds.dim_id_to_outer_loop_order[dimsID[index]] < ds.reuse_max_order)
               {
                 ds.reused_rank_id = r;
                 ds.reused_dim_id = dimsID[index];
