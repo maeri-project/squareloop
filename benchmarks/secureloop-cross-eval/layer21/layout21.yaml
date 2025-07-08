@@ -1,0 +1,55 @@
+# K -> dimension C of weights L -> dimension C of weights
+layout:
+  - target: DRAM
+    type: intraline
+    factors: N=1 K=4 L=512 H=1 W=1 Q=1 S=1 P=1 M=1000 R=1 
+    permutation: NKLHWMQPSR
+  - target: DRAM
+    type: interline
+    factors: N=1024 K=1024 L=1024 H=1024 W=1024 Q=1024 S=1024 P=1024 M=1024 R=1024 
+    permutation: NKLHWQSPMR
+
+  - target: shared_glb
+    type: intraline
+    factors: N=1 K=1 L=1 H=1 W=1 Q=1 S=1 P=1 M=1 R=1 
+    permutation: KLQSMPRNHW
+  - target: shared_glb
+    type: interline
+    factors: K=1024 L=1024 Q=1024 S=1024 M=1024 P=1024 R=1024 N=1024 H=1024 W=1024 
+    permutation: KLQSMPRNHW
+
+  - target: DummyBuffer
+    type: intraline
+    factors: N=1 K=1 L=1 H=1 W=1 Q=1 S=1 P=1 M=1 R=1 
+    permutation: KLQSMPRNHW
+  - target: DummyBuffer
+    type: interline
+    factors: K=1024 L=1024 Q=1024 S=1024 M=1024 P=1024 R=1024 N=1024 H=1024 W=1024 
+    permutation: KLQSMPRNHW
+
+  - target: ifmap_spad
+    type: intraline
+    factors: N=1 K=1 L=1 H=1 W=1 Q=1 S=1 P=1 M=1 R=1 
+    permutation: KLQSMPRNHW
+  - target: ifmap_spad
+    type: interline
+    factors: K=1024 L=1024 Q=1024 S=1024 M=1024 P=1024 R=1024 N=1024 H=1024 W=1024 
+    permutation: KLQSMPRNHW
+
+  - target: weights_spad
+    type: intraline
+    factors: N=1 K=1 L=1 H=1 W=1 Q=1 S=1 P=1 M=1 R=1 
+    permutation: KLQSMPRNHW
+  - target: weights_spad
+    type: interline
+    factors: K=1024 L=1024 Q=1024 S=1024 M=1024 P=1024 R=1024 N=1024 H=1024 W=1024 
+    permutation: KLQSMPRNHW
+
+  - target: psum_spad
+    type: intraline
+    factors: N=1 K=1 L=1 H=1 W=1 Q=1 S=1 P=1 M=1 R=1 
+    permutation: KLQSMPRNHW
+  - target: psum_spad
+    type: interline
+    factors: K=1024 L=1024 Q=1024 S=1024 M=1024 P=1024 R=1024 N=1024 H=1024 W=1024 
+    permutation: KLQSMPRNHW
