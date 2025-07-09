@@ -380,6 +380,7 @@ class BufferLevel : public Level
     uint64_t access_frequency;
 
     uint64_t auth_block_size;
+    uint64_t memory_line;
 
     std::string reused_rank_id;
     problem::Shape::FlattenedDimensionID reused_dim_id;

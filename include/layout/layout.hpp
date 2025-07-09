@@ -32,6 +32,7 @@ struct Layout {
   std::string target;                      // e.g., "MainMemory"
   std::vector<LayoutNest> interline;         // One nest per data space for interline type
   std::vector<LayoutNest> intraline;         // One nest per data space for intraline type
+  std::vector<LayoutNest> authblock_lines;   // One nest per data space for authblock type
   std::vector<std::string> data_space;       // Data space names (e.g., Inputs, Outputs, Weights)
   std::vector<std::string> rank_list;        // Overall rank list (derived from a permutation key)
   int num_read_ports = 1;                    // Configured read ports

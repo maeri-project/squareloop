@@ -1197,12 +1197,12 @@ namespace model
       // TODO: this shouldnt hardcode the dataspace id for writes
       if (data_space_id == 2)
       {
-        memory_latency_write += std::ceil(lines * (double)ds.auth_block_size / specs_.block_size.Get()) 
+        memory_latency_write += std::ceil(lines * (double)ds.auth_block_size / ds.memory_line) 
                               + std::ceil(ds.crypto_hash_reads_per_line * lines);
       }
       else
       {
-        memory_latency_read += std::ceil(lines * (double)ds.auth_block_size / specs_.block_size.Get()) 
+        memory_latency_read += std::ceil(lines * (double)ds.auth_block_size / ds.memory_line) 
                               + std::ceil(ds.crypto_hash_reads_per_line * lines);
       }
       // TODO: make this configurable between one vs multiple crypto engines (sum vs max)
@@ -1306,10 +1306,15 @@ namespace model
       std::cout << "DATASPACE_ID " << data_space_id << std::endl;
 #endif
       ds.auth_block_size = 1;
-      auto nest = layout.intraline[data_space_id];
-      for (const auto &r : nest.ranks) // Analyze slowdown per rank
+      ds.memory_line = 1;
+      auto intra_nest = layout.intraline[data_space_id];
+      auto auth_nest = layout.authblock_lines[data_space_id];
+      for (const auto &r : intra_nest.ranks) // Analyze slowdown per rank
       {
-        int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
+        int factor = (intra_nest.factors.find(r) != intra_nest.factors.end() ? intra_nest.factors.at(r) : 1);
+        ds.memory_line *= factor;
+        factor *= (auth_nest.factors.find(r) != auth_nest.factors.end() ? auth_nest.factors.at(r) : 1);
+        ds.auth_block_size *= factor;
         if (rank_id_to_binding_parallelism.count(r) == 0)
         {
           rank_id_to_binding_parallelism[r] = factor;
@@ -1317,7 +1322,15 @@ namespace model
           std::cout << "RANK " << r << " factor=" << factor << std::endl;
 #endif
         }
-        ds.auth_block_size *= factor;
+      }
+      if (ds.memory_line > specs_.block_size.Get())
+      {
+        std::cerr << "ERROR: " << specs_.name.Get()
+                  << " memory line infered from layout ("
+                  << ds.memory_line << ") is longer than allowed by architecture ("
+                  << specs_.block_size.Get() << ")"
+                  << std::endl;
+        exit(1);
       }
     }
 
@@ -1586,6 +1599,8 @@ namespace model
       }
 #ifdef DEBUG
       std::cout << "data_space_id:" << data_space_id
+                << std::endl;
+      std::cout << "memory_line:" << ds.memory_line
                 << std::endl;
       std::cout << "auth_block_size:" << ds.auth_block_size
                 << std::endl;

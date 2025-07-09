@@ -234,9 +234,9 @@ namespace layout
       for (const auto &ds : layout.data_space)
       {
         // --- Interline nest ---
-        LayoutNest nest;
-        nest.data_space = ds;
-        nest.type = "interline";
+        LayoutNest internest;
+        internest.data_space = ds;
+        internest.type = "interline";
         if (config_layout[t].find("interline") != config_layout[t].end())
         {
           std::string perm = config_layout[t]["interline"].first;
@@ -252,14 +252,14 @@ namespace layout
             }
           }
           std::reverse(order.begin(), order.end());
-          nest.ranks = order;
-          nest.factors = factors;
+          internest.ranks = order;
+          internest.factors = factors;
         }
         else
         {
-          nest.ranks = layout.dataSpaceToRank[ds];
+          internest.ranks = layout.dataSpaceToRank[ds];
         }
-        layout.interline.push_back(nest);
+        layout.interline.push_back(internest);
 
         // --- Intraline nest ---
         LayoutNest intranest;
@@ -292,6 +292,34 @@ namespace layout
           }
         }
         layout.intraline.push_back(intranest);
+
+        // --- AuthBlock nest---
+        LayoutNest authblock_nest;
+        authblock_nest.data_space = ds;
+        authblock_nest.type = "authblock_lines";
+        if (config_layout[t].find("authblock_lines") != config_layout[t].end())
+        {
+          std::string perm = config_layout[t]["authblock_lines"].first;
+          std::map<std::string, std::uint32_t> factors = config_layout[t]["authblock_lines"].second;
+          std::vector<std::string> order;
+          for (char c : perm)
+          {
+            std::string r(1, c);
+            const auto &ranks = layout.dataSpaceToRank[ds];
+            if (std::find(ranks.begin(), ranks.end(), r) != ranks.end())
+            {
+              order.push_back(r);
+            }
+          }
+          std::reverse(order.begin(), order.end());
+          authblock_nest.ranks = order;
+          authblock_nest.factors = factors;
+        }
+        else
+        {
+          authblock_nest.ranks = layout.dataSpaceToRank[ds];
+        }
+        layout.authblock_lines.push_back(authblock_nest);
       }
 
       layouts.push_back(layout);
