@@ -380,6 +380,7 @@ class BufferLevel : public Level
     uint64_t access_frequency;
 
     uint64_t auth_block_size;
+    uint64_t memory_line;
 
     std::string reused_rank_id;
     problem::Shape::FlattenedDimensionID reused_dim_id;
@@ -395,14 +396,17 @@ class BufferLevel : public Level
     std::vector<int> num_lines;
     std::vector<bool> dataspace_mask;
     std::vector<bool> dataspace_rb;
+    bool first_tile;
 
     bool operator<(const TileTypeDescriptor& other) const
     {
-        if (dataspace_mask != other.dataspace_mask)
-          return dataspace_mask < other.dataspace_mask;
-        if (num_lines != other.num_lines)
-          return num_lines < other.num_lines;
-        return dataspace_rb < other.dataspace_rb;
+      if (first_tile != other.first_tile)
+        return first_tile < other.first_tile;
+      if (dataspace_mask != other.dataspace_mask)
+        return dataspace_mask < other.dataspace_mask;
+      if (num_lines != other.num_lines)
+        return num_lines < other.num_lines;
+      return dataspace_rb < other.dataspace_rb;
     }
   };
 
@@ -510,28 +514,32 @@ class BufferLevel : public Level
                                   std::vector<unsigned>& dims_it,
                                   std::map<TileTypeDescriptor, int>& cnt_tile_types);
   LatencyStats CheckTileTypes(const layout::Layout& layout,
-                                   std::vector<std::vector<std::string>>& rank_groups,
-                                   std::vector<std::map<TileTypeDescriptor, int>>& cnt_tile_types,
-                                   std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
-                                   uint64_t compute_cycles);
+                              const tiling::CompoundMask &mask,
+                              std::vector<std::vector<std::string>>& rank_groups,
+                              std::vector<std::map<TileTypeDescriptor, int>>& cnt_tile_types,
+                              std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
+                              uint64_t compute_cycles);
   LatencyStats CheckTileTypesRecursive(const layout::Layout& layout,
-                                            std::vector<std::vector<std::string>>& rank_groups,
-                                            std::vector<std::map<TileTypeDescriptor, int>>& cnt_tile_types,
-                                            std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
-                                            uint64_t compute_cycles,
-                                            std::unordered_map<std::string, int>& rank_id_to_lines,
-                                            std::vector<bool> dataspace_mask,
-                                            std::vector<bool> dataspace_rb,
-                                            uint64_t cur_cnt,
-                                            unsigned group_it_idx);
-  LatencyStats CheckTileTypesBase(const layout::Layout& layout,
+                                       const tiling::CompoundMask &mask,
+                                       std::vector<std::vector<std::string>>& rank_groups,
+                                       std::vector<std::map<TileTypeDescriptor, int>>& cnt_tile_types,
                                        std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
                                        uint64_t compute_cycles,
                                        std::unordered_map<std::string, int>& rank_id_to_lines,
-                                       std::vector<bool> dataspace_mask,
                                        std::vector<bool> dataspace_rb,
-                                       uint64_t cur_cnt);
+                                       uint64_t cur_cnt,
+                                       bool first_tile_possible,
+                                       unsigned group_it_idx);
+  LatencyStats CheckTileTypesBase(const layout::Layout& layout,
+                                  const tiling::CompoundMask &mask,
+                                  std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
+                                  uint64_t compute_cycles,
+                                  std::unordered_map<std::string, int>& rank_id_to_lines,
+                                  std::vector<bool> dataspace_rb,
+                                  uint64_t cur_cnt,
+                                  bool first_tile);
   std::pair<double, double> ComputeBankConflictSlowdownIndividual(const layout::Layout layout,
+                                                                  const tiling::CompoundMask &mask,
                                                                   const crypto::CryptoConfig *crypto_config,
                                                                   uint64_t compute_cycles,
                                                                   uint64_t total_data_requested,
@@ -547,6 +555,7 @@ class BufferLevel : public Level
                                                                   const bool assume_reuse,
                                                                   const bool assume_zero_padding);
   std::pair<double, double> ComputeBankConflictSlowdownPerDataSpace(const layout::Layout layout,
+                                                                    const tiling::CompoundMask &mask,
                                                                     const crypto::CryptoConfig *crypto_config,
                                                                     uint64_t compute_cycles,
                                                                     std::unordered_map<problem::Shape::FlattenedDimensionID, std::pair<int, int>> dim_id_to_mapping_parallelism,

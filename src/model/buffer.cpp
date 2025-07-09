@@ -1039,6 +1039,7 @@ namespace model
     TileTypeDescriptor tile_type_desc;
     tile_type_desc.dataspace_mask = std::vector<bool>(per_dataspace.size(), true);
     tile_type_desc.dataspace_rb = std::vector<bool>(per_dataspace.size(), false);
+    tile_type_desc.first_tile = true;
     for (unsigned r = 0; r < ranks.size(); r++)
     {
       int binding_parallelism = std::max(rank_id_to_binding_parallelism[ranks[r]], 1);
@@ -1055,6 +1056,8 @@ namespace model
       int total_size = mapping_parallelism;
       for (unsigned d = 0; d < dimsID.size(); d++)
       {
+        if (dims_it[dim_it_idx[dimsID[d]]] != 0)
+          tile_type_desc.first_tile = false;
         rank_pos += rank_id_to_dim_jumps[ranks[r]][d] * dims_it[dim_it_idx[dimsID[d]]];
         total_size += rank_id_to_dim_jumps[ranks[r]][d] * (std::max(dim_id_to_number_of_tiles[dimsID[d]], 1) - 1);
       }
@@ -1094,59 +1097,60 @@ namespace model
 
   BufferLevel::LatencyStats
   BufferLevel::CheckTileTypes(const layout::Layout& layout,
+                              const tiling::CompoundMask &mask,
                               std::vector<std::vector<std::string>>& rank_groups,
                               std::vector<std::map<TileTypeDescriptor, int>>& cnt_tile_types,
                               std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
                               uint64_t compute_cycles)
   {
     std::unordered_map<std::string, int> rank_id_to_lines;
-    std::vector<bool> dataspace_mask(per_dataspace.size(), true);
     std::vector<bool> dataspace_rb(per_dataspace.size(), false);
-    return CheckTileTypesRecursive(layout, rank_groups, cnt_tile_types, per_dataspace, compute_cycles, 
-                                   rank_id_to_lines, dataspace_mask, dataspace_rb, 1, 0);
+    auto latency_stats = CheckTileTypesRecursive(layout, mask, rank_groups, cnt_tile_types, per_dataspace, compute_cycles, 
+                                   rank_id_to_lines, dataspace_rb, 1, true, 0);
+    latency_stats.overall_critical_path_latency += compute_cycles;
+    return latency_stats;
   }
 
   BufferLevel::LatencyStats
   BufferLevel::CheckTileTypesRecursive(const layout::Layout& layout,
+                                       const tiling::CompoundMask &mask,
                                        std::vector<std::vector<std::string>>& rank_groups,
                                        std::vector<std::map<TileTypeDescriptor, int>>& cnt_tile_types,
                                        std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
                                        uint64_t compute_cycles,
                                        std::unordered_map<std::string, int>& rank_id_to_lines,
-                                       std::vector<bool> dataspace_mask,
                                        std::vector<bool> dataspace_rb,
                                        uint64_t cur_cnt,
+                                       bool first_tile_possible,
                                        unsigned group_it_idx)
   {
     LatencyStats latency_stats = {0, 0, 0};
-    std::vector<bool> dataspace_mask_new = dataspace_mask;
     std::vector<bool> dataspace_rb_new = dataspace_rb;
     auto& cur_group_tile_types = cnt_tile_types[group_it_idx];
     auto& cur_ranks = rank_groups[group_it_idx];
     for (auto &[tile_type_desc, cnt] : cur_group_tile_types)
     {
       auto& num_lines = tile_type_desc.num_lines; 
-      auto& dataspace_mask_cur = tile_type_desc.dataspace_mask; 
       auto& dataspace_rb_cur = tile_type_desc.dataspace_rb; 
       LatencyStats rec_stats;
+      first_tile_possible = first_tile_possible && tile_type_desc.first_tile;
       for (unsigned i = 0; i < cur_ranks.size(); i++)
       {
         rank_id_to_lines[cur_ranks[i]] = num_lines[i];
       }
-      for (unsigned ds_id = 0; ds_id < dataspace_mask.size(); ds_id++)
+      for (unsigned ds_id = 0; ds_id < dataspace_rb.size(); ds_id++)
       {
-        dataspace_mask_new[ds_id] = dataspace_mask[ds_id] & dataspace_mask_cur[ds_id];
         dataspace_rb_new[ds_id] = dataspace_rb[ds_id] | dataspace_rb_cur[ds_id];
       }
       if (group_it_idx+1 < rank_groups.size()) 
       {
-        rec_stats = CheckTileTypesRecursive(layout, rank_groups, cnt_tile_types, per_dataspace, compute_cycles, 
-                                            rank_id_to_lines, dataspace_mask_new, dataspace_rb_new, cur_cnt*cnt, group_it_idx+1);
+        rec_stats = CheckTileTypesRecursive(layout, mask, rank_groups, cnt_tile_types, per_dataspace, compute_cycles, 
+                                            rank_id_to_lines, dataspace_rb_new, cur_cnt*cnt, first_tile_possible, group_it_idx+1);
       }
       else
       {
-        rec_stats = CheckTileTypesBase(layout, per_dataspace, compute_cycles, 
-                                       rank_id_to_lines, dataspace_mask_new, dataspace_rb_new, cur_cnt*cnt);
+        rec_stats = CheckTileTypesBase(layout, mask, per_dataspace, compute_cycles, 
+                                       rank_id_to_lines, dataspace_rb_new, cur_cnt*cnt, first_tile_possible);
       }
       latency_stats.overall_critical_path_latency += rec_stats.overall_critical_path_latency;
       latency_stats.overall_lines += rec_stats.overall_lines;
@@ -1157,14 +1161,14 @@ namespace model
 
   BufferLevel::LatencyStats
   BufferLevel::CheckTileTypesBase(const layout::Layout& layout,
+                                  const tiling::CompoundMask &mask,
                                   std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
                                   uint64_t compute_cycles,
                                   std::unordered_map<std::string, int>& rank_id_to_lines,
-                                  std::vector<bool> dataspace_mask,
                                   std::vector<bool> dataspace_rb,
-                                  uint64_t cur_cnt)
+                                  uint64_t cur_cnt,
+                                  bool first_tile)
   {
-    (void)dataspace_mask;
     LatencyStats latency_stats;
     latency_stats.overall_lines = 0;
     uint64_t memory_latency_read = 0;
@@ -1172,6 +1176,13 @@ namespace model
     uint64_t crypto_latency = 0;
     for (auto &[data_space_id, ds] : per_dataspace)
     {
+      if (!mask[data_space_id]) {
+#ifdef DEBUG
+        std::cout << "Skipping masked data space " << data_space_id
+                  << std::endl;
+#endif
+        continue;
+      }
       uint64_t lines = 1;
       for (auto &r : layout.intraline[data_space_id].ranks)
       {
@@ -1179,41 +1190,49 @@ namespace model
       }
       if (dataspace_rb[data_space_id])
       {
-        lines--;
+        lines -= layout.num_read_ports;
       }
       lines /= ds.access_frequency; // if the access does not happen on every tile
 
       // TODO: this shouldnt hardcode the dataspace id for writes
       if (data_space_id == 2)
       {
-        memory_latency_write += std::ceil(lines * (double)ds.auth_block_size / specs_.block_size.Get()) 
+        memory_latency_write += std::ceil(lines * (double)ds.auth_block_size / ds.memory_line) 
                               + std::ceil(ds.crypto_hash_reads_per_line * lines);
       }
       else
       {
-        memory_latency_read += std::ceil(lines * (double)ds.auth_block_size / specs_.block_size.Get()) 
+        memory_latency_read += std::ceil(lines * (double)ds.auth_block_size / ds.memory_line) 
                               + std::ceil(ds.crypto_hash_reads_per_line * lines);
       }
       // TODO: make this configurable between one vs multiple crypto engines (sum vs max)
       crypto_latency = std::max(crypto_latency, (uint64_t)(ds.crypto_latency_per_line * lines));
       latency_stats.overall_lines += lines * cur_cnt;
+#ifdef DEBUG
       std::cout << "DS " << data_space_id << " num_lines " << lines << " cnt " << cur_cnt << std::endl;
       std::cout << "CRYPTO_LAT " << data_space_id << " " << crypto_latency*cur_cnt << std::endl;
       std::cout << "MEM_LAT_READ " << data_space_id << " " << memory_latency_read*cur_cnt << std::endl;
       std::cout << "MEM_LAT_WRITE " << data_space_id << " " << memory_latency_write*cur_cnt << std::endl;
+      std::cout << std::endl;
+#endif
     }
     uint64_t memory_latency = std::max((memory_latency_read + layout.num_read_ports-1) / layout.num_read_ports,
                                        (memory_latency_write + layout.num_write_ports-1) / layout.num_write_ports);
+    if (first_tile)
+      compute_cycles = 0;
 
     latency_stats.overall_critical_path_latency = cur_cnt * std::max({compute_cycles, memory_latency, crypto_latency});
     latency_stats.total_cnt = cur_cnt;
+#ifdef DEBUG
     std::cout << "CUR_CNT=" << cur_cnt << std::endl;
+#endif 
     return latency_stats;
   }
 
 
   std::pair<double, double>
   BufferLevel::ComputeBankConflictSlowdownPerDataSpace(const layout::Layout layout,
+                                                       const tiling::CompoundMask &mask,
                                                        const crypto::CryptoConfig *crypto_config,
                                                        uint64_t compute_cycles,
                                                        std::unordered_map<problem::Shape::FlattenedDimensionID, std::pair<int, int>> dim_id_to_mapping_parallelism,
@@ -1287,10 +1306,15 @@ namespace model
       std::cout << "DATASPACE_ID " << data_space_id << std::endl;
 #endif
       ds.auth_block_size = 1;
-      auto nest = layout.intraline[data_space_id];
-      for (const auto &r : nest.ranks) // Analyze slowdown per rank
+      ds.memory_line = 1;
+      auto intra_nest = layout.intraline[data_space_id];
+      auto auth_nest = layout.authblock_lines[data_space_id];
+      for (const auto &r : intra_nest.ranks) // Analyze slowdown per rank
       {
-        int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
+        int factor = (intra_nest.factors.find(r) != intra_nest.factors.end() ? intra_nest.factors.at(r) : 1);
+        ds.memory_line *= factor;
+        factor *= (auth_nest.factors.find(r) != auth_nest.factors.end() ? auth_nest.factors.at(r) : 1);
+        ds.auth_block_size *= factor;
         if (rank_id_to_binding_parallelism.count(r) == 0)
         {
           rank_id_to_binding_parallelism[r] = factor;
@@ -1298,7 +1322,15 @@ namespace model
           std::cout << "RANK " << r << " factor=" << factor << std::endl;
 #endif
         }
-        ds.auth_block_size *= factor;
+      }
+      if (ds.memory_line > specs_.block_size.Get())
+      {
+        std::cerr << "ERROR: " << specs_.name.Get()
+                  << " memory line infered from layout ("
+                  << ds.memory_line << ") is longer than allowed by architecture ("
+                  << specs_.block_size.Get() << ")"
+                  << std::endl;
+        exit(1);
       }
     }
 
@@ -1344,6 +1376,7 @@ namespace model
 #endif
         ds.reused_rank_id = "";
         ds.reused_dim_id = -1;
+        ds.reuse_max_order = -1;
         for (const auto &r : nest.ranks) // Analyze slowdown per rank
         {
           if (rank_id_to_rank_list_index.count(r) != 0)
@@ -1353,7 +1386,7 @@ namespace model
           auto dimsID = layout.rankToFactorizedDimensionID.at(r);
           if (dimsID.size() == 1)
           {
-            if (ds.dim_id_to_outer_loop_order[dimsID[0]] > ds.reuse_max_order)
+            if (ds.dim_id_to_outer_loop_order[dimsID[0]] < ds.reuse_max_order)
             {
               ds.reused_rank_id = r;
               ds.reused_dim_id = dimsID[0];
@@ -1390,7 +1423,7 @@ namespace model
             int number_of_tiles = 1;
             for (unsigned index = 0; index < dimsID.size(); index++)
             {
-              if (ds.dim_id_to_outer_loop_order[dimsID[index]] > ds.reuse_max_order)
+              if (ds.dim_id_to_outer_loop_order[dimsID[index]] < ds.reuse_max_order)
               {
                 ds.reused_rank_id = r;
                 ds.reused_dim_id = dimsID[index];
@@ -1429,7 +1462,8 @@ namespace model
       }
 
       std::pair<double, double> result = ComputeBankConflictSlowdownIndividual(
-        layout, crypto_config, compute_cycles,
+        layout, mask,
+        crypto_config, compute_cycles,
         total_data_requested,
         dim_id_to_number_of_tiles, 
         rank_id_to_mapping_parallelism, rank_id_to_binding_parallelism,  
@@ -1461,7 +1495,9 @@ namespace model
   }
 
   std::pair<double, double> BufferLevel::ComputeBankConflictSlowdownIndividual(
-      const layout::Layout layout, const crypto::CryptoConfig *crypto_config,
+      const layout::Layout layout, 
+      const tiling::CompoundMask &mask,
+      const crypto::CryptoConfig *crypto_config,
       uint64_t compute_cycles, 
       uint64_t total_data_requested,
       std::unordered_map<problem::Shape::FlattenedDimensionID, int> dim_id_to_number_of_tiles,
@@ -1564,6 +1600,8 @@ namespace model
 #ifdef DEBUG
       std::cout << "data_space_id:" << data_space_id
                 << std::endl;
+      std::cout << "memory_line:" << ds.memory_line
+                << std::endl;
       std::cout << "auth_block_size:" << ds.auth_block_size
                 << std::endl;
       std::cout << "crypto_latency_per_line:" << ds.crypto_latency_per_line
@@ -1587,7 +1625,7 @@ namespace model
     std::cout << " *** step 4 *** " << std::endl;
 #endif
 
-    LatencyStats latency_stats = CheckTileTypes(layout, rank_groups, cnt_tile_types, per_dataspace, compute_cycles);
+    LatencyStats latency_stats = CheckTileTypes(layout, mask, rank_groups, cnt_tile_types, per_dataspace, compute_cycles);
 
     // ****************************************************************
     // Step 5: Analyze -- Bandwidth Modeling vs Layout based Modeling
@@ -1776,19 +1814,6 @@ namespace model
         }
       }
 
-      // ****************************************************************
-      // Phase 1: Skip the Bypassed Data Space
-      // ****************************************************************
-      // TODO: this needs to be added back ... somewhere
-//      if (!mask[data_space_id]) {
-//#ifdef DEBUG
-//        std::cout << "Skipping masked data space " << tile.GetDataSpaceName()
-//                  << std::endl;
-//#endif
-//        continue;
-//      }
-      (void)mask;
-
       // Find number of tiles per dimension
       for (size_t i = 0; i < tile.subnest.size(); i++)
       {
@@ -1846,7 +1871,7 @@ namespace model
 
     if (dim_id_to_mapping_parallelism.size() > 0) {
       spatial_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(
-        layout, crypto_config, 1.0,
+        layout, mask, crypto_config, 1.0,
         dim_id_to_mapping_parallelism, dim_id_to_number_of_tiles,
         dim_id_to_outer_size, per_dataspace, 
         assume_row_buffer, assume_reuse, assume_zero_padding);
@@ -1870,7 +1895,7 @@ namespace model
     std::pair<double, double> subtile_bc_analysis_result;
     if (dim_id_to_subtile_shape.size() > 0) {
       subtile_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(
-        layout, crypto_config, compute_cycles,
+        layout, mask, crypto_config, compute_cycles,
         dim_id_to_subtile_shape, dim_id_to_number_of_tiles,
         dim_id_to_outer_size, per_dataspace, 
         assume_row_buffer, assume_reuse, assume_zero_padding);
@@ -3053,8 +3078,14 @@ namespace model
     //
     // Step 4: Calculate execution cycles.
     //
-    stats_.slowdown *= overall_slowdown_; // Bank Conflict Analysis
+    stats_.slowdown = overall_slowdown_; // Bank Conflict Analysis
     stats_.cycles = std::uint64_t(ceil(compute_cycles / stats_.slowdown));
+#ifdef DEBUG
+    std::cout << std::endl;
+    std::cout << "compute_cycles: " << compute_cycles << std::endl;
+    std::cout << "cycles: " << stats_.cycles << std::endl;
+    std::cout << std::endl;
+#endif
 
     //
     // Step 5: Update arch specs.
