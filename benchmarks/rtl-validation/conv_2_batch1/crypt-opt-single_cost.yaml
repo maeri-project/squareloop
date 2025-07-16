@@ -1,0 +1,57 @@
+block_info_dict:
+  1:
+    I:
+      permutation:
+      - 0
+      - 1
+      - 2
+      - 3
+      u: 1024
+    O:
+      permutation: null
+      u: 48
+    W:
+      permutation: null
+      u: 9216
+  2:
+    I:
+      permutation:
+      - 0
+      - 1
+      - 2
+      - 3
+      shared:
+      - 2
+      u: 48
+    O:
+      permutation: null
+      u: 256
+    W:
+      permutation: null
+      u: 18432
+cost_dict:
+  1:
+    add_memory_energy: 1745920.0
+    add_memory_traffic: 218240.0
+    crypt_energy: 0.0
+    crypt_latency: 122880.0
+    memory_latency: 19456.0
+    timeloop_cycle: 36864
+    timeloop_energy: 53540000.0
+    total_energy: 55285920.0
+    total_hash_bits: 210048.0
+    total_latency: 122880.0
+    total_redundant_bits: 8192
+  2:
+    add_memory_energy: 4777984.0
+    add_memory_traffic: 597248.0
+    crypt_energy: 0.0
+    crypt_latency: 273280.0
+    memory_latency: 25610.0
+    timeloop_cycle: 147456
+    timeloop_energy: 172490000.0
+    total_energy: 177267984.0
+    total_hash_bits: 470272.0
+    total_latency: 273280.0
+    total_redundant_bits: 126976
+rehash_cost_dict: {}

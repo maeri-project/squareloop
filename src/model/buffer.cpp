@@ -1105,9 +1105,13 @@ namespace model
   {
     std::unordered_map<std::string, int> rank_id_to_lines;
     std::vector<bool> dataspace_rb(per_dataspace.size(), false);
+    bool first_tile_possible = (specs_.technology.Get() == Technology::DRAM);
     auto latency_stats = CheckTileTypesRecursive(layout, mask, rank_groups, cnt_tile_types, per_dataspace, compute_cycles, 
-                                   rank_id_to_lines, dataspace_rb, 1, true, 0);
-    latency_stats.overall_critical_path_latency += compute_cycles;
+                                   rank_id_to_lines, dataspace_rb, 1, first_tile_possible, 0);
+    if (first_tile_possible)
+    {
+      latency_stats.overall_critical_path_latency += compute_cycles;
+    }
     return latency_stats;
   }
 
@@ -1133,7 +1137,7 @@ namespace model
       auto& num_lines = tile_type_desc.num_lines; 
       auto& dataspace_rb_cur = tile_type_desc.dataspace_rb; 
       LatencyStats rec_stats;
-      first_tile_possible = first_tile_possible && tile_type_desc.first_tile;
+      bool first_tile_possible_new = first_tile_possible && tile_type_desc.first_tile;
       for (unsigned i = 0; i < cur_ranks.size(); i++)
       {
         rank_id_to_lines[cur_ranks[i]] = num_lines[i];
@@ -1145,12 +1149,12 @@ namespace model
       if (group_it_idx+1 < rank_groups.size()) 
       {
         rec_stats = CheckTileTypesRecursive(layout, mask, rank_groups, cnt_tile_types, per_dataspace, compute_cycles, 
-                                            rank_id_to_lines, dataspace_rb_new, cur_cnt*cnt, first_tile_possible, group_it_idx+1);
+                                            rank_id_to_lines, dataspace_rb_new, cur_cnt*cnt, first_tile_possible_new, group_it_idx+1);
       }
       else
       {
         rec_stats = CheckTileTypesBase(layout, mask, per_dataspace, compute_cycles, 
-                                       rank_id_to_lines, dataspace_rb_new, cur_cnt*cnt, first_tile_possible);
+                                       rank_id_to_lines, dataspace_rb_new, cur_cnt*cnt, first_tile_possible_new);
       }
       latency_stats.overall_critical_path_latency += rec_stats.overall_critical_path_latency;
       latency_stats.overall_lines += rec_stats.overall_lines;
@@ -1171,8 +1175,8 @@ namespace model
   {
     LatencyStats latency_stats;
     latency_stats.overall_lines = 0;
-    uint64_t memory_latency_read = 0;
-    uint64_t memory_latency_write = 0;
+    double memory_latency_read = 0;
+    double memory_latency_write = 0;
     uint64_t crypto_latency = 0;
     for (auto &[data_space_id, ds] : per_dataspace)
     {
@@ -1183,7 +1187,7 @@ namespace model
 #endif
         continue;
       }
-      uint64_t lines = 1;
+      double lines = 1;
       for (auto &r : layout.intraline[data_space_id].ranks)
       {
         lines *= rank_id_to_lines[r];
@@ -1192,7 +1196,8 @@ namespace model
       {
         lines -= layout.num_read_ports;
       }
-      lines /= ds.access_frequency; // if the access does not happen on every tile
+      if (!first_tile)
+        lines /= ds.access_frequency; // if the access does not happen on every tile
 
       // TODO: this shouldnt hardcode the dataspace id for writes
       if (data_space_id == 2)
@@ -1216,15 +1221,36 @@ namespace model
       std::cout << std::endl;
 #endif
     }
-    uint64_t memory_latency = std::max((memory_latency_read + layout.num_read_ports-1) / layout.num_read_ports,
-                                       (memory_latency_write + layout.num_write_ports-1) / layout.num_write_ports);
+    double block_size = specs_.block_size.IsSpecified() ? specs_.block_size.Get() : 1;
+    double read_ports = 1;
+    double write_ports = 1;
+    if (specs_.read_bandwidth.IsSpecified())
+    {
+      read_ports = specs_.read_bandwidth.Get() / block_size;
+    }
+    if (specs_.write_bandwidth.IsSpecified())
+    {
+      write_ports = specs_.write_bandwidth.Get() / block_size;
+    }
+    if (specs_.shared_bandwidth.IsSpecified())
+    {
+      read_ports = specs_.shared_bandwidth.Get() / block_size;
+      write_ports = specs_.shared_bandwidth.Get() / block_size;
+    }
+    uint64_t memory_latency = std::max(std::ceil(memory_latency_read / read_ports),
+                                       std::ceil(memory_latency_write / write_ports));
     if (first_tile)
+    {
       compute_cycles = 0;
+#ifdef DEBUG
+      std::cout << "FIRST TILE crypto=" << crypto_latency << " mem=" << memory_latency << std::endl;
+#endif
+    }
 
     latency_stats.overall_critical_path_latency = cur_cnt * std::max({compute_cycles, memory_latency, crypto_latency});
     latency_stats.total_cnt = cur_cnt;
 #ifdef DEBUG
-    std::cout << "CUR_CNT=" << cur_cnt << std::endl;
+    std::cout << "CUR_CNT=" << cur_cnt << std::endl << std::endl;
 #endif 
     return latency_stats;
   }
@@ -1244,7 +1270,6 @@ namespace model
                                                        const bool assume_zero_padding)
   {
     (void)assume_zero_padding;
-    (void)crypto_config;
 
     // ****************************************************************
     // Step 0: Find All Ranks With Imperfect Factorization
@@ -1583,9 +1608,11 @@ namespace model
     for (auto &[data_space_id, ds] : per_dataspace)
     {
       double crypto_blocks_per_line = 0;
+      ds.crypto_latency_per_line = 0;
+      ds.crypto_hash_reads_per_line = 0;
       // only consider crypto if config is provided AND only for offchip memory
       // (DRAM) ToDo: can this be checked in a cleaner way?
-      if (crypto_config != nullptr && specs_.technology.Get() == Technology::DRAM) {
+      if (crypto_config != nullptr && crypto_config->crypto_initialized_ && !layout.authblock_lines[data_space_id].factors.empty()) {
         double word_size = specs_.word_bits.Get();
         crypto_blocks_per_line = std::ceil((double)ds.auth_block_size * word_size /
                                           (crypto_config->datapath));

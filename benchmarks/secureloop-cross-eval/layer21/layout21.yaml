@@ -1,13 +1,18 @@
-# K -> dimension C of weights L -> dimension C of weights
+# K -> dimension C of weights L -> dimension C of inputs
 layout:
   - target: DRAM
     type: intraline
-    factors: N=1 K=4 L=512 H=1 W=1 Q=1 S=1 P=1 M=1000 R=1 
+    factors: N=1 K=1 L=8 H=1 W=1 Q=1 S=1 P=1 M=8 R=1 
     permutation: NKLHWMQPSR
   - target: DRAM
     type: interline
     factors: N=1024 K=1024 L=1024 H=1024 W=1024 Q=1024 S=1024 P=1024 M=1024 R=1024 
     permutation: NKLHWQSPMR
+  - target: DRAM
+    type: authblock_lines
+    factors: N=1 K=4 L=64 H=1 W=1 Q=1 S=1 P=1 M=125 R=1 
+    permutation: NCHWKLQPSR
+
 
   - target: shared_glb
     type: intraline

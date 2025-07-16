@@ -1,0 +1,1 @@
+timeloop-mapper ../layer_shapes/CONV/ResNet50/resnet50_1.yaml ../layout/resnet50/SRCQPMNHW_Cx16_1.yaml ../arch_designs/eyeriss_like/arch/eyeriss_like.yaml ../arch_designs/eyeriss_like/arch/components/* ../arch_designs/eyeriss_like/mapper/mapper.yaml  ../test_case/16_PE/crypto_spec/AES-GCM.yaml  ../arch_designs/eyeriss_like/constraints/eyeriss_like_*
