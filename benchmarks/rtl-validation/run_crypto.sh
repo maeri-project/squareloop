@@ -1,0 +1,1 @@
+timeloop-model arch/baseline.yaml arch/components/* conv_2_batch1/layer2/mapping.yaml workloads/conv_2_batch1_layer2.yaml layout/layer2.yaml ASCON-128a.yaml

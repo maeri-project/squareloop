@@ -1,0 +1,32 @@
+
+DRAM [ Weights:9216 (9216) Inputs:67600 (67600) Outputs:65536 (65536) ] 
+-----------------------------------------------------------------------
+| for Q in [0:2)
+|   for P in [0:2)
+
+iomem [ Inputs:17424 (17424) ] 
+------------------------------
+|     for P in [0:8)
+
+wmem [ Weights:9216 (9216) ] 
+----------------------------
+|       for M in [0:4)
+|         for P in [0:2)
+|           for C in [0:16)
+|             for R in [0:3)
+|               for S in [0:3)
+|                 for M in [0:16) (Spatial-Y)
+|                   for Q in [0:16) (Spatial-X)
+
+output_activation_reg [ Outputs:1 (1) ] 
+---------------------------------------
+|                     for Q in [0:1)
+
+weight_reg [ Weights:1 (1) ] 
+----------------------------
+|                       for Q in [0:1)
+
+input_activation_reg [ Inputs:1 (1) ] 
+-------------------------------------
+|                         for Q in [0:1)
+
