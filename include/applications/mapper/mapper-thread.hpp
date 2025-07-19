@@ -36,6 +36,7 @@
 #include "search/search.hpp"
 #include "layout/layout.hpp"
 #include "crypto/crypto.hpp"
+#include "layoutspaces/layoutspace-base.hpp"
 
 
 struct EvaluationResult
@@ -93,6 +94,7 @@ class MapperThread
   unsigned thread_id_;
   search::SearchAlgorithm* search_;
   mapspace::MapSpace* mapspace_;
+  layoutspace::LayoutSpace* layoutspace_;
   std::mutex* mutex_;
   uint128_t search_size_;
   std::uint32_t timeout_;

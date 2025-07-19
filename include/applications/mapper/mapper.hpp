@@ -35,6 +35,7 @@
 #include <boost/archive/xml_oarchive.hpp>
 
 #include "mapspaces/mapspace-factory.hpp"
+#include "layoutspaces/layoutspace-factory.hpp"
 #include "search/search-factory.hpp"
 #include "compound-config/compound-config.hpp"
 #include "applications/mapper/mapper-thread.hpp"
@@ -81,6 +82,7 @@ class Mapper
   model::Engine::Specs arch_specs_;
   mapspace::MapSpace* mapspace_;
   std::vector<mapspace::MapSpace*> split_mapspaces_;
+  layoutspace::LayoutSpace* layoutspace_;
   std::vector<search::SearchAlgorithm*> search_;
   sparse::SparseOptimizationInfo* sparse_optimizations_;
 

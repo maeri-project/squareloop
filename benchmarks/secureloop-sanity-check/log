@@ -1,0 +1,3986 @@
+input file: test_arch.yaml
+input file: test_layer.yaml
+input file: test_mapper.yaml
+Warning: Hyphenated keyword CNN-Layer found in inputs. Hyphenated keywords are deprecated and to be replaced with underscores. Please use the the scripts/hyphens2underscores.py in the in the Timeloop repository to update your inputs.
+Warning: Hyphenated keyword max-permutations-per-if-visit found in inputs. Hyphenated keywords are deprecated and to be replaced with underscores. Please use the the scripts/hyphens2underscores.py in the in the Timeloop repository to update your inputs.
+Warning: Hyphenated keyword word-bits found in inputs. Hyphenated keywords are deprecated and to be replaced with underscores. Please use the the scripts/hyphens2underscores.py in the in the Timeloop repository to update your inputs.
+Warning: Hyphenated keyword num-threads found in inputs. Hyphenated keywords are deprecated and to be replaced with underscores. Please use the the scripts/hyphens2underscores.py in the in the Timeloop repository to update your inputs.
+Warning: Hyphenated keyword live-status found in inputs. Hyphenated keywords are deprecated and to be replaced with underscores. Please use the the scripts/hyphens2underscores.py in the in the Timeloop repository to update your inputs.
+Warning: Hyphenated keyword block-size found in inputs. Hyphenated keywords are deprecated and to be replaced with underscores. Please use the the scripts/hyphens2underscores.py in the in the Timeloop repository to update your inputs.
+Warning: Hyphenated keyword optimization-metrics found in inputs. Hyphenated keywords are deprecated and to be replaced with underscores. Please use the the scripts/hyphens2underscores.py in the in the Timeloop repository to update your inputs.
+Warning: Hyphenated keyword read-write found in inputs. Hyphenated keywords are deprecated and to be replaced with underscores. Please use the the scripts/hyphens2underscores.py in the in the Timeloop repository to update your inputs.
+Warning: Hyphenated keyword victory-condition found in inputs. Hyphenated keywords are deprecated and to be replaced with underscores. Please use the the scripts/hyphens2underscores.py in the in the Timeloop repository to update your inputs.
+Warning: Hyphenated keyword random-pruned found in inputs. Hyphenated keywords are deprecated and to be replaced with underscores. Please use the the scripts/hyphens2underscores.py in the in the Timeloop repository to update your inputs.
+Warning: Hyphenated keyword data-spaces found in inputs. Hyphenated keywords are deprecated and to be replaced with underscores. Please use the the scripts/hyphens2underscores.py in the in the Timeloop repository to update your inputs.
+  _______                __                
+ /_  __(_)___ ___  ___  / /___  ____  ____ 
+  / / / / __ `__ \/ _ \/ / __ \/ __ \/ __ \
+ / / / / / / / / /  __/ / /_/ / /_/ / /_/ /
+/_/ /_/_/ /_/ /_/\___/_/\____/\____/ .___/ 
+                                  /_/      
+
+Problem configuration complete.
+Print out overall CoefficientIDToName of the given problem
+0 Wstride 1 Hstride 2 Wdilation 3 Hdilation 
+0 1 1 1 2 1 3 1 
+Print out overall FactorizedDimensionNameToID of the given problem
+C:0 M:1 N:4 P:5 Q:6 R:2 S:3 
+Print out overall workload_.GetFactorizedBounds()->GetCoordinates from problem
+C M R S N P Q 
+64 64 3 3 1 32 32 
+Print out DataSpaceIDToDimensionIDVector from problem
+Weights:0 1 2 3 
+Outputs:1 4 5 6 
+
+Overall Workload Dimension
+C = 64
+M = 64
+R = 3
+S = 3
+N = 1
+P = 32
+Q = 32
+
+Print out overall DataSpaceIDToName of the given problem
+0 Weights 1 Inputs 2 Outputs 
+Warning: neither block size nor cluster size specified, set according to specified storage width: block size: 1  cluster_size: 1
+Warning: neither block size nor cluster size specified, set according to specified storage width: block size: 1  cluster_size: 1
+Warning: neither block size nor cluster size specified, set according to specified storage width: block size: 1  cluster_size: 1
+Architecture configuration complete.
+Sparse optimization configuration complete.
+Using threads = 1
+Mapper configuration complete.
+Initializing Index Factorization subspace.
+  Factorization options along problem dimension C = 462
+  Factorization options along problem dimension M = 462
+  Factorization options along problem dimension R = 6
+  Factorization options along problem dimension S = 6
+  Factorization options along problem dimension N = 1
+  Factorization options along problem dimension P = 252
+  Factorization options along problem dimension Q = 252
+Mapspace Dimension [IndexFactorization] Size: 487963719936
+Mapspace Dimension [LoopPermutation] Size: 3252016064102400000
+Mapspace Dimension [Spatial] Size: 8
+Mapspace Dimension [DatatypeBypass] Size: 4096
+Mapspace split! Per-split Mapping Dimension [IndexFactorization] Size: 487963719936 Residue: 0
+Mapspace construction complete.
+Search configuration complete.
+Start Parsering Crypto
+No Crypto specified
+Start Parsering Layout
+No Layout specified, will search both constraint and actual layout, create dummy layout below.
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: C M R S N P Q 
+
+Target: DRAM
+ num_read_ports: 1, num_write_ports: 1
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: global_buffer
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: input_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: mac
+ num_read_ports: 0, num_write_ports: 0
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: output_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: weight_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: C M R S N P Q 
+
+Target: DRAM
+ num_read_ports: 1, num_write_ports: 1
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: global_buffer
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: input_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: mac
+ num_read_ports: 0, num_write_ports: 0
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: output_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: weight_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Mapping:
+=====================
+Mapping ID = 64411493506800
+Loop Nest:
+----------
+for Q in [0:1)
+------------------------------------------
+  for C in [0:2)
+    for M in [0:8)
+      for S in [0:3)
+        for P in [0:2) (Spatial-Y)
+          for R in [0:3) (Spatial-Y)
+            for C in [0:16) (Spatial-X)
+------------------------------------------
+              for P in [0:8)
+------------------------------------------
+                for P in [0:2)
+                  for M in [0:4)
+------------------------------------------
+                    for Q in [0:32)
+                      for M in [0:2)
+                        for C in [0:2)
+
+
+Datatype Bypass Nest:
+---------------------
+0: 00000000000000000000000000010000
+1: 00000000000000000000000000010000
+2: 00000000000000000000000000010000
+3: 00000000000000000000000000000000
+4: 00000000000000000000000000000000
+
+
+Step 1: Creating concordant layout from mapping...
+Total number of storage levels: 5
+Total number of layout levels: 6
+Total number of data spaces: 3
+Storage level 0 tensor size: 4 4 4 
+Storage level 1 tensor size: 46 40 12 
+Storage level 2 tensor size: 4 11 11 
+Storage level 3 tensor size: 7 5 8 
+Storage level 4 tensor size: 6 36 36 
+  Checking buffer capacity constraints...
+  Analyzing data space bypass configuration:
+    Level 0 (input_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 1 (weight_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 2 (output_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 3 (global_buffer): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 4 (DRAM): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Storage Level 0 (input_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 0 constraints satisfied
+    Storage Level 1 (weight_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 1 constraints satisfied
+    Storage Level 2 (output_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 2 constraints satisfied
+    Storage Level 3 (global_buffer):
+      Memory depth: 8192 lines
+      Block size: 256 elements per line
+      Total capacity: 2097152 elements
+      Line capacity (bandwidth): 64 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 64 elements/cycle
+      Write bandwidth: 64 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 3 constraints satisfied
+    WARNING: Storage level 4 (DRAM) has unspecified size
+  ✓ All buffer capacity constraints satisfied
+Step 3: Reforming layout to be legal...
+  Requested Parallelism (RP) = 1
+  Buffer Line Capacity = 64
+  Checking buffer capacity constraints...
+  Analyzing data space bypass configuration:
+    Level 0 (input_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 1 (weight_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 2 (output_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 3 (global_buffer): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 4 (DRAM): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Storage Level 0 (input_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 0 constraints satisfied
+    Storage Level 1 (weight_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 1 constraints satisfied
+    Storage Level 2 (output_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 2 constraints satisfied
+    Storage Level 3 (global_buffer):
+      Memory depth: 8192 lines
+      Block size: 256 elements per line
+      Total capacity: 2097152 elements
+      Line capacity (bandwidth): 64 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 64 elements/cycle
+      Write bandwidth: 64 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 3 constraints satisfied
+    WARNING: Storage level 4 (DRAM) has unspecified size
+  ✓ All buffer capacity constraints satisfied
+  RP < line_cap: Can pack more data and tile temporal loops
+    Packing spatial data and tiling temporal loops...
+    Remaining line capacity: 63
+    Final remaining capacity: 63
+  Layout reform completed successfully
+LayoutSpace Dimension [Intraline] Size: 3
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: C M R S N P Q 
+
+Target: DRAM
+ num_read_ports: 1, num_write_ports: 1
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: global_buffer
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=2
+    Rank: M dimension=1-M, factor=8
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=3
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=2
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=3
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=8
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=16
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=3
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=16
+    Rank: W dimension=(2,5)-(R,P), factor=4
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=2
+Target: input_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=8
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=8
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: mac
+ num_read_ports: 0, num_write_ports: 0
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=4
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=2
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=4
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=2
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: output_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=2
+    Rank: M dimension=1-M, factor=2
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=2
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=32
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=2
+    Rank: Q dimension=6-Q, factor=32
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: weight_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Mapping:
+=====================
+Mapping ID = 1188679904239344
+Loop Nest:
+----------
+for Q in [0:1)
+------------------------------------------
+  for C in [0:2)
+    for M in [0:8)
+      for S in [0:3)
+        for P in [0:2) (Spatial-Y)
+          for R in [0:3) (Spatial-Y)
+            for C in [0:16) (Spatial-X)
+------------------------------------------
+              for P in [0:8)
+------------------------------------------
+                for P in [0:2)
+                  for M in [0:4)
+------------------------------------------
+                    for Q in [0:32)
+                      for M in [0:2)
+                        for C in [0:2)
+
+
+Datatype Bypass Nest:
+---------------------
+0: 00000000000000000000000000011000
+1: 00000000000000000000000000010000
+2: 00000000000000000000000000010000
+3: 00000000000000000000000000000000
+4: 00000000000000000000000000000000
+
+
+Step 1: Creating concordant layout from mapping...
+Total number of storage levels: 5
+Total number of layout levels: 6
+Total number of data spaces: 3
+Storage level 0 tensor size: 4 4 4 
+Storage level 1 tensor size: 46 40 12 
+Storage level 2 tensor size: 4 11 11 
+Storage level 3 tensor size: 7 5 8 
+Storage level 4 tensor size: 6 36 36 
+  Checking buffer capacity constraints...
+  Analyzing data space bypass configuration:
+    Level 0 (input_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 1 (weight_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 2 (output_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 3 (global_buffer): Keep=[Weights], Bypass=[Inputs, Outputs]
+    Level 4 (DRAM): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Storage Level 0 (input_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 0 constraints satisfied
+    Storage Level 1 (weight_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 1 constraints satisfied
+    Storage Level 2 (output_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 2 constraints satisfied
+    Storage Level 3 (global_buffer):
+      Memory depth: 8192 lines
+      Block size: 256 elements per line
+      Total capacity: 2097152 elements
+      Line capacity (bandwidth): 64 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 64 elements/cycle
+      Write bandwidth: 64 elements/cycle
+      Data space 0 (Weights) [KEPT]:
+        Total data size: 4 elements
+        Parallel accesses: 1 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 4 elements
+      TOTAL parallel accesses: 1 elements
+    ✓ Storage level 3 constraints satisfied
+    WARNING: Storage level 4 (DRAM) has unspecified size
+  ✓ All buffer capacity constraints satisfied
+Step 3: Reforming layout to be legal...
+  Requested Parallelism (RP) = 1
+  Buffer Line Capacity = 64
+  Checking buffer capacity constraints...
+  Analyzing data space bypass configuration:
+    Level 0 (input_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 1 (weight_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 2 (output_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 3 (global_buffer): Keep=[Weights], Bypass=[Inputs, Outputs]
+    Level 4 (DRAM): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Storage Level 0 (input_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 0 constraints satisfied
+    Storage Level 1 (weight_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 1 constraints satisfied
+    Storage Level 2 (output_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 2 constraints satisfied
+    Storage Level 3 (global_buffer):
+      Memory depth: 8192 lines
+      Block size: 256 elements per line
+      Total capacity: 2097152 elements
+      Line capacity (bandwidth): 64 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 64 elements/cycle
+      Write bandwidth: 64 elements/cycle
+      Data space 0 (Weights) [KEPT]:
+        Total data size: 4 elements
+        Parallel accesses: 1 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 4 elements
+      TOTAL parallel accesses: 1 elements
+    ✓ Storage level 3 constraints satisfied
+    WARNING: Storage level 4 (DRAM) has unspecified size
+  ✓ All buffer capacity constraints satisfied
+  RP < line_cap: Can pack more data and tile temporal loops
+    Packing spatial data and tiling temporal loops...
+    Remaining line capacity: 63
+    Final remaining capacity: 63
+  Layout reform completed successfully
+LayoutSpace Dimension [Intraline] Size: 3
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: C M R S N P Q 
+
+Target: DRAM
+ num_read_ports: 1, num_write_ports: 1
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: global_buffer
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=2
+    Rank: M dimension=1-M, factor=8
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=3
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=2
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=3
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=8
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=16
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=3
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=16
+    Rank: W dimension=(2,5)-(R,P), factor=4
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=2
+Target: input_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=8
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=8
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: mac
+ num_read_ports: 0, num_write_ports: 0
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=4
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=2
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=4
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=2
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: output_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=2
+    Rank: M dimension=1-M, factor=2
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=2
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=32
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=2
+    Rank: Q dimension=6-Q, factor=32
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: weight_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Mapping:
+=====================
+Mapping ID = 18052706065227504
+Loop Nest:
+----------
+for Q in [0:1)
+------------------------------------------
+  for C in [0:2)
+    for M in [0:8)
+      for S in [0:3)
+        for P in [0:2) (Spatial-Y)
+          for R in [0:3) (Spatial-Y)
+            for C in [0:16) (Spatial-X)
+------------------------------------------
+              for P in [0:8)
+------------------------------------------
+                for P in [0:2)
+                  for M in [0:4)
+------------------------------------------
+                    for Q in [0:32)
+                      for M in [0:2)
+                        for C in [0:2)
+
+
+Datatype Bypass Nest:
+---------------------
+0: 00000000000000000000000000010000
+1: 00000000000000000000000000011000
+2: 00000000000000000000000000010000
+3: 00000000000000000000000000000000
+4: 00000000000000000000000000000000
+
+
+Step 1: Creating concordant layout from mapping...
+Total number of storage levels: 5
+Total number of layout levels: 6
+Total number of data spaces: 3
+Storage level 0 tensor size: 4 4 4 
+Storage level 1 tensor size: 46 40 12 
+Storage level 2 tensor size: 4 11 11 
+Storage level 3 tensor size: 7 5 8 
+Storage level 4 tensor size: 6 36 36 
+  Checking buffer capacity constraints...
+  Analyzing data space bypass configuration:
+    Level 0 (input_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 1 (weight_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 2 (output_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 3 (global_buffer): Keep=[Inputs], Bypass=[Weights, Outputs]
+    Level 4 (DRAM): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Storage Level 0 (input_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 0 constraints satisfied
+    Storage Level 1 (weight_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 1 constraints satisfied
+    Storage Level 2 (output_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 2 constraints satisfied
+    Storage Level 3 (global_buffer):
+      Memory depth: 8192 lines
+      Block size: 256 elements per line
+      Total capacity: 2097152 elements
+      Line capacity (bandwidth): 64 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 64 elements/cycle
+      Write bandwidth: 64 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [KEPT]:
+        Total data size: 2 elements
+        Parallel accesses: 1 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 2 elements
+      TOTAL parallel accesses: 1 elements
+    ✓ Storage level 3 constraints satisfied
+    WARNING: Storage level 4 (DRAM) has unspecified size
+  ✓ All buffer capacity constraints satisfied
+Step 3: Reforming layout to be legal...
+  Requested Parallelism (RP) = 1
+  Buffer Line Capacity = 64
+  Checking buffer capacity constraints...
+  Analyzing data space bypass configuration:
+    Level 0 (input_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 1 (weight_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 2 (output_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 3 (global_buffer): Keep=[Inputs], Bypass=[Weights, Outputs]
+    Level 4 (DRAM): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Storage Level 0 (input_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 0 constraints satisfied
+    Storage Level 1 (weight_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 1 constraints satisfied
+    Storage Level 2 (output_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 2 constraints satisfied
+    Storage Level 3 (global_buffer):
+      Memory depth: 8192 lines
+      Block size: 256 elements per line
+      Total capacity: 2097152 elements
+      Line capacity (bandwidth): 64 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 64 elements/cycle
+      Write bandwidth: 64 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [KEPT]:
+        Total data size: 2 elements
+        Parallel accesses: 1 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 2 elements
+      TOTAL parallel accesses: 1 elements
+    ✓ Storage level 3 constraints satisfied
+    WARNING: Storage level 4 (DRAM) has unspecified size
+  ✓ All buffer capacity constraints satisfied
+  RP < line_cap: Can pack more data and tile temporal loops
+    Packing spatial data and tiling temporal loops...
+    Remaining line capacity: 63
+    Final remaining capacity: 63
+  Layout reform completed successfully
+LayoutSpace Dimension [Intraline] Size: 3
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: C M R S N P Q 
+
+Target: DRAM
+ num_read_ports: 1, num_write_ports: 1
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: global_buffer
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=2
+    Rank: M dimension=1-M, factor=8
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=3
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=2
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=3
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=8
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=16
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=3
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=16
+    Rank: W dimension=(2,5)-(R,P), factor=4
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=2
+Target: input_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=8
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=8
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: mac
+ num_read_ports: 0, num_write_ports: 0
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=4
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=2
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=4
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=2
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: output_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=2
+    Rank: M dimension=1-M, factor=2
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=2
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=32
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=2
+    Rank: Q dimension=6-Q, factor=32
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: weight_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Mapping:
+=====================
+Mapping ID = 19176974475960048
+Loop Nest:
+----------
+for Q in [0:1)
+------------------------------------------
+  for C in [0:2)
+    for M in [0:8)
+      for S in [0:3)
+        for P in [0:2) (Spatial-Y)
+          for R in [0:3) (Spatial-Y)
+            for C in [0:16) (Spatial-X)
+------------------------------------------
+              for P in [0:8)
+------------------------------------------
+                for P in [0:2)
+                  for M in [0:4)
+------------------------------------------
+                    for Q in [0:32)
+                      for M in [0:2)
+                        for C in [0:2)
+
+
+Datatype Bypass Nest:
+---------------------
+0: 00000000000000000000000000011000
+1: 00000000000000000000000000011000
+2: 00000000000000000000000000010000
+3: 00000000000000000000000000000000
+4: 00000000000000000000000000000000
+
+
+Step 1: Creating concordant layout from mapping...
+Total number of storage levels: 5
+Total number of layout levels: 6
+Total number of data spaces: 3
+Storage level 0 tensor size: 4 4 4 
+Storage level 1 tensor size: 46 40 12 
+Storage level 2 tensor size: 4 11 11 
+Storage level 3 tensor size: 7 5 8 
+Storage level 4 tensor size: 6 36 36 
+  Checking buffer capacity constraints...
+  Analyzing data space bypass configuration:
+    Level 0 (input_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 1 (weight_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 2 (output_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 3 (global_buffer): Keep=[Weights, Inputs], Bypass=[Outputs]
+    Level 4 (DRAM): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Storage Level 0 (input_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 0 constraints satisfied
+    Storage Level 1 (weight_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 1 constraints satisfied
+    Storage Level 2 (output_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 2 constraints satisfied
+    Storage Level 3 (global_buffer):
+      Memory depth: 8192 lines
+      Block size: 256 elements per line
+      Total capacity: 2097152 elements
+      Line capacity (bandwidth): 64 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 64 elements/cycle
+      Write bandwidth: 64 elements/cycle
+      Data space 0 (Weights) [KEPT]:
+        Total data size: 4 elements
+        Parallel accesses: 1 elements
+      Data space 1 (Inputs) [KEPT]:
+        Total data size: 2 elements
+        Parallel accesses: 1 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 6 elements
+      TOTAL parallel accesses: 2 elements
+    ✓ Storage level 3 constraints satisfied
+    WARNING: Storage level 4 (DRAM) has unspecified size
+  ✓ All buffer capacity constraints satisfied
+Step 3: Reforming layout to be legal...
+  Requested Parallelism (RP) = 1
+  Buffer Line Capacity = 64
+  Checking buffer capacity constraints...
+  Analyzing data space bypass configuration:
+    Level 0 (input_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 1 (weight_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 2 (output_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 3 (global_buffer): Keep=[Weights, Inputs], Bypass=[Outputs]
+    Level 4 (DRAM): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Storage Level 0 (input_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 0 constraints satisfied
+    Storage Level 1 (weight_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 1 constraints satisfied
+    Storage Level 2 (output_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 2 constraints satisfied
+    Storage Level 3 (global_buffer):
+      Memory depth: 8192 lines
+      Block size: 256 elements per line
+      Total capacity: 2097152 elements
+      Line capacity (bandwidth): 64 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 64 elements/cycle
+      Write bandwidth: 64 elements/cycle
+      Data space 0 (Weights) [KEPT]:
+        Total data size: 4 elements
+        Parallel accesses: 1 elements
+      Data space 1 (Inputs) [KEPT]:
+        Total data size: 2 elements
+        Parallel accesses: 1 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 6 elements
+      TOTAL parallel accesses: 2 elements
+    ✓ Storage level 3 constraints satisfied
+    WARNING: Storage level 4 (DRAM) has unspecified size
+  ✓ All buffer capacity constraints satisfied
+  RP < line_cap: Can pack more data and tile temporal loops
+    Packing spatial data and tiling temporal loops...
+    Remaining line capacity: 63
+    Final remaining capacity: 63
+  Layout reform completed successfully
+LayoutSpace Dimension [Intraline] Size: 3
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: C M R S N P Q 
+
+Target: DRAM
+ num_read_ports: 1, num_write_ports: 1
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: global_buffer
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=2
+    Rank: M dimension=1-M, factor=8
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=3
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=2
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=3
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=8
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=16
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=3
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=16
+    Rank: W dimension=(2,5)-(R,P), factor=4
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=2
+Target: input_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=8
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=8
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: mac
+ num_read_ports: 0, num_write_ports: 0
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=4
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=2
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=4
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=2
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: output_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=2
+    Rank: M dimension=1-M, factor=2
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=2
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=32
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=2
+    Rank: Q dimension=6-Q, factor=32
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: weight_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Mapping:
+=====================
+Mapping ID = 287877124641038064
+Loop Nest:
+----------
+for Q in [0:1)
+------------------------------------------
+  for C in [0:2)
+    for M in [0:8)
+      for S in [0:3)
+        for P in [0:2) (Spatial-Y)
+          for R in [0:3) (Spatial-Y)
+            for C in [0:16) (Spatial-X)
+------------------------------------------
+              for P in [0:8)
+------------------------------------------
+                for P in [0:2)
+                  for M in [0:4)
+------------------------------------------
+                    for Q in [0:32)
+                      for M in [0:2)
+                        for C in [0:2)
+
+
+Datatype Bypass Nest:
+---------------------
+0: 00000000000000000000000000010000
+1: 00000000000000000000000000010000
+2: 00000000000000000000000000011000
+3: 00000000000000000000000000000000
+4: 00000000000000000000000000000000
+
+
+Step 1: Creating concordant layout from mapping...
+Total number of storage levels: 5
+Total number of layout levels: 6
+Total number of data spaces: 3
+Storage level 0 tensor size: 4 4 4 
+Storage level 1 tensor size: 46 40 12 
+Storage level 2 tensor size: 4 11 11 
+Storage level 3 tensor size: 7 5 8 
+Storage level 4 tensor size: 6 36 36 
+  Checking buffer capacity constraints...
+  Analyzing data space bypass configuration:
+    Level 0 (input_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 1 (weight_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 2 (output_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 3 (global_buffer): Keep=[Outputs], Bypass=[Weights, Inputs]
+    Level 4 (DRAM): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Storage Level 0 (input_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 0 constraints satisfied
+    Storage Level 1 (weight_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 1 constraints satisfied
+    Storage Level 2 (output_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 2 constraints satisfied
+    Storage Level 3 (global_buffer):
+      Memory depth: 8192 lines
+      Block size: 256 elements per line
+      Total capacity: 2097152 elements
+      Line capacity (bandwidth): 64 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 64 elements/cycle
+      Write bandwidth: 64 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [KEPT]:
+        Total data size: 8 elements
+        Parallel accesses: 1 elements
+      TOTAL data size across all spaces: 8 elements
+      TOTAL parallel accesses: 1 elements
+    ✓ Storage level 3 constraints satisfied
+    WARNING: Storage level 4 (DRAM) has unspecified size
+  ✓ All buffer capacity constraints satisfied
+Step 3: Reforming layout to be legal...
+  Requested Parallelism (RP) = 1
+  Buffer Line Capacity = 64
+  Checking buffer capacity constraints...
+  Analyzing data space bypass configuration:
+    Level 0 (input_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 1 (weight_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 2 (output_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 3 (global_buffer): Keep=[Outputs], Bypass=[Weights, Inputs]
+    Level 4 (DRAM): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Storage Level 0 (input_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 0 constraints satisfied
+    Storage Level 1 (weight_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 1 constraints satisfied
+    Storage Level 2 (output_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 2 constraints satisfied
+    Storage Level 3 (global_buffer):
+      Memory depth: 8192 lines
+      Block size: 256 elements per line
+      Total capacity: 2097152 elements
+      Line capacity (bandwidth): 64 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 64 elements/cycle
+      Write bandwidth: 64 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [KEPT]:
+        Total data size: 8 elements
+        Parallel accesses: 1 elements
+      TOTAL data size across all spaces: 8 elements
+      TOTAL parallel accesses: 1 elements
+    ✓ Storage level 3 constraints satisfied
+    WARNING: Storage level 4 (DRAM) has unspecified size
+  ✓ All buffer capacity constraints satisfied
+  RP < line_cap: Can pack more data and tile temporal loops
+    Packing spatial data and tiling temporal loops...
+    Remaining line capacity: 63
+    Final remaining capacity: 63
+  Layout reform completed successfully
+LayoutSpace Dimension [Intraline] Size: 3
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: C M R S N P Q 
+
+Target: DRAM
+ num_read_ports: 1, num_write_ports: 1
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: global_buffer
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=2
+    Rank: M dimension=1-M, factor=8
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=3
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=2
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=3
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=8
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=16
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=3
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=16
+    Rank: W dimension=(2,5)-(R,P), factor=4
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=2
+Target: input_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=8
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=8
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: mac
+ num_read_ports: 0, num_write_ports: 0
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=4
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=2
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=4
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=2
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: output_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=2
+    Rank: M dimension=1-M, factor=2
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=2
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=32
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=2
+    Rank: Q dimension=6-Q, factor=32
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: weight_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Mapping:
+=====================
+Mapping ID = 289001393051770608
+Loop Nest:
+----------
+for Q in [0:1)
+------------------------------------------
+  for C in [0:2)
+    for M in [0:8)
+      for S in [0:3)
+        for P in [0:2) (Spatial-Y)
+          for R in [0:3) (Spatial-Y)
+            for C in [0:16) (Spatial-X)
+------------------------------------------
+              for P in [0:8)
+------------------------------------------
+                for P in [0:2)
+                  for M in [0:4)
+------------------------------------------
+                    for Q in [0:32)
+                      for M in [0:2)
+                        for C in [0:2)
+
+
+Datatype Bypass Nest:
+---------------------
+0: 00000000000000000000000000011000
+1: 00000000000000000000000000010000
+2: 00000000000000000000000000011000
+3: 00000000000000000000000000000000
+4: 00000000000000000000000000000000
+
+
+Step 1: Creating concordant layout from mapping...
+Total number of storage levels: 5
+Total number of layout levels: 6
+Total number of data spaces: 3
+Storage level 0 tensor size: 4 4 4 
+Storage level 1 tensor size: 46 40 12 
+Storage level 2 tensor size: 4 11 11 
+Storage level 3 tensor size: 7 5 8 
+Storage level 4 tensor size: 6 36 36 
+  Checking buffer capacity constraints...
+  Analyzing data space bypass configuration:
+    Level 0 (input_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 1 (weight_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 2 (output_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 3 (global_buffer): Keep=[Weights, Outputs], Bypass=[Inputs]
+    Level 4 (DRAM): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Storage Level 0 (input_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 0 constraints satisfied
+    Storage Level 1 (weight_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 1 constraints satisfied
+    Storage Level 2 (output_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 2 constraints satisfied
+    Storage Level 3 (global_buffer):
+      Memory depth: 8192 lines
+      Block size: 256 elements per line
+      Total capacity: 2097152 elements
+      Line capacity (bandwidth): 64 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 64 elements/cycle
+      Write bandwidth: 64 elements/cycle
+      Data space 0 (Weights) [KEPT]:
+        Total data size: 4 elements
+        Parallel accesses: 1 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [KEPT]:
+        Total data size: 8 elements
+        Parallel accesses: 1 elements
+      TOTAL data size across all spaces: 12 elements
+      TOTAL parallel accesses: 2 elements
+    ✓ Storage level 3 constraints satisfied
+    WARNING: Storage level 4 (DRAM) has unspecified size
+  ✓ All buffer capacity constraints satisfied
+Step 3: Reforming layout to be legal...
+  Requested Parallelism (RP) = 1
+  Buffer Line Capacity = 64
+  Checking buffer capacity constraints...
+  Analyzing data space bypass configuration:
+    Level 0 (input_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 1 (weight_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 2 (output_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 3 (global_buffer): Keep=[Weights, Outputs], Bypass=[Inputs]
+    Level 4 (DRAM): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Storage Level 0 (input_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 0 constraints satisfied
+    Storage Level 1 (weight_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 1 constraints satisfied
+    Storage Level 2 (output_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 2 constraints satisfied
+    Storage Level 3 (global_buffer):
+      Memory depth: 8192 lines
+      Block size: 256 elements per line
+      Total capacity: 2097152 elements
+      Line capacity (bandwidth): 64 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 64 elements/cycle
+      Write bandwidth: 64 elements/cycle
+      Data space 0 (Weights) [KEPT]:
+        Total data size: 4 elements
+        Parallel accesses: 1 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [KEPT]:
+        Total data size: 8 elements
+        Parallel accesses: 1 elements
+      TOTAL data size across all spaces: 12 elements
+      TOTAL parallel accesses: 2 elements
+    ✓ Storage level 3 constraints satisfied
+    WARNING: Storage level 4 (DRAM) has unspecified size
+  ✓ All buffer capacity constraints satisfied
+  RP < line_cap: Can pack more data and tile temporal loops
+    Packing spatial data and tiling temporal loops...
+    Remaining line capacity: 63
+    Final remaining capacity: 63
+  Layout reform completed successfully
+LayoutSpace Dimension [Intraline] Size: 3
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: C M R S N P Q 
+
+Target: DRAM
+ num_read_ports: 1, num_write_ports: 1
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: global_buffer
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=2
+    Rank: M dimension=1-M, factor=8
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=3
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=2
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=3
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=8
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=16
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=3
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=16
+    Rank: W dimension=(2,5)-(R,P), factor=4
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=2
+Target: input_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=8
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=8
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: mac
+ num_read_ports: 0, num_write_ports: 0
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=4
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=2
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=4
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=2
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: output_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=2
+    Rank: M dimension=1-M, factor=2
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=2
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=32
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=2
+    Rank: Q dimension=6-Q, factor=32
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: weight_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Mapping:
+=====================
+Mapping ID = 305865419212758768
+Loop Nest:
+----------
+for Q in [0:1)
+------------------------------------------
+  for C in [0:2)
+    for M in [0:8)
+      for S in [0:3)
+        for P in [0:2) (Spatial-Y)
+          for R in [0:3) (Spatial-Y)
+            for C in [0:16) (Spatial-X)
+------------------------------------------
+              for P in [0:8)
+------------------------------------------
+                for P in [0:2)
+                  for M in [0:4)
+------------------------------------------
+                    for Q in [0:32)
+                      for M in [0:2)
+                        for C in [0:2)
+
+
+Datatype Bypass Nest:
+---------------------
+0: 00000000000000000000000000010000
+1: 00000000000000000000000000011000
+2: 00000000000000000000000000011000
+3: 00000000000000000000000000000000
+4: 00000000000000000000000000000000
+
+
+Step 1: Creating concordant layout from mapping...
+Total number of storage levels: 5
+Total number of layout levels: 6
+Total number of data spaces: 3
+Storage level 0 tensor size: 4 4 4 
+Storage level 1 tensor size: 46 40 12 
+Storage level 2 tensor size: 4 11 11 
+Storage level 3 tensor size: 7 5 8 
+Storage level 4 tensor size: 6 36 36 
+  Checking buffer capacity constraints...
+  Analyzing data space bypass configuration:
+    Level 0 (input_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 1 (weight_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 2 (output_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 3 (global_buffer): Keep=[Inputs, Outputs], Bypass=[Weights]
+    Level 4 (DRAM): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Storage Level 0 (input_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 0 constraints satisfied
+    Storage Level 1 (weight_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 1 constraints satisfied
+    Storage Level 2 (output_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 2 constraints satisfied
+    Storage Level 3 (global_buffer):
+      Memory depth: 8192 lines
+      Block size: 256 elements per line
+      Total capacity: 2097152 elements
+      Line capacity (bandwidth): 64 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 64 elements/cycle
+      Write bandwidth: 64 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [KEPT]:
+        Total data size: 2 elements
+        Parallel accesses: 1 elements
+      Data space 2 (Outputs) [KEPT]:
+        Total data size: 8 elements
+        Parallel accesses: 1 elements
+      TOTAL data size across all spaces: 10 elements
+      TOTAL parallel accesses: 2 elements
+    ✓ Storage level 3 constraints satisfied
+    WARNING: Storage level 4 (DRAM) has unspecified size
+  ✓ All buffer capacity constraints satisfied
+Step 3: Reforming layout to be legal...
+  Requested Parallelism (RP) = 1
+  Buffer Line Capacity = 64
+  Checking buffer capacity constraints...
+  Analyzing data space bypass configuration:
+    Level 0 (input_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 1 (weight_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 2 (output_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 3 (global_buffer): Keep=[Inputs, Outputs], Bypass=[Weights]
+    Level 4 (DRAM): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Storage Level 0 (input_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 0 constraints satisfied
+    Storage Level 1 (weight_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 1 constraints satisfied
+    Storage Level 2 (output_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 2 constraints satisfied
+    Storage Level 3 (global_buffer):
+      Memory depth: 8192 lines
+      Block size: 256 elements per line
+      Total capacity: 2097152 elements
+      Line capacity (bandwidth): 64 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 64 elements/cycle
+      Write bandwidth: 64 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [KEPT]:
+        Total data size: 2 elements
+        Parallel accesses: 1 elements
+      Data space 2 (Outputs) [KEPT]:
+        Total data size: 8 elements
+        Parallel accesses: 1 elements
+      TOTAL data size across all spaces: 10 elements
+      TOTAL parallel accesses: 2 elements
+    ✓ Storage level 3 constraints satisfied
+    WARNING: Storage level 4 (DRAM) has unspecified size
+  ✓ All buffer capacity constraints satisfied
+  RP < line_cap: Can pack more data and tile temporal loops
+    Packing spatial data and tiling temporal loops...
+    Remaining line capacity: 63
+    Final remaining capacity: 63
+  Layout reform completed successfully
+LayoutSpace Dimension [Intraline] Size: 3
+Dimension Order: C-0, M-1, R-2, S-3, N-4, P-5, Q-6
+Rank List: C M R S N P Q 
+
+Target: DRAM
+ num_read_ports: 1, num_write_ports: 1
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: global_buffer
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=2
+    Rank: M dimension=1-M, factor=8
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=3
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=2
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=3
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=8
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=16
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=3
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=16
+    Rank: W dimension=(2,5)-(R,P), factor=4
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=2
+Target: input_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=8
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=8
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: mac
+ num_read_ports: 0, num_write_ports: 0
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=4
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=2
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=4
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=2
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: output_activation_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=2
+    Rank: M dimension=1-M, factor=2
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=2
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=32
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=2
+    Rank: Q dimension=6-Q, factor=32
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Target: weight_reg
+ num_read_ports: 2, num_write_ports: 2
+  Data space: Weights
+  Type: interline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: interline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+  Data space: Weights
+  Type: intraline
+    Rank: C dimension=0-C, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: R dimension=2-R, factor=1
+    Rank: S dimension=3-S, factor=1
+  Data space: Inputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: C dimension=0-C, factor=1
+    Rank: W dimension=(2,5)-(R,P), factor=1
+    Rank: H dimension=(3,6)-(S,Q), factor=1
+  Data space: Outputs
+  Type: intraline
+    Rank: N dimension=4-N, factor=1
+    Rank: M dimension=1-M, factor=1
+    Rank: Q dimension=6-Q, factor=1
+    Rank: P dimension=5-P, factor=1
+Mapping:
+=====================
+Mapping ID = 306989687623491312
+Loop Nest:
+----------
+for Q in [0:1)
+------------------------------------------
+  for C in [0:2)
+    for M in [0:8)
+      for S in [0:3)
+        for P in [0:2) (Spatial-Y)
+          for R in [0:3) (Spatial-Y)
+            for C in [0:16) (Spatial-X)
+------------------------------------------
+              for P in [0:8)
+------------------------------------------
+                for P in [0:2)
+                  for M in [0:4)
+------------------------------------------
+                    for Q in [0:32)
+                      for M in [0:2)
+                        for C in [0:2)
+
+
+Datatype Bypass Nest:
+---------------------
+0: 00000000000000000000000000011000
+1: 00000000000000000000000000011000
+2: 00000000000000000000000000011000
+3: 00000000000000000000000000000000
+4: 00000000000000000000000000000000
+
+
+Step 1: Creating concordant layout from mapping...
+Total number of storage levels: 5
+Total number of layout levels: 6
+Total number of data spaces: 3
+Storage level 0 tensor size: 4 4 4 
+Storage level 1 tensor size: 46 40 12 
+Storage level 2 tensor size: 4 11 11 
+Storage level 3 tensor size: 7 5 8 
+Storage level 4 tensor size: 6 36 36 
+  Checking buffer capacity constraints...
+  Analyzing data space bypass configuration:
+    Level 0 (input_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 1 (weight_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 2 (output_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 3 (global_buffer): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Level 4 (DRAM): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Storage Level 0 (input_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 0 constraints satisfied
+    Storage Level 1 (weight_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 1 constraints satisfied
+    Storage Level 2 (output_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 2 constraints satisfied
+    Storage Level 3 (global_buffer):
+      Memory depth: 8192 lines
+      Block size: 256 elements per line
+      Total capacity: 2097152 elements
+      Line capacity (bandwidth): 64 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 64 elements/cycle
+      Write bandwidth: 64 elements/cycle
+      Data space 0 (Weights) [KEPT]:
+        Total data size: 4 elements
+        Parallel accesses: 1 elements
+      Data space 1 (Inputs) [KEPT]:
+        Total data size: 2 elements
+        Parallel accesses: 1 elements
+      Data space 2 (Outputs) [KEPT]:
+        Total data size: 8 elements
+        Parallel accesses: 1 elements
+      TOTAL data size across all spaces: 14 elements
+      TOTAL parallel accesses: 3 elements
+    ✓ Storage level 3 constraints satisfied
+    WARNING: Storage level 4 (DRAM) has unspecified size
+  ✓ All buffer capacity constraints satisfied
+Step 3: Reforming layout to be legal...
+  Requested Parallelism (RP) = 1
+  Buffer Line Capacity = 64
+  Checking buffer capacity constraints...
+  Analyzing data space bypass configuration:
+    Level 0 (input_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 1 (weight_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 2 (output_activation_reg): Keep=[], Bypass=[Weights, Inputs, Outputs]
+    Level 3 (global_buffer): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Level 4 (DRAM): Keep=[Weights, Inputs, Outputs], Bypass=[]
+    Storage Level 0 (input_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 0 constraints satisfied
+    Storage Level 1 (weight_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 1 constraints satisfied
+    Storage Level 2 (output_activation_reg):
+      Memory depth: 1 lines
+      Block size: 1 elements per line
+      Total capacity: 1 elements
+      Line capacity (bandwidth): 1 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 0 elements/cycle
+      Write bandwidth: 0 elements/cycle
+      Data space 0 (Weights) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 1 (Inputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      Data space 2 (Outputs) [BYPASSED]:
+        Total data size: 0 elements
+        Parallel accesses: 0 elements
+      TOTAL data size across all spaces: 0 elements
+      TOTAL parallel accesses: 0 elements
+    ✓ Storage level 2 constraints satisfied
+    Storage Level 3 (global_buffer):
+      Memory depth: 8192 lines
+      Block size: 256 elements per line
+      Total capacity: 2097152 elements
+      Line capacity (bandwidth): 64 elements/cycle
+      Word bits: 16 bits
+      Read bandwidth: 64 elements/cycle
+      Write bandwidth: 64 elements/cycle
+      Data space 0 (Weights) [KEPT]:
+        Total data size: 4 elements
+        Parallel accesses: 1 elements
+      Data space 1 (Inputs) [KEPT]:
+        Total data size: 2 elements
+        Parallel accesses: 1 elements
+      Data space 2 (Outputs) [KEPT]:
+        Total data size: 8 elements
+        Parallel accesses: 1 elements
+      TOTAL data size across all spaces: 14 elements
+      TOTAL parallel accesses: 3 elements
+    ✓ Storage level 3 constraints satisfied
+    WARNING: Storage level 4 (DRAM) has unspecified size
+  ✓ All buffer capacity constraints satisfied
+  RP < line_cap: Can pack more data and tile temporal loops
+    Packing spatial data and tiling temporal loops...
+    Remaining line capacity: 63
+    Final remaining capacity: 63
+  Layout reform completed successfully
+LayoutSpace Dimension [Intraline] Size: 3
+
+
+Summary stats for best mapping found by mapper:
+  Utilization = 0.38 | pJ/Compute =  308.986 | Cycles = 393216

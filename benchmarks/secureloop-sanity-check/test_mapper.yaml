@@ -2,8 +2,8 @@ mapper:
   algorithm: random-pruned
   live-status: false
   max-permutations-per-if-visit: 8
-  num-threads: 8
+  num-threads: 1
   optimization-metrics:
   - edp
-  timeout: 200
+  timeout: 2
   victory-condition: 200

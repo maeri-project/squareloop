@@ -328,6 +328,189 @@ namespace layout
     return layouts;
   }
 
+
+
+
+  //------------------------------------------------------------------------------
+  // InitializeDummyLayout()
+  // This function creates a dummy layout for each target.
+  //
+  // For each unique target, a Layout is created holding one interline nest and 
+  // one intraline nest with all factors set to 1. Also, factor_order is
+  // recorded and max_dim_perline is computed from the intraline nest.
+  Layouts
+  InitializeDummyLayout(
+      problem::Workload &workload,
+      std::map<std::string, std::pair<uint32_t, uint32_t>> &targetToPortValue)
+  {
+    // ToDo: Current memory logic only supports 3 levels, need to directly support more levels defined by architecture file.
+    std::map<std::string, std::vector<std::uint32_t>>
+        rankToFactorizedDimensionID = workload.GetShape()->RankNameToFactorizedDimensionID;
+    std::map<std::string, std::vector<std::string>> rankToDimensionName = workload.GetShape()->RankNameToDimensionName;
+    std::map<std::string, std::vector<std::string>> rankToCoefficient = workload.GetShape()->RankNameToCoefficient;
+    std::map<std::string, std::vector<std::string>> dataSpaceToRank = workload.GetShape()->DataSpaceNameToRankName;
+    for (auto [ds, ranks] : dataSpaceToRank)
+    {
+      if (ranks.empty())
+      {
+        std::cerr << "Ranks need to be defined in the problem file for each dataspace. No ranks were provided for "
+                  << ds
+                  << "."
+                  << std::endl;
+        exit(1);
+      }
+    }
+    std::vector<std::string> data_space_vec;
+    for (unsigned j = 0; j < problem::GetShape()->NumDataSpaces; j++)
+    {
+      data_space_vec.push_back(problem::GetShape()->DataSpaceIDToName.at(j));
+    }
+
+    std::unordered_map<std::string, std::uint32_t> coefficientToValue;
+    for (auto &key_pair : workload.GetShape()->CoefficientIDToName)
+    {
+      coefficientToValue[key_pair.second] = workload.GetCoefficient(key_pair.first);
+    }
+
+    std::map<std::string, std::vector<std::uint32_t>> rankToCoefficientValue;
+    for (auto map_pair : rankToCoefficient)
+    {
+      std::vector<std::uint32_t> coefficientValue;
+      for (auto coefName : rankToCoefficient.at(map_pair.first))
+      {
+        coefficientValue.push_back(coefficientToValue.at(coefName));
+      }
+      rankToCoefficientValue[map_pair.first] = coefficientValue;
+    }
+
+    // ToDo: Read zero padding from layer shape 
+    std::map<std::string, uint32_t> rankToZeroPadding;
+    for (auto &[rank, dimNames] : rankToDimensionName)
+    {
+      // Temporary fix, needs to be changed for reading zero padding size from layer shape
+      rankToZeroPadding[rank] = (dimNames.size() > 1 ? 1 : 0);
+    }
+
+    std::map<std::string, unsigned> dimensionToDimID = workload.GetShape()->FactorizedDimensionNameToID;
+    const std::vector<std::int32_t> dimension_bound = workload.GetFactorizedBounds().GetCoordinates();
+
+    std::unordered_map<std::string, Layout> layoutMap;
+
+    // Create default permutation based on dimension order
+    std::string samplePermutation;
+    
+    // Derive the dimension order from dimensionToDimID by sorting the mapping by
+    // value.
+    std::vector<std::pair<std::string, unsigned>> dims;
+    for (auto &p : dimensionToDimID)
+    {
+      dims.push_back(p);
+    }
+    std::sort(dims.begin(), dims.end(),
+              [](auto &a, auto &b)
+              { return a.second < b.second; });
+    
+    // Create default permutation from computed dimension order
+    for (auto &p : dims)
+    {
+      samplePermutation += p.first[0];
+    }
+
+    // Use targets from targetToPortValue
+    std::vector<std::string> targets;
+    for (const auto &targetPair : targetToPortValue)
+    {
+      targets.push_back(targetPair.first);
+    }
+
+    // Convert the sample permutation string into a vector of single-character
+    // strings.
+    std::vector<std::string> globalRankList;
+    for (char c : samplePermutation)
+    {
+      globalRankList.push_back(std::string(1, c));
+    }
+
+    std::vector<char> computedDimOrder;
+    for (auto &p : dims)
+    {
+      computedDimOrder.push_back(p.first[0]);
+    }
+
+    // ----------------------
+    // Create Layout objects for each target with dummy values.
+    // ----------------------
+    Layouts layouts;
+    for (const auto &t : targets)
+    {
+      Layout layout;
+      layout.target = t;
+      layout.num_read_ports = targetToPortValue[t].first;
+      layout.num_write_ports = targetToPortValue[t].second;
+      layout.data_space = data_space_vec;
+      layout.dataSpaceToRank = dataSpaceToRank;
+      layout.rankToCoefficient = rankToCoefficient;
+      layout.rankToCoefficientValue = rankToCoefficientValue;
+      layout.rankToDimensionName = rankToDimensionName;
+      layout.rankToFactorizedDimensionID = rankToFactorizedDimensionID;
+      layout.dimensionToDimID = dimensionToDimID;
+      layout.coefficientToValue = coefficientToValue;
+      layout.rankToZeroPadding = rankToZeroPadding;
+      layout.dim_order = computedDimOrder;
+      layout.rank_list = globalRankList;
+
+      // ToDo: make these configurable, and also separately configurable per memory level
+      layout.assume_zero_padding = true;
+      layout.assume_row_buffer = true;
+      layout.assume_reuse = true;
+
+      // For each data space, create loop nests with dummy values (all factors = 1).
+      for (const auto &ds : layout.data_space)
+      {
+        // --- Interline nest with dummy values ---
+        LayoutNest internest;
+        internest.data_space = ds;
+        internest.type = "interline";
+        internest.ranks = layout.dataSpaceToRank[ds];
+        // Set all factors to 1 for dummy layout
+        for (const auto &r : internest.ranks)
+        {
+          internest.factors[r] = 1;
+        }
+        layout.interline.push_back(internest);
+
+        // --- Intraline nest with dummy values ---
+        LayoutNest intranest;
+        intranest.data_space = ds;
+        intranest.type = "intraline";
+        intranest.ranks = layout.dataSpaceToRank[ds];
+        // Set all factors to 1 for dummy layout
+        for (const auto &r : intranest.ranks)
+        {
+          intranest.factors[r] = 1;
+        }
+        layout.intraline.push_back(intranest);
+
+        // --- AuthBlock nest with dummy values ---
+        LayoutNest authblock_nest;
+        authblock_nest.data_space = ds;
+        authblock_nest.type = "authblock_lines";
+        authblock_nest.ranks = layout.dataSpaceToRank[ds];
+        // Set all factors to 1 for dummy layout
+        for (const auto &r : authblock_nest.ranks)
+        {
+          authblock_nest.factors[r] = 1;
+        }
+        layout.authblock_lines.push_back(authblock_nest);
+      }
+
+      layouts.push_back(layout);
+    }
+
+    return layouts;
+  }
+
+
   //------------------------------------------------------------------------------
   // Helper function to print a Nest's loop order.
   //------------------------------------------------------------------------------

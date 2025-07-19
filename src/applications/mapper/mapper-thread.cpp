@@ -28,6 +28,7 @@
 #include <ncurses.h>
 
 #include "applications/mapper/mapper-thread.hpp"
+#include "layoutspaces/layoutspace-factory.hpp"
 
 bool gTerminate = false;
 
@@ -380,7 +381,9 @@ void MapperThread::Run()
       {
         msg << std::setw(10) << OUT_FLOAT_FORMAT << std::setprecision(2) << OUT_PERCENT(stats_.thread_best.stats.utilization)
             << std::setw(11) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats_.thread_best.stats.energy /
-          stats_.thread_best.stats.algorithmic_computes;
+          stats_.thread_best.stats.algorithmic_computes 
+            << std::setw(11) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats_.thread_best.stats.cycles;
+
       }
 
       mutex_->lock();
@@ -446,18 +449,17 @@ void MapperThread::Run()
       terminate = true;
     }
 
-
     if ((log_orojenesis_mappings_ || log_all_mappings_) && terminate)
     {
       for (auto &index_factor_best : index_factor_best_vec)
       {
-
         // Re-evaluate the mapping
         if (layout_initialized_){
           engine.Evaluate(index_factor_best.mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
-        }else
+        }else{
           engine.Evaluate(index_factor_best.mapping, workload_, sparse_optimizations_, crypto_, !diagnostics_on_);
-          
+        }
+
         if (index_factor_best.valid) {
             auto topology = engine.GetTopology();
             mutex_->lock();
@@ -612,6 +614,11 @@ void MapperThread::Run()
                                [](bool cur, const model::EvalStatus& status)
                                { return cur && status.success; });
     }else{
+      layoutspace_ = layoutspace::CreateLayoutSpace(mapping, arch_specs_, layout_);
+      // ToDo: @Jianming If layoutspace_ has no legal layout choices for current architecture, skip this mapping and jump to next mapping (how to do it?)
+      // layout_ = layoutspace_->ConstructLayout(index_factor_best.mapping, &layout_, !diagnostics_on_);
+      // layout::PrintOverallLayout(layout_);
+
       status_per_level = engine.Evaluate(mapping, workload_, sparse_optimizations_, crypto_, !diagnostics_on_);
       success &= std::accumulate(status_per_level.begin(), status_per_level.end(), true,
                                [](bool cur, const model::EvalStatus& status)

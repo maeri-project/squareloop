@@ -35,6 +35,7 @@
 
 #include "applications/mapper/mapper.hpp"
 #include "layout/layout.hpp"
+#include "layoutspaces/layoutspace-factory.hpp"
 #include "crypto/crypto.hpp"
 
 //--------------------------------------------//
@@ -376,7 +377,7 @@ Mapper::Mapper(config::CompoundConfig* config,
 
   if (existing_crypto){
     crypto_ = crypto::ParseAndConstruct(compound_config_node_crypto);
-    
+
     crypto_->crypto_initialized_ = true;
 
     std::cout << "Crypto Configuration:\n";
@@ -397,27 +398,31 @@ Mapper::Mapper(config::CompoundConfig* config,
   else{
     std::cout << "No Crypto specified" << std::endl;
   }
-  
+
   // layout modeling
   std::cout << "Start Parsering Layout" << std::endl;
   config::CompoundConfigNode compound_config_node_layout;
   bool existing_layout = rootNode.lookup("layout", compound_config_node_layout);
+  
+  // Create externalPortMapping for both branches
+  std::map<std::string, std::pair<uint32_t, uint32_t>> externalPortMapping;
+  for (auto i: arch_specs_.topology.LevelNames())
+      externalPortMapping[i] = {arch_specs_.topology.GetStorageLevel(i)->num_ports.Get(), arch_specs_.topology.GetStorageLevel(i)->num_ports.Get()};
+  
   // ToDo: 
   if (existing_layout){
-    std::map<std::string, std::pair<uint32_t, uint32_t>> externalPortMapping;
-    for (auto i: arch_specs_.topology.LevelNames())
-        externalPortMapping[i] = {arch_specs_.topology.GetStorageLevel(i)->num_ports.Get(), arch_specs_.topology.GetStorageLevel(i)->num_ports.Get()};
-
     layout_ = layout::ParseAndConstruct(compound_config_node_layout, workload_, externalPortMapping);
-    
     layout_initialized_ = true;
     layout::PrintOverallLayout(layout_);
+    layoutspace_ = nullptr;
   }
   else{
+    std::cout << "No Layout specified, will search both constraint and actual layout, create dummy layout below." << std::endl;
     layout_initialized_ = false;
-    std::cout << "No Layout specified, so using bandwidth based modeling" << std::endl;
+    layout_ = layout::InitializeDummyLayout(workload_, externalPortMapping);
+    layout::PrintOverallLayout(layout_);
+    // Create layoutspace_ here (skeleton)
   }
-
 }
 
 Mapper::~Mapper()
@@ -426,6 +431,12 @@ Mapper::~Mapper()
   {
     delete mapspace_;
   }
+
+  if (layoutspace_)
+  {
+    delete layoutspace_;
+  }
+
 
   if (sparse_optimizations_)
   {
@@ -625,7 +636,7 @@ Mapper::Result Mapper::Run()
 
         if (layout_initialized_){ // ToDo: @Jianming modify here
           engine.Evaluate(mapping, workload_, layout_, sparse_optimizations_, crypto_, false);
-        }else
+        } else
           engine.Evaluate(mapping, workload_, sparse_optimizations_, crypto_, false);
 
         mapping.PrettyPrint(std::cout, arch_specs_.topology.StorageLevelNames(),

@@ -231,6 +231,12 @@ mapspaces/uber.cpp
 mapspaces/ruby.cpp
 """)
 
+layoutspace_sources = Split("""
+layoutspaces/layoutspace-base.cpp
+layoutspaces/layoutspace-factory.cpp
+layoutspaces/legal.cpp
+""")
+
 search_sources = Split("""
 search/search-factory.cpp
 search/exhaustive.cpp
@@ -251,6 +257,7 @@ applications/looptree-model/model.cpp
 
 mapperlib_sources = (modellib_sources +
                      mapspace_sources +
+                     layoutspace_sources +
                      search_sources +
                      mapper_application_sources +
                      looptree_application_sources)
