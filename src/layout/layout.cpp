@@ -1079,8 +1079,9 @@ void DumpLayoutToYAML(const Layouts& layouts, const std::string& filename)
 
   yaml_file << "layout:" << std::endl;
   
-  for (const auto& layout : layouts)
+  for (auto it = layouts.rbegin(); it != layouts.rend(); ++it)
   {
+    const auto& layout = *it;
     // Process each nest type (interline, intraline, authblock_lines)
     std::vector<std::string> nest_types = {"interline", "intraline", "authblock_lines"};
     
