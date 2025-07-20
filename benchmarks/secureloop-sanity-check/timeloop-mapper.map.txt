@@ -1,6 +1,6 @@
 DRAM [ Weights:36864 (36864) Inputs:73984 (73984) Outputs:65536 (65536) ] 
-global_buffer [ ] 
------------------
+global_buffer [ Weights:36864 (36864) ] 
+---------------------------------------
 | for C in [0:2)
 |   for M in [0:8)
 |     for S in [0:3)

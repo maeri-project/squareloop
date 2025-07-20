@@ -617,43 +617,27 @@ void MapperThread::Run()
                                { return cur && status.success; });
     }else{
       layoutspace_ = layoutspace::CreateLayoutSpace(mapping, arch_specs_, layout_, false);
-      std::cout << "checkpoint 1: layoutspace_->num_layout_candidates: " << layoutspace_->num_layout_candidates << std::endl;
       
       // Initialize global optimal tracking variables
       std::uint64_t mapping_specific_best_latency = UINT64_MAX;
       double mapping_specific_best_energy_per_compute = std::numeric_limits<double>::max();
       layout::Layouts mapping_specific_best_layout;
       bool has_valid_layout = false;
-      std::cout << "checkpoint 2: initialization done" << std::endl;
       
       for(layoutspace::ID layout_id(layoutspace_->AllSizes()); layout_id.Integer() < layoutspace_->num_layout_candidates; layout_id.Increment())
       {
         auto construction_status = layoutspace_->ConstructLayout(layout_id, &layout_, false);
-        std::cout << "checkpoint 3: construct a layout" << std::endl;
         success &= std::accumulate(construction_status.begin(), construction_status.end(), true,
                                     [](bool cur, const layoutspace::Status& status)
                                     { return cur && status.success; });
-        layout::PrintOverallLayout(layout_);
         if(!success) continue;
           status_per_level = engine.Evaluate(mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
           // Extract run-time latency and energy efficiency from evaluation results
-        std::cout << "checkpoint 4: evaluate a layout" << std::endl;
         std::uint64_t runtime_latency = engine.Cycles();
         double total_energy = engine.Energy();
         std::uint64_t actual_computes = engine.GetTopology().ActualComputes();
-        std::uint64_t algorithmic_computes = engine.GetTopology().AlgorithmicComputes();
-        
-        // Calculate energy efficiency metrics
         double energy_per_compute = (actual_computes > 0) ? (total_energy / actual_computes) : 0.0;
-        double energy_per_algorithmic_compute = (algorithmic_computes > 0) ? (total_energy / algorithmic_computes) : 0.0;
-        
-        std::cout << "[" << thread_id_ << "] METRICS: "
-        << "Latency=" << runtime_latency << " cycles, "
-        << "Energy=" << total_energy << " pJ, "
-        << "Energy/Compute=" << energy_per_compute << " pJ/compute, "
-        << "Energy/AlgCompute=" << energy_per_algorithmic_compute << " pJ/alg-compute"
-        << std::endl;
-        
+
         // Track global optimal values (prefer smaller values)
         bool is_better = false;
         std::string improvement_reason = "";
@@ -661,17 +645,17 @@ void MapperThread::Run()
         if (!has_valid_layout) {
           // First valid layout
           is_better = true;
-          improvement_reason = "first valid layout";
+          improvement_reason = "layout update: first valid layout";
         }
         else if (runtime_latency < mapping_specific_best_latency) {
           // Better latency
           is_better = true;
-          improvement_reason = "better latency";
+          improvement_reason = "layout update: better latency";
         }
         else if (runtime_latency == mapping_specific_best_latency && energy_per_compute < mapping_specific_best_energy_per_compute) {
           // Same latency but better energy efficiency
           is_better = true;
-          improvement_reason = "same latency, better energy efficiency";
+          improvement_reason = "layout update: same latency, better energy efficiency";
         }
         
         if (is_better) {

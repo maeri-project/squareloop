@@ -42,7 +42,7 @@ BOOST_CLASS_EXPORT(model::BufferLevel)
 #include "util/misc.hpp"
 #include "util/numeric.hpp"
 
-#define DEBUG
+// #define DEBUG
 
 namespace model
 {

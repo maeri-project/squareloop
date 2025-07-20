@@ -25,7 +25,7 @@ problem:
       name: Hdilation
     data-spaces:
     - name: Weights
-      ranks: [C, M, R, S]
+      ranks: [C, K, R, S]
       projection:
         - [ [C] ]
         - [ [M] ]
@@ -39,7 +39,7 @@ problem:
         - [ [R, Wdilation], [P, Wstride] ] # SOP form: R*Wdilation + P*Wstride
         - [ [S, Hdilation], [Q, Hstride] ] # SOP form: S*Hdilation + Q*Hstride 
     - name: Outputs
-      ranks: [N, M, Q, P]
+      ranks: [N, L, Q, P]
       projection:
         - [ [N] ]
         - [ [M] ]

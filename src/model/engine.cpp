@@ -74,9 +74,7 @@ std::vector<EvalStatus> Engine::PreEvaluationCheck(const Mapping& mapping, probl
 std::vector<EvalStatus> Engine::Evaluate(Mapping& mapping, problem::Workload& workload, layout::Layouts layout, sparse::SparseOptimizationInfo* sparse_optimizations, crypto::CryptoConfig* crypto_config, bool break_on_failure)
 {
   nest_analysis_.Init(&workload, &mapping.loop_nest, layout, mapping.fanoutX_map, mapping.fanoutY_map);
-  std::cout << "before topology_.Evaluate in engine.cpp" << std::endl;
   auto eval_status = topology_.Evaluate(mapping, &nest_analysis_, sparse_optimizations, break_on_failure, crypto_config);
-  std::cout << "after topology_.Evaluate in engine.cpp" << std::endl;
 
   is_evaluated_ = std::accumulate(eval_status.begin(), eval_status.end(), true,
                                   [](bool cur, const EvalStatus& status)

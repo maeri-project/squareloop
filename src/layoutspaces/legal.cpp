@@ -26,11 +26,30 @@
  */
 
 #include "layoutspaces/legal.hpp"
-#define DEBUG_CONCORDANT_LAYOUT
+// #define DEBUG_CONCORDANT_LAYOUT
 // #define DEBUG_BUFFER_CAPACITY_CONSTRAINT
+// #define DEBUG_CONSTRUCTION_LAYOUT
 
 namespace layoutspace
 {
+
+//------------------------------------------//
+//        Helper Functions                  //
+//------------------------------------------//
+
+// Helper function to find all divisors of a number
+std::vector<uint32_t> FindDivisors(uint32_t n)
+{
+  std::vector<uint32_t> divisors;
+  for (uint32_t i = 1; i <= n; ++i)
+  {
+    if (n % i == 0)
+    {
+      divisors.push_back(i);
+    }
+  }
+  return divisors;
+}
 
 //------------------------------------------//
 //        Legal LayoutSpace                 //
@@ -208,11 +227,11 @@ void Legal::Init(model::Engine::Specs arch_specs,
      }
 
      // Line capacity is the number of elements that can be accessed in parallel
-     // Use the maximum of read_bandwidth and write_bandwidth, or block_size as fallback
-     line_capacity = static_cast<std::uint64_t>(std::max(read_bandwidth, write_bandwidth));
+     // Use block_size, and use the maximum of read_bandwidth and write_bandwidth, as fallback
+     line_capacity = block_size;
      if (line_capacity == 0)
      {
-       line_capacity = block_size;  // Fallback to block_size
+       line_capacity = static_cast<std::uint64_t>(std::max(read_bandwidth, write_bandwidth));  // Fallback to bandwidth
      }
 
      // Store capacity values in member variables
@@ -283,11 +302,13 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
 
   for (size_t i = 0; i < variable_authblock_factors_.size(); i++)
   {
-    uint32_t range = authblock_factor_ranges_[i];
-    factor_choices[i] = (remaining_id % range) + 1; // +1 because factors start from 1
-    remaining_id /= range;
+    const auto& divisors = authblock_factor_ranges_[i];
+    uint32_t divisor_index = remaining_id % divisors.size();
+    factor_choices[i] = divisors[divisor_index]; // Use actual divisor value
+    remaining_id /= divisors.size();
   }
 
+#ifdef DEBUG_CONSTRUCTION_LAYOUT
   std::cout << "Constructing layout ID " << linear_id << " with factor choices: [";
   for (size_t i = 0; i < factor_choices.size(); i++)
   {
@@ -295,6 +316,7 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
     if (i < factor_choices.size() - 1) std::cout << ", ";
   }
   std::cout << "]" << std::endl;
+#endif
 
   // Create a copy of the current layout to modify
   layout::Layouts modified_layout = layout_;
@@ -341,8 +363,10 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
     // Set the chosen factor value
     authblock_nest.factors[rank] = chosen_factor;
 
+#ifdef DEBUG_CONSTRUCTION_LAYOUT
     std::cout << "  Applied factor " << chosen_factor << " to level " << lvl
               << ", dataspace " << ds_idx << ", rank " << rank << std::endl;
+#endif
   }
 
   // Copy the modified layout to the output parameter
@@ -394,46 +418,8 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
   unsigned num_loops = mapping.loop_nest.loops.size();
   unsigned num_storage_levels = mapping.loop_nest.storage_tiling_boundaries.size();
   unsigned num_data_spaces = layout_.at(0).intraline.size();
-  unsigned inv_storage_level = num_storage_levels-2;
+  unsigned inv_storage_level = num_storage_levels;
 
-  // For DEBUG PURPOSES, we keep the original code below.
-  /*
-  std::vector<std::map<std::uint32_t, std::uint32_t>> storage_level_interline_dimid_to_loopend(mapping.loop_nest.storage_tiling_boundaries.size(), initial_dimid_to_loopend);
-  std::vector<std::map<std::uint32_t, std::uint32_t>> storage_level_intraline_dimid_to_loopend(mapping.loop_nest.storage_tiling_boundaries.size(), initial_dimid_to_loopend);
-
-  std::string indent = "";
-  for (unsigned loop_level = num_loops-1; loop_level != static_cast<unsigned>(-1); loop_level--)
-  {
-    if (inv_storage_level != static_cast<unsigned>(-1) &&
-        mapping.loop_nest.storage_tiling_boundaries.at(inv_storage_level) == loop_level)
-    {
-      std::cout << "------------------------------------------" << std::endl;
-      inv_storage_level--;
-    }
-
-    std::cout << indent;
-    indent += "  ";
-
-    unsigned cur_storage_level = mapping.loop_nest.storage_tiling_boundaries.size() - inv_storage_level - 2;
-
-    std::cout << "for " << mapping.loop_nest.problem_shape.FlattenedDimensionIDToName.at(mapping.loop_nest.loops.at(loop_level).dimension) << " in [" << mapping.loop_nest.loops.at(loop_level).start << ":" << mapping.loop_nest.loops.at(loop_level).end;
-    if (mapping.loop_nest.loops.at(loop_level).residual_end != mapping.loop_nest.loops.at(loop_level).end)
-      std::cout << "," << mapping.loop_nest.loops.at(loop_level).residual_end;
-    std::cout << ")";
-    if (loop::IsSpatial(mapping.loop_nest.loops.at(loop_level).spacetime_dimension))
-    {
-      storage_level_intraline_dimid_to_loopend[cur_storage_level][mapping.loop_nest.loops.at(loop_level).dimension] = mapping.loop_nest.loops.at(loop_level).end;
-    if (loop::IsSpatialX(mapping.loop_nest.loops.at(loop_level).spacetime_dimension))
-        std::cout << " (Spatial-X)";
-      else
-        std::cout << " (Spatial-Y)";
-    }else{
-      storage_level_interline_dimid_to_loopend.at(cur_storage_level)[mapping.loop_nest.loops.at(loop_level).dimension] = mapping.loop_nest.loops.at(loop_level).end;
-    }
-    std::cout << std::endl;
-  }
-  std::cout << std::endl;
-*/
   // Each storage level vector element starts as a copy of the prototype map.
   std::vector<std::map<std::uint32_t, std::uint32_t>> storage_level_interline_dimid_to_loopend(mapping.loop_nest.storage_tiling_boundaries.size(), initial_dimid_to_loopend);
   std::vector<std::map<std::uint32_t, std::uint32_t>> storage_level_intraline_dimid_to_loopend(mapping.loop_nest.storage_tiling_boundaries.size(), initial_dimid_to_loopend);
@@ -441,19 +427,17 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
 
   for (unsigned loop_level = num_loops-1; loop_level != static_cast<unsigned>(-1); loop_level--)
   {
-    if (inv_storage_level != static_cast<unsigned>(-1) &&
-        mapping.loop_nest.storage_tiling_boundaries.at(inv_storage_level) == loop_level)
+    if (inv_storage_level > 0 &&
+        mapping.loop_nest.storage_tiling_boundaries.at(inv_storage_level-1) == loop_level)
     {
       inv_storage_level--;
     }
 
-    unsigned cur_storage_level = mapping.loop_nest.storage_tiling_boundaries.size() - inv_storage_level - 2;
-
     if (loop::IsSpatial(mapping.loop_nest.loops.at(loop_level).spacetime_dimension))
     {
-      storage_level_intraline_dimid_to_loopend[cur_storage_level][mapping.loop_nest.loops.at(loop_level).dimension] = mapping.loop_nest.loops.at(loop_level).end;
+      storage_level_intraline_dimid_to_loopend[inv_storage_level][mapping.loop_nest.loops.at(loop_level).dimension] = mapping.loop_nest.loops.at(loop_level).end;
     }else{
-      storage_level_interline_dimid_to_loopend.at(cur_storage_level)[mapping.loop_nest.loops.at(loop_level).dimension] = mapping.loop_nest.loops.at(loop_level).end;
+      storage_level_interline_dimid_to_loopend.at(inv_storage_level)[mapping.loop_nest.loops.at(loop_level).dimension] = mapping.loop_nest.loops.at(loop_level).end;
     }
   }
 
@@ -465,7 +449,6 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
       }
     }
   }
-
 
   // Calculate cumulative product from end to first index
   cumulatively_intraline_dimval.resize(storage_level_intraline_dimid_to_loopend.size());
@@ -479,11 +462,10 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
   // Initialize the last level (no multiplication needed)
   if (!storage_level_intraline_dimid_to_loopend.empty())
   {
-    unsigned last_lvl = storage_level_intraline_dimid_to_loopend.size() - 1;
-    cumulatively_intraline_dimval[last_lvl] = storage_level_intraline_dimid_to_loopend[last_lvl];
+    cumulatively_intraline_dimval[0] = storage_level_intraline_dimid_to_loopend[0];
 
     // Calculate cumulative product from second-to-last level backwards to first level
-    for (int lvl = static_cast<int>(storage_level_intraline_dimid_to_loopend.size()) - 2; lvl >= 0; lvl--)
+    for (int lvl = 1; lvl < static_cast<int>(storage_level_intraline_dimid_to_loopend.size()); lvl++)
     {
       for (const auto& kv : storage_level_intraline_dimid_to_loopend[lvl])
       {
@@ -491,9 +473,9 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
         std::uint32_t current_value = kv.second;
 
         // Multiply current level value with cumulative product from next level
-        if (cumulatively_intraline_dimval[lvl + 1].find(dim_id) != cumulatively_intraline_dimval[lvl + 1].end())
+        if (cumulatively_intraline_dimval[lvl - 1].find(dim_id) != cumulatively_intraline_dimval[lvl - 1].end())
         {
-          cumulatively_intraline_dimval[lvl][dim_id] = current_value * cumulatively_intraline_dimval[lvl + 1][dim_id];
+          cumulatively_intraline_dimval[lvl][dim_id] = current_value * cumulatively_intraline_dimval[lvl - 1][dim_id];
         }
         else
         {
@@ -515,11 +497,10 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
   // Initialize the last level (no multiplication needed)
   if (!storage_level_overall_dimval.empty())
   {
-    unsigned last_lvl = storage_level_overall_dimval.size() - 1;
-    cumulatively_product_dimval[last_lvl] = storage_level_overall_dimval[last_lvl];
+    cumulatively_product_dimval[0] = storage_level_overall_dimval[0];
 
     // Calculate cumulative product from second-to-last level backwards to first level
-    for (int lvl = static_cast<int>(storage_level_overall_dimval.size()) - 2; lvl >= 0; lvl--)
+    for (int lvl = 1; lvl < static_cast<int>(storage_level_overall_dimval.size()); lvl++)
     {
       for (const auto& kv : storage_level_overall_dimval[lvl])
       {
@@ -527,9 +508,9 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
         std::uint32_t current_value = kv.second;
 
         // Multiply current level value with cumulative product from next level
-        if (cumulatively_product_dimval[lvl + 1].find(dim_id) != cumulatively_product_dimval[lvl + 1].end())
+        if (cumulatively_product_dimval[lvl - 1].find(dim_id) != cumulatively_product_dimval[lvl - 1].end())
         {
-          cumulatively_product_dimval[lvl][dim_id] = current_value * cumulatively_product_dimval[lvl + 1][dim_id];
+          cumulatively_product_dimval[lvl][dim_id] = current_value * cumulatively_product_dimval[lvl - 1][dim_id];
         }
         else
         {
@@ -542,7 +523,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
   /*
       Step 2: Print out the collapsed interline nested loop and intraline nested loop.
   */
-#ifdef DEBUG_CONCORDANT_LAYOUT
+// #ifdef DEBUG_CONCORDANT_LAYOUT
   std::cout << "storage_level_interline_dimid_to_loopend:" << std::endl;
   for (unsigned lvl = 0; lvl < storage_level_interline_dimid_to_loopend.size(); lvl++) // iterate over all storage levels
   {
@@ -586,7 +567,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
     }
     std::cout << std::endl;
   }
-#endif
+// #endif
 
   /*
       Step 3: Assign collapsed nested loop to the layout.
@@ -655,11 +636,40 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
   // third level: size of tensor
   for (unsigned lvl=0; lvl < num_storage_levels; lvl++){
     for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++){
-      uint32_t dataspace_size_cur_lvl = 0;
+      uint32_t dataspace_size_cur_lvl = 1;
       for (auto & rank: layout_.at(lvl).intraline.at(ds_idx).ranks){
-        auto intraline_rank_value = layout_.at(lvl).intraline.at(ds_idx).factors[rank];
-        auto interline_rank_value = layout_.at(lvl).interline.at(ds_idx).factors[rank];
-        dataspace_size_cur_lvl += intraline_rank_value * interline_rank_value;
+        // Get dimension IDs for this rank
+        const auto& dim_ids = layout_.at(lvl).rankToFactorizedDimensionID.at(rank);
+        
+        // Calculate rank size using cumulative dimension values with coefficients
+        uint32_t rank_size = 0;
+        if (dim_ids.size() > 1){
+          const auto& coefficient = layout_.at(lvl).rankToCoefficientValue[rank];
+          for (unsigned idx=0; idx < dim_ids.size(); idx++){
+            auto cumulative_it = cumulatively_product_dimval[lvl].find(dim_ids[idx]);
+            if (cumulative_it != cumulatively_product_dimval[lvl].end())
+            {
+              auto dim_value = cumulative_it->second;
+              if (idx == dim_ids.size()-1)
+                rank_size += dim_value*coefficient[idx] - 1;
+              else
+                rank_size += dim_value*coefficient[idx];
+            }
+          }
+        }
+        else{
+          auto cumulative_it = cumulatively_product_dimval[lvl].find(dim_ids[0]);
+          if (cumulative_it != cumulatively_product_dimval[lvl].end())
+          {
+            rank_size = cumulative_it->second;
+          }
+          else
+          {
+            rank_size = 1;
+          }
+        }
+        
+        dataspace_size_cur_lvl *= rank_size;
       }
       tensor_size[lvl][ds_idx] = dataspace_size_cur_lvl;
     }
@@ -667,7 +677,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
 
   // Print out the tensor size
   for (unsigned lvl=0; lvl < tensor_size.size(); lvl++){
-    std::cout << "Storage level " << lvl << " tensor size: ";
+    std::cout << "For a specific storage level " << lvl << ", the tensor size is: ";
     for (unsigned ds_idx = 0; ds_idx < tensor_size[lvl].size(); ds_idx++){
       std::cout << tensor_size[lvl][ds_idx] << " ";
     }
@@ -719,13 +729,29 @@ bool Legal::CheckBufferCapacityConstraint(model::Engine::Specs arch_specs, const
           // Get dimension IDs for this rank
           const auto& dim_ids = layout_.at(storage_level).rankToFactorizedDimensionID.at(rank);
 
-          // Calculate rank size using cumulative dimension values
-          std::uint64_t rank_dimension_product = 1;
-          for (auto dim_id : dim_ids)
-          {
-            if (level_dimval.find(dim_id) != level_dimval.end())
+          // Calculate rank size using cumulative dimension values with coefficients
+          std::uint64_t rank_dimension_product = 0;
+          if (dim_ids.size() > 1){
+            const auto& coefficient = layout_.at(storage_level).rankToCoefficientValue[rank];
+            for (unsigned idx=0; idx < dim_ids.size(); idx++){
+              if (level_dimval.find(dim_ids[idx]) != level_dimval.end())
+              {
+                auto dim_value = level_dimval.at(dim_ids[idx]);
+                if (idx == dim_ids.size()-1)
+                  rank_dimension_product += dim_value*coefficient[idx] - 1;
+                else
+                  rank_dimension_product += dim_value*coefficient[idx];
+              }
+            }
+          }
+          else{
+            if (level_dimval.find(dim_ids[0]) != level_dimval.end())
             {
-              rank_dimension_product *= level_dimval.at(dim_id);
+              rank_dimension_product = level_dimval.at(dim_ids[0]);
+            }
+            else
+            {
+              rank_dimension_product = 1;
             }
           }
 
@@ -845,35 +871,27 @@ void Legal::CreateSpace(model::Engine::Specs arch_specs)
         {
           for (const auto& rank : authblock_nest.ranks)
           {
-            // Calculate max value from cumulatively_product_dimval instead of nest factors
-            uint32_t max_value = 1;
-            uint32_t max_value_intraline = 1;
+            // Calculate max_factor as product of ratios between consecutive levels
             uint32_t max_factor = 1;
 
             // Get dimension IDs for this rank
             auto dims = layout_.at(lvl).rankToFactorizedDimensionID.at(rank);
 
-            // Calculate cumulative product for all dimensions of this rank
+            // Calculate product of ratios for all dimensions of this rank
             for (uint32_t dim_id : dims)
             {
-              auto cumulative_it = cumulatively_product_dimval[lvl+1].find(dim_id); // lvl+1 because the lvl=0 is off-chip DRAM, and lvl=1 is global buffer (on-chip)
-              if (cumulative_it != cumulatively_product_dimval[lvl+1].end())
+              auto cumulative_it_lvl = cumulatively_product_dimval[lvl-1].find(dim_id);
+              auto cumulative_it_lvl_minus_1 = cumulatively_product_dimval[lvl-2].find(dim_id);
+              
+              if (cumulative_it_lvl != cumulatively_product_dimval[lvl-1].end() && 
+                  cumulative_it_lvl_minus_1 != cumulatively_product_dimval[lvl-2].end())
               {
-                max_value *= cumulative_it->second;
+                uint32_t ratio = cumulative_it_lvl->second / cumulative_it_lvl_minus_1->second;
+                max_factor *= ratio;
               }
               else
               {
-                std::cout << "Warning: dimension ID " << dim_id << " not found in cumulatively_product_dimval for level " << lvl << std::endl;
-              }
-
-              auto cumulative_it_intraline = cumulatively_intraline_dimval[lvl].find(dim_id); // lvl+1 because the lvl=0 is off-chip DRAM, and lvl=1 is global buffer (on-chip)
-              if (cumulative_it_intraline != cumulatively_intraline_dimval[lvl].end())
-              {
-                max_value_intraline *= cumulative_it_intraline->second;
-              }
-              else
-              {
-                std::cout << "Warning: dimension ID " << dim_id << " not found in max_value_intraline for level " << lvl << std::endl;
+                std::cout << "Warning: dimension ID " << dim_id << " not found in cumulatively_product_dimval for level " << lvl-1 << " or " << (lvl-2) << std::endl;
               }
             }
 
@@ -883,14 +901,15 @@ void Legal::CreateSpace(model::Engine::Specs arch_specs)
               std::cout << dims[i];
               if (i < dims.size() - 1) std::cout << ",";
             }
-            max_factor = static_cast<uint32_t>(std::ceil(static_cast<double>(max_value) / static_cast<double>(max_value_intraline)));
-            std::cout << "] "<< "max_value=" << max_value << " max_value_intraline=" << max_value_intraline << "  max_factor(max_value/max_value_intraline)=" << max_factor << std::endl;
+            std::cout << "] max_factor(product of ratios cumulatively_product_dimval[" << lvl-1 << "]/cumulatively_product_dimval[" << (lvl-2) << "])=" << max_factor << std::endl;
 
             // Only add if max_factor > 1 (there are variations possible)
             if (max_factor > 1)
             {
               variable_authblock_factors_.push_back(std::make_tuple(lvl, ds_idx, rank, max_factor));
 
+              // Show the divisors that will be used
+              std::vector<uint32_t> divisors = FindDivisors(max_factor);
               std::cout << "  Variable factor: Level " << lvl
                        << ", DataSpace " << ds_idx
                        << ", Rank " << rank
@@ -900,7 +919,13 @@ void Legal::CreateSpace(model::Engine::Specs arch_specs)
                 std::cout << dims[i];
                 if (i < dims.size() - 1) std::cout << ",";
               }
-              std::cout << "], max_factor: " << max_factor << std::endl;
+              std::cout << "], max_factor: " << max_factor << ", divisors: [";
+              for (size_t i = 0; i < divisors.size(); i++)
+              {
+                std::cout << divisors[i];
+                if (i < divisors.size() - 1) std::cout << ",";
+              }
+              std::cout << "]" << std::endl;
             }
           }
         }
@@ -911,8 +936,6 @@ void Legal::CreateSpace(model::Engine::Specs arch_specs)
       std::cout << "  Level " << lvl << " has empty authblock_lines, skipping candidate generation" << std::endl;
     }
   }
-
-  std::cout << " Total variable authblock factors found: " << variable_authblock_factors_.size() << std::endl;
 
   // If no variable factors found, we have only one candidate (the original layout)
   if (variable_authblock_factors_.empty())
@@ -929,12 +952,14 @@ void Legal::CreateSpace(model::Engine::Specs arch_specs)
   for (const auto& var_factor : variable_authblock_factors_)
   {
     uint32_t max_factor = std::get<3>(var_factor);
-    authblock_factor_ranges_.push_back(max_factor); // Values from 1 to max_factor, so max_factor combinations
-    num_layout_candidates *= max_factor;
+    std::vector<uint32_t> divisors = FindDivisors(max_factor);
+    authblock_factor_ranges_.push_back(divisors); // Store all divisors of max_factor
+    num_layout_candidates *= divisors.size();
   }
 
   std::cout << "  Total authblock_lines layout candidates: " << num_layout_candidates << std::endl;
   std::cout << "  Variable factors count: " << variable_authblock_factors_.size() << std::endl;
+  std::cout << "  Note: Only using divisors of max_factor for each variable factor" << std::endl;
   std::cout << "  ✓ Layout candidate space created successfully" << std::endl;
 }
 

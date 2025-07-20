@@ -26,9 +26,8 @@ mapping:
   - target: global_buffer
     type: datatype
     keep:
-      []
-    bypass:
       - Weights
+    bypass:
       - Inputs
       - Outputs
   - target: DRAM

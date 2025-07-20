@@ -422,6 +422,7 @@ namespace layout
     {
       targets.push_back(targetPair.first);
     }
+    std::reverse(targets.begin(), targets.end()); // DRAM is the last level in the layout. From 0->the last comes innermost->outermost.
 
     // Convert the sample permutation string into a vector of single-character
     // strings.
@@ -878,80 +879,79 @@ void DumpLayoutToYAML(const Layouts& layouts, const std::string& filename)
   
   for (const auto& layout : layouts)
   {
-    // Write interline nests
-    for (const auto& nest : layout.interline)
-    {
-      yaml_file << "  - target: " << layout.target << std::endl;
-      yaml_file << "    type: " << nest.type << std::endl;
-      
-      // Generate factors string
-      std::string factors_str = "";
-      for (const auto& rank : nest.ranks)
-      {
-        auto factor_it = nest.factors.find(rank);
-        uint32_t factor = (factor_it != nest.factors.end()) ? factor_it->second : 1;
-        if (!factors_str.empty()) factors_str += " ";
-        factors_str += rank + "=" + std::to_string(factor);
-      }
-      yaml_file << "    factors: " << factors_str << std::endl;
-      
-      // Generate permutation string
-      std::string permutation_str = "";
-      for (const auto& rank : nest.ranks)
-      {
-        permutation_str += rank;
-      }
-      yaml_file << "    permutation: " << permutation_str << std::endl;
-    }
+    // Process each nest type (interline, intraline, authblock_lines)
+    std::vector<std::string> nest_types = {"interline", "intraline", "authblock_lines"};
     
-    // Write intraline nests
-    for (const auto& nest : layout.intraline)
+    for (const auto& nest_type : nest_types)
     {
-      yaml_file << "  - target: " << layout.target << std::endl;
-      yaml_file << "    type: " << nest.type << std::endl;
+      // Collect all factors and ranks across all dataspaces for this target and type
+      std::map<std::string, uint32_t> combined_factors;
+      std::vector<std::string> combined_ranks;
+      bool has_data = false;
       
-      // Generate factors string
-      std::string factors_str = "";
-      for (const auto& rank : nest.ranks)
-      {
-        auto factor_it = nest.factors.find(rank);
-        uint32_t factor = (factor_it != nest.factors.end()) ? factor_it->second : 1;
-        if (!factors_str.empty()) factors_str += " ";
-        factors_str += rank + "=" + std::to_string(factor);
-      }
-      yaml_file << "    factors: " << factors_str << std::endl;
+             // Get the appropriate nest vector based on type
+       std::vector<layout::LayoutNest> nests;
+       if (nest_type == "interline")
+         nests = layout.interline;
+       else if (nest_type == "intraline")
+         nests = layout.intraline;
+       else if (nest_type == "authblock_lines")
+         nests = layout.authblock_lines;
       
-      // Generate permutation string
-      std::string permutation_str = "";
-      for (const auto& rank : nest.ranks)
+      // Combine factors from all dataspaces
+      for (const auto& nest : nests)
       {
-        permutation_str += rank;
-      }
-      yaml_file << "    permutation: " << permutation_str << std::endl;
-    }
-    
-    // Write authblock_lines nests if they exist and are not empty
-    for (const auto& nest : layout.authblock_lines)
-    {
-      if (!nest.factors.empty())
-      {
-        yaml_file << "  - target: " << layout.target << std::endl;
-        yaml_file << "    type: " << nest.type << std::endl;
+        if (nest_type == "authblock_lines" && nest.factors.empty())
+          continue; // Skip empty authblock_lines
+          
+        has_data = true;
         
-        // Generate factors string
-        std::string factors_str = "";
+        // Collect ranks in order (avoid duplicates)
         for (const auto& rank : nest.ranks)
         {
-          auto factor_it = nest.factors.find(rank);
-          uint32_t factor = (factor_it != nest.factors.end()) ? factor_it->second : 1;
+          if (std::find(combined_ranks.begin(), combined_ranks.end(), rank) == combined_ranks.end())
+          {
+            combined_ranks.push_back(rank);
+          }
+        }
+        
+                 // Collect factors (use the factor from each dataspace, taking max if rank appears multiple times)
+         for (const auto& rank : nest.ranks)
+         {
+           auto factor_it = nest.factors.find(rank);
+           uint32_t factor = (factor_it != nest.factors.end()) ? factor_it->second : 1;
+           
+           if (combined_factors.find(rank) == combined_factors.end())
+           {
+             combined_factors[rank] = factor;
+           }
+           else
+           {
+             combined_factors[rank] = std::max(combined_factors[rank], factor); // Take maximum factor across dataspaces
+           }
+         }
+      }
+      
+      // Write the combined block if there's data
+      if (has_data)
+      {
+        yaml_file << "  - target: " << layout.target << std::endl;
+        yaml_file << "    type: " << nest_type << std::endl;
+        
+        // Generate combined factors string using the combined_ranks order
+        std::string factors_str = "";
+        for (const auto& rank : combined_ranks)
+        {
+          auto factor_it = combined_factors.find(rank);
+          uint32_t factor = (factor_it != combined_factors.end()) ? factor_it->second : 1;
           if (!factors_str.empty()) factors_str += " ";
           factors_str += rank + "=" + std::to_string(factor);
         }
         yaml_file << "    factors: " << factors_str << std::endl;
         
-        // Generate permutation string
+        // Generate combined permutation string
         std::string permutation_str = "";
-        for (const auto& rank : nest.ranks)
+        for (const auto& rank : combined_ranks)
         {
           permutation_str += rank;
         }

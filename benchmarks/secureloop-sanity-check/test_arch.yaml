@@ -13,8 +13,8 @@ architecture:
             width: 4096
             block-size: 256
             word-bits: 16
-            read_bandwidth: 2
-            write_bandwidth: 2
+            read_bandwidth: 256
+            write_bandwidth: 256
             num_ports: 1
       subtree:
         - name: os
@@ -24,10 +24,10 @@ architecture:
             - name: global_buffer
               class: smartbuffer_SRAM
               attributes:
+                block-size: 256
                 memory_depth: 8192
                 memory_width: 4096
                 n_banks: 16
-                block-size: 256
                 word-bits: 16
                 read_bandwidth: 64
                 write_bandwidth: 64
@@ -43,18 +43,22 @@ architecture:
               - name: output_activation_reg
                 class: reg_storage
                 attributes:
+                  block-size: 1
                   depth: 1
                   width: 16           # width in bits
                   meshX: 16
+                  word-bits: 16
               - name: weight_reg
                 class: reg_storage
                 attributes:
+                  block-size: 1
                   depth: 1
                   width: 16           # width in bits
                   meshX: 16
               - name: input_activation_reg
                 class: reg_storage
                 attributes:
+                  block-size: 1
                   depth: 1
                   width: 16           # width in bits
                   meshX: 16

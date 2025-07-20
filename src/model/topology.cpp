@@ -28,25 +28,25 @@
  #include <cassert>
  #include <string>
  #include <stdexcept>
- 
+
  #include "model/topology.hpp"
  #include "model/network-legacy.hpp"
  #include "model/network-factory.hpp"
  #include "sparse-analysis/sparse-analysis.hpp"
  #include "workload/workload.hpp"
- 
- #define DEBUG 
+
+//  #define DEBUG
  bool gHideInconsequentialStats =
    (getenv("TIMELOOP_HIDE_INCONSEQUENTIAL_STATS") == NULL) ||
    (strcmp(getenv("TIMELOOP_HIDE_INCONSEQUENTIAL_STATS"), "0") != 0);
- 
+
  namespace model
  {
- 
+
  //--------------------------------------------//
  //              Topology::Specs               //
  //--------------------------------------------//
- 
+
  void Topology::Specs::ParseAccelergyART(config::CompoundConfigNode art)
  {
    // std::cout << "Replacing area numbers..." << std::endl;
@@ -56,7 +56,7 @@
    // check the version of the ART
    art.lookupValue("version", artVersion);
    assert(artVersion==0.3 || artVersion==0.4);
- 
+
    // parsing
    auto table = art.lookup("tables");
    assert(table.isList());
@@ -80,10 +80,10 @@
         componentName = hierachicalName.substr(levelPos + 1, hierachicalName.size() - levelPos - 1);
         //std::cout << "component name: " << componentName << std::endl;
      }
- 
+
      float componentArea;
      componentART.lookupValue("area", componentArea);
- 
+
      // Find the level that matches this name
      std::shared_ptr<LevelSpecs> specToUpdate;
      for (auto level : levels)
@@ -93,7 +93,7 @@
          specToUpdate = level;
        }
      }
- 
+
      // Populate area
      if (specToUpdate)
      {
@@ -105,8 +105,8 @@
      }
    }
  }
- 
- 
+
+
  void Topology::Specs::ParseAccelergyERT(config::CompoundConfigNode ert)
  {
    // std::cout << "Replacing energy numbers..." << std::endl;
@@ -162,7 +162,7 @@
         componentName = key.substr(levelPos + 1, key.size() - levelPos - 1);
         // std::cout << "component name: " << componentName << std::endl;
      }
- 
+
      // update levels by name and the type of it
      // std::cout << "componentName: " << componentName << std::endl;
      if (componentName == "wire" || componentName == "Wire") { // special case, update interal wire model
@@ -253,7 +253,7 @@
    }
    return;
  }
- 
+
  std::vector<std::string> Topology::Specs::LevelNames() const
  {
    std::vector<std::string> level_names;
@@ -263,7 +263,7 @@
    }
    return level_names;
  }
- 
+
  std::vector<std::string> Topology::Specs::StorageLevelNames() const
  {
    std::vector<std::string> storage_level_names;
@@ -273,11 +273,11 @@
    }
    return storage_level_names;
  }
- 
+
  //
  // Level accessors.
  //
- 
+
  void Topology::Specs::AddLevel(unsigned typed_id, std::shared_ptr<LevelSpecs> level_specs)
  {
    if (level_specs->Type() == "BufferLevel")
@@ -296,43 +296,43 @@
    }
    levels.push_back(level_specs);
  }
- 
+
  void Topology::Specs::AddInferredNetwork(std::shared_ptr<LegacyNetwork::Specs> specs)
  {
    inferred_networks.push_back(specs);
  }
- 
+
  void Topology::Specs::AddNetwork(std::shared_ptr<NetworkSpecs> specs)
  {
    networks.push_back(specs);
  }
- 
+
  unsigned Topology::Specs::NumLevels() const
  {
    return levels.size();
  }
- 
+
  unsigned Topology::Specs::NumStorageLevels() const
  {
    return storage_map.size();
  }
- 
+
  unsigned Topology::Specs::NumNetworks() const
  {
    return networks.size();
  }
- 
+
  std::shared_ptr<LevelSpecs> Topology::Specs::GetLevel(unsigned level_id) const
  {
    return levels.at(level_id);
  }
- 
+
  std::shared_ptr<BufferLevel::Specs> Topology::Specs::GetStorageLevel(unsigned storage_level_id) const
  {
    auto level_id = storage_map.at(storage_level_id);
    return std::static_pointer_cast<BufferLevel::Specs>(levels.at(level_id));
  }
- 
+
  std::shared_ptr<BufferLevel::Specs> Topology::Specs::GetStorageLevel(std::string level_name) const
  {
    for(auto level : levels)
@@ -344,41 +344,41 @@
    }
    return nullptr;
  }
- 
+
  std::shared_ptr<ArithmeticUnits::Specs> Topology::Specs::GetArithmeticLevel() const
  {
    auto level_id = arithmetic_map;
    return std::static_pointer_cast<ArithmeticUnits::Specs>(levels.at(level_id));
  }
- 
+
  std::shared_ptr<LegacyNetwork::Specs> Topology::Specs::GetInferredNetwork(unsigned network_id) const
  {
    return inferred_networks.at(network_id);
  }
- 
+
  std::shared_ptr<NetworkSpecs> Topology::Specs::GetNetwork(unsigned network_id) const
  {
    return networks.at(network_id);
  }
- 
+
  //--------------------------------------------//
  //                  Topology                  //
  //--------------------------------------------//
- 
+
  std::ostream& operator << (std::ostream& out, const Topology& topology)
  {
    // Save ios format state.
    std::ios state(NULL);
    state.copyfmt(out);
    out << OUT_FLOAT_FORMAT << LOG_FLOAT_PRECISION;
- 
+
    //
    // Detailed specs and stats.
    //
- 
+
    out << "Buffer and Arithmetic Levels" << std::endl;
    out << "----------------------------" << std::endl;
- 
+
    int level_id = 0;
    for (auto& level : topology.levels_)
    {
@@ -392,10 +392,10 @@
      }
      level_id++;
    }
- 
+
    out << "Networks" << std::endl;
    out << "--------" << std::endl;
- 
+
    //#define PRINT_NETWORKS_IN_LEGACY_ORDER
  #ifdef PRINT_NETWORKS_IN_LEGACY_ORDER
    for (unsigned storage_level_id = 0; storage_level_id < topology.NumStorageLevels(); storage_level_id++)
@@ -422,7 +422,7 @@
      }
    }
  #endif
- 
+
    //
    // Operational intensity
    //
@@ -430,14 +430,14 @@
    out << "Operational Intensity Stats" << std::endl;
    out << "---------------------------" << std::endl;
    std::string indent = "    ";
- 
+
    std::uint64_t total_min_traffic = 0;
    std::uint64_t total_output_size = 0;
- 
+
    for (unsigned pvi = 0; pvi < topology.workload_->GetShape()->NumDataSpaces; pvi++)
    {
      auto pv = problem::Shape::DataSpaceID(pvi);
- 
+
      std::uint64_t utilized_capacity = -1;
      for (unsigned storage_level_id = 0; storage_level_id < topology.NumStorageLevels(); storage_level_id++)
      {
@@ -449,22 +449,22 @@
          break;
        }
      }
-     
+
      assert(utilized_capacity > 0);
-     total_min_traffic += utilized_capacity;      
+     total_min_traffic += utilized_capacity;
      if (topology.workload_->GetShape()->IsReadWriteDataSpace.at(pv))
      {
        total_output_size += utilized_capacity;
      }
    }
- 
+
    out << indent << std::left << std::setw(40) << "Total elementwise ops";
    uint64_t total_elementwise_ops = topology.stats_.actual_computes;
-   out << ": " << total_elementwise_ops << std::endl; 
- 
+   out << ": " << total_elementwise_ops << std::endl;
+
    out << indent << std::left << std::setw(40) << "Total reduction ops";
    uint64_t total_reduction_ops = 0;
- 
+
    if (tiling::gEnableFirstReadElision)
    {
      total_reduction_ops = topology.stats_.actual_computes - total_output_size;
@@ -473,24 +473,24 @@
    {
      total_reduction_ops = topology.stats_.actual_computes;
    }
-   out << ": " << total_reduction_ops << std::endl; 
- 
+   out << ": " << total_reduction_ops << std::endl;
+
    out << indent << std::left << std::setw(40) << "Total ops";
    uint64_t total_ops = total_elementwise_ops + total_reduction_ops;
-   out << ": " << total_ops << std::endl;  
- 
+   out << ": " << total_ops << std::endl;
+
    out << indent << std::left << std::setw(40) << "Total memory accesses required";
-   out << ": " << total_min_traffic << std::endl; 
- 
+   out << ": " << total_min_traffic << std::endl;
+
    unsigned inv_storage_level = topology.NumStorageLevels() - 1;
-   std::shared_ptr<BufferLevel> buffer_level = topology.GetStorageLevel(inv_storage_level);      
+   std::shared_ptr<BufferLevel> buffer_level = topology.GetStorageLevel(inv_storage_level);
    auto op_per_byte = float(total_ops) / (buffer_level->GetSpecs().word_bits.Get() * total_min_traffic / 8);
    out << indent << std::left << std::setw(40) << "Optimal Op per Byte";
    out << ": " << op_per_byte << std::endl << std::endl;
- 
+
    for (unsigned i = 0; i < topology.NumStorageLevels(); i++)
    {
- 
+
      std::shared_ptr<BufferLevel> buffer_level = topology.GetStorageLevel(i);
      auto stats = buffer_level->GetStats();
      out << "=== " << buffer_level->Name() << " ===" << std::endl;
@@ -505,16 +505,16 @@
        out << ": " << op_per_byte << std::endl;
      }
    }
- 
+
    out << std::endl
        << std::endl;
- 
+
    //
    // Summary stats.
    //
    out << "Summary Stats" << std::endl;
    out << "-------------" << std::endl;
- 
+
    if (topology.is_evaluated_)
    {
      out << "GFLOPs (@1GHz): " << float(total_ops)  / topology.stats_.cycles << std::endl;
@@ -524,7 +524,7 @@
      out << "EDP(J*cycle): " << std::scientific << float(topology.stats_.cycles) * topology.stats_.energy / 1e12 << OUT_FLOAT_FORMAT << std::endl;
    }
    out << "Area: " << topology.stats_.area / 1000000 << " mm^2" << std::endl;
- 
+
    if (topology.is_evaluated_)
    {
      std::size_t max_name_length = 0;
@@ -532,15 +532,15 @@
      {
        max_name_length = std::max(max_name_length, topology.GetLevel(i)->Name().length());
      }
- 
+
      for (auto& network: topology.networks_)
      {
        max_name_length = std::max(max_name_length, network.second->Name().length());
      }
- 
+
      std::string indent = "    ";
      int align = max_name_length + 1;
- 
+
      std::vector<std::string> all_titles, all_units;
      std::vector<std::uint64_t> all_num_computes;
      if (topology.GetSpecs().GetArithmeticLevel()->is_sparse_module.Get())
@@ -555,11 +555,11 @@
        all_num_computes = {topology.stats_.actual_computes};
        all_units = {"fJ/Compute"};
      }
- 
+
      for (unsigned i = 0; i < all_titles.size(); i++)
      {
        out << std::endl;
- 
+
        auto num_computes = all_num_computes.at(i);
        out << all_titles.at(i) << " = " << num_computes << std::endl;
        out << all_units.at(i) << std::endl;
@@ -572,7 +572,7 @@
          out << indent << std::setw(align) << std::left << level->Name() << "= "
              << level->Energy(topology.workload_->GetShape()->NumDataSpaces)*1000 / num_computes << std::endl;
        }
- 
+
  #ifdef PRINT_NETWORKS_IN_LEGACY_ORDER
        for (unsigned storage_level_id = 0; storage_level_id < topology.NumStorageLevels(); storage_level_id++)
        {
@@ -589,26 +589,26 @@
              << network.second->Energy()*1000 / num_computes << std::endl;
        }
  #endif
- 
+
        out << indent << std::setw(align) << std::left << "Total" << "= "
            << topology.Energy()*1000 / num_computes << std::endl;
      }
    }
    // Restore ios format state.
    out.copyfmt(state);
- 
+
    return out;
  }
- 
+
  void Topology::PrintOrojenesis(problem::Workload* workload_, std::ostream &out, Mapping &mapping, bool log_mappings_yaml, bool log_mappings_verbose, std::string orojenesis_prefix, unsigned thread_id) const
  {
- 
+
    if (NumStorageLevels() > 0)
    {
      // Get the buffer utilization of the innermost memory level
      auto last_storage_level_id = NumStorageLevels() - 1;
      auto shape = workload_->GetShape();
- 
+
      // Get the total output tensor size for calculating the total operations
      std::uint64_t total_output_size = 0;
      for (unsigned pvi = 0; pvi < shape->NumDataSpaces; pvi++)
@@ -630,7 +630,7 @@
      }
      uint64_t total_elementwise_ops = stats_.actual_computes;
      uint64_t total_reduction_ops = 0;
- 
+
      if (tiling::gEnableFirstReadElision)
      {
        total_reduction_ops = stats_.actual_computes - total_output_size;
@@ -640,10 +640,10 @@
        total_reduction_ops = stats_.actual_computes;
      }
      uint64_t total_ops = total_elementwise_ops + total_reduction_ops;
- 
+
      // Assume the DRAM is the last level
      double op_per_byte = ViewStorageLevel(last_storage_level_id)->OperationalIntensity(total_ops);
- 
+
      std::uint64_t total_utilization = 0;
      std::uint64_t total_accesses = 0;
      // Non-DRAM utilization for each datatype
@@ -658,14 +658,14 @@
          highest_utilization = std::max(highest_utilization, utilization);
        }
        total_utilization += highest_utilization;
- 
+
        // DRAM accesses for each datatype
        auto level = ViewStorageLevel(NumStorageLevels() - 1);
        total_accesses += level->Accesses(pv);
      }
- 
+
      out << op_per_byte << "," << total_utilization << "," << total_accesses;
- 
+
      // For each datatype
      for (unsigned pvi = 0; pvi < shape->NumDataSpaces; pvi++)
      {
@@ -682,7 +682,7 @@
        std::uint64_t accesses = ViewStorageLevel(NumStorageLevels() - 1)->Accesses(pv);
        out << "," << highest_utilization << "," << accesses;
      }
- 
+
      // If verbose, utilization + accessese for every level for every datatype
      if(log_mappings_verbose)
      {
@@ -698,8 +698,8 @@
          }
        }
      }
- 
- 
+
+
      out << "," << mapping.PrintCompact();
      if (log_mappings_yaml)
      {
@@ -718,9 +718,9 @@
      }
    }
  }
- 
+
  void  Topology::OutputOrojenesisMappingYAML(Mapping& mapping, std::string map_yaml_file_name) const {
- 
+
    // Output the .yaml file for the mapping
    YAML::Emitter yaml_out;
    yaml_out << YAML::BeginMap;
@@ -730,42 +730,42 @@
    mapping.FormatAsYaml(yaml_out, specs_.StorageLevelNames());
    yaml_out << YAML::EndSeq;
    yaml_out << YAML::EndMap;
- 
+
    std::ofstream mapping_output_file;
    mapping_output_file.open(map_yaml_file_name.c_str());
    mapping_output_file << yaml_out.c_str();
    mapping_output_file.close();
  }
- 
+
  void Topology::Spec(const Topology::Specs& specs)
  {
    specs_ = specs;
- 
+
    for (auto& level : levels_)
    {
      level.reset();
    }
    levels_.clear();
- 
+
    for (auto& network : networks_)
    {
      network.second.reset();
    }
    networks_.clear();
- 
+
    for (auto& level : level_map_)
    {
      level.second.reset();
    }
    level_map_.clear();
- 
+
    for (auto& connection : connection_map_)
    {
      connection.second.read_fill_network.reset();
      connection.second.drain_update_network.reset();
    }
    connection_map_.clear();
- 
+
    // Construct and spec Buffer and Arithmeic levels.
    for (unsigned i = 0; i < specs.NumLevels(); i++)
    {
@@ -794,7 +794,7 @@
      assert(level != nullptr);
      level_map_[i] = level;
    }
- 
+
    //
    // Construct and spec user-defined networks. Auto-inferred networks will be
    // generated on-demand as we walk through the connection code.
@@ -804,7 +804,7 @@
      auto network = NetworkFactory::Construct(specs.GetNetwork(i));
      networks_[network->Name()] = network;
    }
- 
+
    //
    // Connect levels to networks.
    // FIXME: network source and sink need to be *bound* per-dataspace at eval (mapping) time.
@@ -815,14 +815,14 @@
      // Note! We are linking levels[i+1] as the outer level for networks[i].
      auto inner = levels_.at(i);
      auto outer = levels_.at(i+1);
- 
+
      bool inner_is_arithmetic = (i == 0);
- 
+
      auto outer_buffer = std::static_pointer_cast<BufferLevel>(outer);
- 
+
      std::shared_ptr<Network> read_fill_network = nullptr;
      std::shared_ptr<Network> drain_update_network = nullptr;
- 
+
      //
      // Find read-fill network.
      //
@@ -836,11 +836,11 @@
          exit(1);
        }
        read_fill_network = it->second;
- 
+
        uint64_t fill_latency = read_fill_network->FillLatency();
        total_network_latency += fill_latency;
        read_fill_network->SetFillLatency(fill_latency);
- 
+
        if (!inner_is_arithmetic)
        {
          auto inner_buffer = std::static_pointer_cast<BufferLevel>(inner);
@@ -859,26 +859,26 @@
      else // outer read network name is not specified.
      {
        // Create a new Legacy-type read-fill network from the pre-parsed inferred network specs.
- 
+
        // Inferred network i connects outer-level (i+1) to inner-level (i).
        // Inferred network i connects outer-storage-level (i) to inner-storage-level (i-1).
        auto inferred_network_id = i;
        auto inferred_network_specs = *specs.GetInferredNetwork(inferred_network_id);
        std::shared_ptr<LegacyNetwork> legacy_network = std::make_shared<LegacyNetwork>(inferred_network_specs);
- 
+
        // If network is unspecified, use the network_fill_latency/network_drain_latency specified from the outer buffer
        uint64_t fill_latency = std::static_pointer_cast<BufferLevel>(outer)->GetSpecs().network_fill_latency.Get();
        total_network_latency += fill_latency;
        legacy_network->SetFillLatency(fill_latency);
- 
+
        std::shared_ptr<Network> network = std::static_pointer_cast<Network>(legacy_network);
- 
+
        std::string network_name = outer->Name() + " <==> " + inner->Name();
        network->SetName(network_name);
- 
+
        networks_[network_name] = network;
        read_fill_network = network;
- 
+
        if (!inner_is_arithmetic)
        {
          auto inner_buffer = std::static_pointer_cast<BufferLevel>(inner);
@@ -890,7 +890,7 @@
          assert(!inner_arithmetic->GetSpecs().operand_network_name.IsSpecified());
        }
      }
- 
+
      //
      // Find drain-update network.
      //
@@ -904,11 +904,11 @@
          exit(1);
        }
        drain_update_network = it->second;
- 
+
        uint64_t drain_latency = drain_update_network->DrainLatency();
        total_network_latency += drain_latency;
        drain_update_network->SetDrainLatency(drain_latency);
- 
+
        if (!inner_is_arithmetic)
        {
          auto inner_buffer = std::static_pointer_cast<BufferLevel>(inner);
@@ -929,14 +929,14 @@
        // Reuse the existing read-fill network.
        assert(read_fill_network != nullptr);
        drain_update_network = read_fill_network;
- 
+
        // If network is unspecified, use the network_fill_latency/network_drain_latency specified from the outer buffer
        auto legacy_network = std::static_pointer_cast<LegacyNetwork>(drain_update_network);
- 
+
        uint64_t drain_latency = std::static_pointer_cast<BufferLevel>(outer)->GetSpecs().network_drain_latency.Get();
        total_network_latency += drain_latency;
        legacy_network->SetDrainLatency(drain_latency);
- 
+
        if (!inner_is_arithmetic)
        {
          auto inner_buffer = std::static_pointer_cast<BufferLevel>(inner);
@@ -948,14 +948,14 @@
          assert(!inner_arithmetic->GetSpecs().result_network_name.IsSpecified());
        }
      }
- 
+
      //
      // We've found the network objects, now make the connections.
      //
- 
+
      outer_buffer->ConnectRead(read_fill_network);
      outer_buffer->ConnectUpdate(drain_update_network);
- 
+
      // Set the level that handles power gating for this one
      if (!outer_buffer->GetSpecs().power_gated_at_name.IsSpecified())
      {
@@ -968,7 +968,7 @@
        exit(1);
      }
      outer_buffer->SetPowerGatedAt(power_gated_level);
- 
+
      if (!inner_is_arithmetic)
      {
        auto inner_buffer = std::static_pointer_cast<BufferLevel>(inner);
@@ -981,7 +981,7 @@
        inner_arithmetic->ConnectOperand(read_fill_network);
        inner_arithmetic->ConnectResult(drain_update_network);
      }
- 
+
      // If the same bi-directional network is used for read-fill and drain-update,
      // set the source/sink links for the drain-update direction. This is because
      // the network queries the sink's read-modify-write ability to determine whether
@@ -993,26 +993,26 @@
      //     of the network model (and be part of the higher-level tile analysis).
      drain_update_network->ConnectSource(inner);
      drain_update_network->ConnectSink(outer);
- 
+
      if (drain_update_network != read_fill_network)
      {
        read_fill_network->ConnectSource(outer);
        read_fill_network->ConnectSink(inner);
      }
- 
+
      read_fill_network->AddConnectionType(model::ConnectionType::ReadFill);
      drain_update_network->AddConnectionType(model::ConnectionType::UpdateDrain);
- 
+
      connection_map_[i] = Connection{read_fill_network, drain_update_network};
- 
+
    } // for all levels.
- 
+
    // DeriveFanouts();
- 
+
    is_specced_ = true;
- 
+
    FloorPlan();
- 
+
    // Compute area at spec-time (instead of at eval-time).
    // FIXME: area is being stored as a stat here, while it is stored as a spec
    // in individual modules. We need to be consistent.
@@ -1023,15 +1023,15 @@
      area += level->Area();
    }
    stats_.area = area;
- 
+
    total_network_latency_ = total_network_latency;
- 
+
  }
- 
+
  // The hierarchical ParseSpecs functions are static and do not
  // affect the internal specs_ data structure, which is set by
  // the dynamic Spec() call later.
- 
+
  // This function implements the "classic" hierarchical topology
  // with arithmetic units at level 0 and storage units at level 1+.
  Topology::Specs Topology::ParseSpecs(config::CompoundConfigNode storage,
@@ -1039,31 +1039,31 @@
                                       bool is_sparse_topology)
  {
    Specs specs;
- 
+
    assert(storage.isList());
- 
+
    // Level 0: arithmetic.
    // Use multiplication factor == 0 to ensure .instances attribute is set
    auto level_specs_p = std::make_shared<ArithmeticUnits::Specs>(ArithmeticUnits::ParseSpecs(arithmetic, 0, is_sparse_topology));
    specs.AddLevel(0, std::static_pointer_cast<LevelSpecs>(level_specs_p));
- 
+
    // Storage levels.
    int num_storage_levels = storage.getLength();
    for (int i = 0; i < num_storage_levels; i++)
    {
      auto level_specs_p = std::make_shared<BufferLevel::Specs>(BufferLevel::ParseSpecs(storage[i], 0, is_sparse_topology));
      specs.AddLevel(i, std::static_pointer_cast<LevelSpecs>(level_specs_p));
- 
+
      // For each storage level, parse and extract an inferred network spec from the storage config.
      // A network object corresponding to this spec will only be instantiated if a user-specified
      // network is missing between any two topology levels.
      auto inferred_network_specs_p = std::make_shared<LegacyNetwork::Specs>(LegacyNetwork::ParseSpecs(storage[i], 0, is_sparse_topology));
      specs.AddInferredNetwork(inferred_network_specs_p);
    }
- 
+
    return specs;
  }
- 
+
  // This function implements the "tree_like" hierarchical architecture description
  // used in Accelergy v0.2. The lowest level is level 0 and should have
  // arithmetic units, while other level are level 1+ with some buffer/storage units
@@ -1071,13 +1071,13 @@
  {
    Specs specs;
    auto curNode = designRoot;
- 
+
    std::vector<std::shared_ptr<LevelSpecs>> storages; // serialize all storages
    std::vector<std::shared_ptr<LegacyNetwork::Specs>> inferred_networks;
    std::vector<std::shared_ptr<NetworkSpecs>> networks;
- 
+
    std::uint64_t multiplication = 1;
- 
+
    // Walk the tree to find each buffer and arithmetic units
    // and add them to the specs.
    while (curNode.exists("subtree"))
@@ -1086,22 +1086,22 @@
      // Timeloop currently supports one subtree per level.
      assert(subTrees.isList() && subTrees.getLength() == 1);
      curNode = subTrees[0];
- 
+
      std::string curNodeName;
      curNode.lookupValue("name", curNodeName);
- 
+
      std::uint64_t subTreeSize = config::parseElementSize(curNodeName);
      multiplication *= subTreeSize;
- 
+
      if (curNode.exists("local"))
      {
        auto curLocal = curNode.lookup("local");
        assert(curLocal.isList());
- 
+
        std::vector<std::shared_ptr<LevelSpecs>> localStorages;
        std::vector<std::shared_ptr<LegacyNetwork::Specs>> localInferredNetworks;
        std::vector<std::shared_ptr<NetworkSpecs>> localNetworks;
- 
+
        for (int c = 0; c < curLocal.getLength() ; c++)
        {
          std::string cName, cClass;
@@ -1109,13 +1109,13 @@
          curLocal[c].lookupValue("class", cClass);
          std::uint64_t localElementSize = config::parseElementSize(cName);
          std::uint64_t nElements = multiplication * localElementSize;
- 
+
          if (isBufferClass(cClass))
          {
            // Create a buffer spec.
            auto level_specs_p = std::make_shared<BufferLevel::Specs>(BufferLevel::ParseSpecs(curLocal[c], nElements, is_sparse_topology));
            localStorages.push_back(level_specs_p);
- 
+
            // Create an inferred network spec.
            // A network object corresponding to this spec will only be instantiated if a user-specified
            // network is missing between any two topology levels.
@@ -1145,56 +1145,56 @@
        networks.insert(networks.begin(), localNetworks.rbegin(), localNetworks.rend());
      }
    } // end while
- 
+
    // Add storages to specs. We can do this only after walking the whole tree.
    for (uint32_t i = 0; i < storages.size(); i++)
    {
      auto storage = storages[i];
      specs.AddLevel(i, storage);
- 
+
      auto inferred_network = inferred_networks[i];
      specs.AddInferredNetwork(inferred_network);
    }
- 
+
    // Add user-specified networks.
    for (unsigned i = 0; i < networks.size(); i++)
    {
      auto network = networks[i];
      specs.AddNetwork(network);
    }
- 
+
    return specs;
  };
- 
+
  unsigned Topology::NumLevels() const
  {
    assert(is_specced_);
    return levels_.size();
  }
- 
+
  unsigned Topology::NumStorageLevels() const
  {
    assert(is_specced_);
    return specs_.NumStorageLevels();
  }
- 
+
  unsigned Topology::NumNetworks() const
  {
    assert(is_specced_);
    return specs_.NumNetworks();
  }
- 
+
  std::shared_ptr<const Level> Topology::ViewLevel(const unsigned& level_id) const
  {
    return levels_.at(level_id);
  }
- 
+
  std::shared_ptr<const BufferLevel> Topology::ViewStorageLevel(const unsigned& storage_level_id) const
  {
    auto level_id = specs_.StorageMap(storage_level_id);
    return std::static_pointer_cast<const BufferLevel>(levels_.at(level_id));
  }
- 
+
  std::shared_ptr<const BufferLevel> Topology::ViewStorageLevel(const std::string& level_name) const
  {
    for(auto level : levels_)
@@ -1206,30 +1206,30 @@
    }
    return nullptr;
  }
- 
+
  std::shared_ptr<const ArithmeticUnits> Topology::ViewArithmeticLevel() const
  {
    auto level_id = specs_.ArithmeticMap();
    return std::static_pointer_cast<const ArithmeticUnits>(levels_.at(level_id));
  }
- 
+
  void Topology::Reset()
  {
    stats_.Reset();
- 
+
    for (auto & level : levels_)
    {
      level->Reset();
    }
- 
+
    for (auto & network : networks_)
    {
      network.second->Reset();
    }
- 
+
    is_evaluated_ = false;
  }
- 
+
  // PreEvaluationCheck(): allows for a very fast capacity-check
  // based on given working-set sizes that can be trivially derived
  // by the caller. The more powerful Evaluate() function also
@@ -1246,21 +1246,21 @@
                                                       bool break_on_failure)
  {
    problem::Workload* workload = analysis->GetWorkload();
-   
+
    std::vector<EvalStatus> eval_status(NumLevels(), { .success = true, .fail_reason = "" });
    bool valid = tiling::CheckMaskValidity(mapping.datatype_bypass_nest, workload);
-   if (!valid) 
-   { 
+   if (!valid)
+   {
      // invalid bypassing setup
      std::fill(eval_status.begin(), eval_status.end(),
                EvalStatus({ .success = false, .fail_reason = "one of the tensors is bypassed in all storage levels"}));
      return eval_status;
    }
- 
+
    auto masks = tiling::TransposeMasks(mapping.datatype_bypass_nest, workload);
    auto working_set_sizes = analysis->GetWorkingSetSizes_LTW();
    sparse::CompressionInfo storage_compression_info = sparse_optimizations->compression_info;
- 
+
    for (unsigned storage_level_id = 0; storage_level_id < NumStorageLevels(); storage_level_id++)
    {
      sparse::PerStorageLevelCompressionInfo per_level_compression_info = {};
@@ -1273,7 +1273,7 @@
          per_level_compression_info, mapping.confidence_thresholds.at(storage_level_id),
          break_on_failure);
        eval_status.at(level_id) = s;
- 
+
        if (break_on_failure && !s.success)
          break;
      }
@@ -1284,25 +1284,25 @@
        return eval_status;
      }
    }
- 
+
    return eval_status;
  }
- 
- 
+
+
  std::vector<EvalStatus> Topology::Evaluate(Mapping& mapping,
                                             analysis::NestAnalysis* analysis,
                                             sparse::SparseOptimizationInfo* sparse_optimizations,
-                                            bool break_on_failure, 
+                                            bool break_on_failure,
                                             crypto::CryptoConfig* crypto_config)
  {
    assert(is_specced_);
    Reset();
    assert(!is_evaluated_);
- 
+
    // std::cout << "\n ==================================================== " << std::endl;
    // std::cout << mapping.PrintCompact() << std::endl;
    // std::cout << " ====================================================  " << std::endl;
- 
+
    // ==================================================================
    // TODO: connect buffers to networks based on bypass mask in mapping.
    // ==================================================================
@@ -1310,40 +1310,40 @@
    // {
    //   auto storage_level = GetStorageLevel(storage_level_id);
    //   auto network = GetNetwork(storage_level_id);
- 
+
    //   storage_level->ConnectNetwork(network);
    //   network->ConnectBuffer(storage_level);
    // }
    //
- 
+
    problem::Workload* workload = analysis->GetWorkload();
    workload_ = workload;
    layout::Layouts layout = analysis->GetLayout();
-   
+
    std::vector<EvalStatus> eval_status(NumLevels(), { .success = true, .fail_reason = "" });
    bool valid = tiling::CheckMaskValidity(mapping.datatype_bypass_nest, workload);
-   if (!valid) 
-   { 
+   if (!valid)
+   {
      // invalid bypassing setup
      std::fill(eval_status.begin(), eval_status.end(),
                EvalStatus({ .success = false, .fail_reason = "one of the tensors is bypassed in all storage levels"}));
      return eval_status;
    }
- 
+
    bool success_accum = true;
    bool success = true;
- 
+
    // Transpose the datatype bypass nest into level->datatype structure.
    auto keep_masks = tiling::TransposeMasks(mapping.datatype_bypass_nest, workload);
    assert(keep_masks.size() >= NumStorageLevels());
- 
+
    success = sparse::CheckFormatModelsAndMapping(keep_masks,
                                                  sparse_optimizations->compression_info,
                                                  specs_,
                                                  eval_status,
                                                  break_on_failure);
    if (break_on_failure && !success) { return eval_status; }
- 
+
    // Compute working-set tile hierarchy for the nest.
    analysis::CompoundTileNest tile_info_nest;
    problem::PerDataSpace<std::vector<analysis::DataMovementInfo>> ws_tiles;
@@ -1360,11 +1360,11 @@
                EvalStatus({ .success = false, .fail_reason = "" }));
      return eval_status;
    }
- 
- 
+
+
    // Ugh... FIXME.
    auto compute_cycles = analysis->GetComputeInfo()[0].accesses; //innermost level
- 
+
    // Create a mask indicating which levels support distributed multicast.
    tiling::CompoundMaskNest distribution_supported(workload->GetShape()->NumDataSpaces);
    for (unsigned pv = 0; pv < unsigned(workload_->GetShape()->NumDataSpaces); pv++)
@@ -1378,8 +1378,8 @@
        }
      }
    }
- 
- 
+
+
    // Collapse tiles into a specified number of tiling levels. The solutions are
    // received in a set of per-problem::Shape::DataSpaceID arrays.
    auto collapsed_tiles = tiling::CollapseTiles(tile_info_nest,
@@ -1387,7 +1387,7 @@
                                                 mapping.datatype_bypass_nest,
                                                 distribution_supported,
                                                 analysis->GetWorkload());
- 
+
    try
    {
      success = sparse::PerformSparseProcessing(analysis->GetWorkload(),
@@ -1405,7 +1405,7 @@
                EvalStatus({ .success = false, .fail_reason = "density model incapable of evaluating a specific request" }));
      return eval_status;
    }
- 
+
    // Transpose the tiles into level->datatype/level->optype structure.
    auto tiles = tiling::TransposeTiles(collapsed_tiles, workload);
    assert(tiles.size() == NumStorageLevels());
@@ -1416,29 +1416,29 @@
                                              compute_cycles, break_on_failure);
      eval_status.at(level_id) = s;
      success_accum &= s.success;
- 
+
      if (break_on_failure && !s.success)
        return eval_status;
    }
- 
+
    // update the dense compute cycles to be sparse compute cycles (actual compute cycles + gated compute cycles)
    // will only get the correct number of cycles if the eval of compute level is successful
    if (success_accum)
      compute_cycles = GetArithmeticLevel()->Cycles();
    uint64_t total_cycles = compute_cycles;
- 
+
    int current_storage_boundary = 0;
    std::vector<loop::Descriptor> subtile_mapping_loopnest;
    std::vector<loop::Descriptor> subtile_mapping_parallelism;
- 
+
    for (unsigned storage_level_id = 0; storage_level_id < NumStorageLevels(); storage_level_id++)
    {
      auto storage_level = GetStorageLevel(storage_level_id);
- 
+
      // Evaluate Loop Nest on hardware structures: calculate
      // primary statistics.
      auto level_id = specs_.StorageMap(storage_level_id);
- 
+
      // populate parent level name for each dataspace
      for (unsigned pv = 0; pv < unsigned(workload_->GetShape()->NumDataSpaces); pv++)
      {
@@ -1455,14 +1455,14 @@
      {
       current_level_loopnest.push_back(mapping.loop_nest.loops[i]);
      }
-     
+
      // if analysis
      if(analysis->IsLayoutInitialized()){
 #ifdef DEBUG
        std::cout << "Evaluate Storage Level " << storage_level_id << " -- " << layout[storage_level_id].target << std::endl;
 #endif
        assert(layout.size() > storage_level_id);
-       auto s = storage_level->Evaluate(tiles[storage_level_id], keep_masks[storage_level_id], layout[layout.size()-1-storage_level_id], 
+       auto s = storage_level->Evaluate(tiles[storage_level_id], keep_masks[storage_level_id], layout[storage_level_id],
                                       analysis,
                                       current_level_loopnest,
                                       subtile_mapping_loopnest,
@@ -1480,17 +1480,17 @@
 #ifdef DEBUG
        std::cout << "Evaluate Storage Level " << storage_level_id  << std::endl;
 #endif
-       auto s = storage_level->Evaluate(tiles[storage_level_id], keep_masks[storage_level_id], 
+       auto s = storage_level->Evaluate(tiles[storage_level_id], keep_masks[storage_level_id],
                                    workload,
                                    mapping.confidence_thresholds.at(storage_level_id),
-                                   compute_cycles, break_on_failure);  
+                                   compute_cycles, break_on_failure);
        total_cycles = std::max(total_cycles, storage_level->Cycles());
        eval_status.at(level_id) = s;
        success_accum &= s.success;
        if (break_on_failure && !s.success)
          break;
      }
- 
+
      for(unsigned i = current_storage_boundary; i <= mapping.loop_nest.storage_tiling_boundaries[storage_level_id]; i++)
      {
       // For subtile shape
@@ -1506,18 +1506,18 @@
         if (loop::IsSpatial(mapping.loop_nest.loops[i].spacetime_dimension))
           // If current memory level has spatial mapping, but bypass all data, then we should evaluate it in the next higher memory level
           subtile_mapping_parallelism.push_back(mapping.loop_nest.loops[i]);
-          
+
      }
      current_storage_boundary = mapping.loop_nest.storage_tiling_boundaries[storage_level_id] + 1;
    }
- 
+
    if (!break_on_failure || success_accum)
    {
      for (unsigned storage_level_id = 0; storage_level_id < NumStorageLevels(); storage_level_id++)
      {
        auto storage_level = GetStorageLevel(storage_level_id);
        auto child_level_stats = storage_level->GetStats();
- 
+
        // each dataspace can have a different parent level
        for (unsigned pvi = 0; pvi < unsigned(workload_->GetShape()->NumDataSpaces); pvi++)
        {
@@ -1539,7 +1539,7 @@
        storage_level->FinalizeBufferEnergy(total_cycles);
      }
    }
- 
+
    unsigned int numConnections = NumStorageLevels();
    for (uint32_t connection_id = 0; connection_id < numConnections; connection_id++)
    {
@@ -1553,10 +1553,10 @@
        eval_status.at(connection_id).fail_reason += s.fail_reason;
        success_accum &= s.success;
      }
- 
+
      if (break_on_failure && !s.success)
        break;
- 
+
      auto du_net = connection.drain_update_network;
      if (!du_net->IsEvaluated())
      {
@@ -1565,37 +1565,37 @@
        eval_status.at(connection_id).fail_reason += s.fail_reason;
        success_accum &= s.success;
      }
- 
+
      if (break_on_failure && !s.success)
        break;
    }
- 
+
    if (!break_on_failure || success_accum)
    {
      ComputeStats(success_accum);
    }
- 
+
    if (success_accum)
    {
      is_evaluated_ = true;
    }
- 
+
    return eval_status;
  }
- 
+
  void Topology::ComputeStats(bool eval_success)
  {
    if (eval_success)
    {
      // Energy.
      double energy = 0;
- 
+
      for (auto level : levels_)
      {
        assert(level->Energy(workload_->GetShape()->NumDataSpaces) >= 0);
        energy += level->Energy(workload_->GetShape()->NumDataSpaces);
      }
- 
+
      for (auto& network: networks_)
      {
        //poan: Users might add a network to the arch but never connect/use it
@@ -1605,39 +1605,39 @@
        assert(e >= 0);
        energy += e;
      }
- 
+
      stats_.energy = energy;
- 
+
      // Cycles.
      std::uint64_t cycles = 0;
      for (auto level : levels_)
      {
        cycles = std::max(cycles, level->Cycles());
      }
- 
+
      // Max cycle plus network fill and drain latency
      stats_.cycles = cycles + total_network_latency_;
- 
+
      // Utilization.
      // FIXME.
      if (eval_success)
      {
        stats_.utilization = GetArithmeticLevel()->IdealCycles() / stats_.cycles;
      }
- 
+
      // Computes.
      stats_.algorithmic_computes = GetArithmeticLevel()->AlgorithmicComputes();
      stats_.actual_computes = GetArithmeticLevel() -> ActualComputes();
- 
+
      // Last-level accesses.
      stats_.last_level_accesses = GetStorageLevel(NumStorageLevels()-1)->Accesses(workload_->GetShape()->NumDataSpaces);
- 
+
      // All accesses.
      for (unsigned i = 0; i < NumStorageLevels(); i++)
      {
        // FIXME: change the following to problem::PerDataSpace<std::uint64_t>
        // once we wrap PerDataSpace<> in PyTimeloop.
-       std::vector<std::uint64_t> pta(workload_->GetShape()->NumDataSpaces); 
+       std::vector<std::uint64_t> pta(workload_->GetShape()->NumDataSpaces);
        for (unsigned pvi = 0; pvi < workload_->GetShape()->NumDataSpaces; pvi++)
        {
          auto pv = problem::Shape::DataSpaceID(pvi);
@@ -1646,13 +1646,13 @@
        stats_.per_tensor_accesses.push_back(pta);
        stats_.accesses.push_back(GetStorageLevel(i)->Accesses(workload_->GetShape()->NumDataSpaces));
      }
- 
+
    } // eval_success
- 
+
    //
    // *** Note ***: the following stat updates are *not* gated by eval_success.
    //
- 
+
    // Tile sizes.
    stats_.tile_sizes.clear();
    stats_.utilized_capacities.clear();
@@ -1669,7 +1669,7 @@
      stats_.tile_sizes.push_back(ts);
      stats_.utilized_capacities.push_back(utilized_cap);
    }
- 
+
    // Utilized instances.
    stats_.utilized_instances.clear();
    for (unsigned storage_level_id = 0; storage_level_id < NumStorageLevels(); storage_level_id++)
@@ -1683,7 +1683,7 @@
      stats_.utilized_instances.push_back(uc);
    }
  }
- 
+
  //
  // Floorplanner.
  //
@@ -1693,7 +1693,7 @@
    // (needed for wire energy calculation).
    double cur_tile_area = 0;
    std::uint64_t inner_instances = 0;
- 
+
    // Compute the area of each hierarchical tile.
    for (unsigned i = 0; i < NumLevels(); i++)
    {
@@ -1711,11 +1711,11 @@
        fanout  = inner_instances / cur_instances;
      }
      inner_instances = cur_instances;
- 
+
      cur_tile_area = GetLevel(i)->AreaPerInstance() + (cur_tile_area * fanout);
      tile_area_[i] = cur_tile_area;
    }
- 
+
    // Tell each network the width of each hop's tile.
    for (unsigned i = 1; i < NumLevels(); i++)
    {
@@ -1726,10 +1726,10 @@
      r_network->SetTileWidth(inner_tile_width);
      auto u_network = storage_level->GetUpdateNetwork();
      u_network->SetTileWidth(inner_tile_width);
- 
+
    }
  }
- 
+
  bool isBufferClass(std::string className)
  {
    for (auto s : bufferClasses)
@@ -1738,7 +1738,7 @@
    }
    return false;
  }
- 
+
  bool isComputeClass(std::string className)
  {
    for (auto s : computeClasses)
@@ -1747,7 +1747,7 @@
    }
    return false;
  }
- 
+
  bool isNetworkClass(std::string className)
  {
    for (auto s : networkClasses)
@@ -1756,5 +1756,5 @@
    }
    return false;
  }
- 
+
  }  // namespace model

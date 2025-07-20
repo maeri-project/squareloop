@@ -63,7 +63,7 @@ class Legal : public LayoutSpace
 
   // AuthBlock factor variation tracking
   std::vector<std::tuple<unsigned, unsigned, std::string, uint32_t>> variable_authblock_factors_; // level, dataspace, rank, max_value
-  std::vector<uint32_t> authblock_factor_ranges_;
+  std::vector<std::vector<uint32_t>> authblock_factor_ranges_; // stores divisors for each factor
 
  public:
 

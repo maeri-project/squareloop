@@ -6,4 +6,4 @@ mapper:
   optimization-metrics:
   - edp
   timeout: 2
-  victory-condition: 200
+  victory-condition: 300
