@@ -1,29 +1,29 @@
 /* Copyright (c) 2019, NVIDIA CORPORATION. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *  * Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *  * Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *  * Neither the name of NVIDIA CORPORATION nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
- * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions
+* are met:
+*  * Redistributions of source code must retain the above copyright
+*    notice, this list of conditions and the following disclaimer.
+*  * Redistributions in binary form must reproduce the above copyright
+*    notice, this list of conditions and the following disclaimer in the
+*    documentation and/or other materials provided with the distribution.
+*  * Neither the name of NVIDIA CORPORATION nor the names of its
+*    contributors may be used to endorse or promote products derived
+*    from this software without specific prior written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY
+* EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+* PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+* CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+* EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+* PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+* PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+* OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+* (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
 
 #include <fstream>
 #include <thread>
@@ -55,8 +55,8 @@ void Mapper::serialize(Archive& ar, const unsigned int version)
 }
 
 Mapper::Mapper(config::CompoundConfig* config,
-               std::string output_dir,
-               std::string name) :
+              std::string output_dir,
+              std::string name) :
     name_(name)
 {
   auto rootNode = config->getRoot();
@@ -329,7 +329,7 @@ Mapper::Mapper(config::CompoundConfig* config,
               << "mapspace constraints." << std::endl;
     exit(1);
   }
- 
+
   if (rootNode.exists("mapspace"))
     mapspace = rootNode.lookup("mapspace");
   else if (rootNode.exists("mapspace_constraints"))
@@ -377,7 +377,7 @@ Mapper::Mapper(config::CompoundConfig* config,
 
   if (existing_crypto){
     crypto_ = crypto::ParseAndConstruct(compound_config_node_crypto);
-
+    
     crypto_->crypto_initialized_ = true;
 
     std::cout << "Crypto Configuration:\n";
@@ -398,31 +398,29 @@ Mapper::Mapper(config::CompoundConfig* config,
   else{
     std::cout << "No Crypto specified" << std::endl;
   }
-
+  
   // layout modeling
   std::cout << "Start Parsering Layout" << std::endl;
   config::CompoundConfigNode compound_config_node_layout;
   bool existing_layout = rootNode.lookup("layout", compound_config_node_layout);
-  
-  // Create externalPortMapping for both branches
+
   std::map<std::string, std::pair<uint32_t, uint32_t>> externalPortMapping;
-  for (auto i: arch_specs_.topology.LevelNames())
+  for (auto i: arch_specs_.topology.StorageLevelNames())
       externalPortMapping[i] = {arch_specs_.topology.GetStorageLevel(i)->num_ports.Get(), arch_specs_.topology.GetStorageLevel(i)->num_ports.Get()};
-  
-  // ToDo: 
+
   if (existing_layout){
     layout_ = layout::ParseAndConstruct(compound_config_node_layout, workload_, externalPortMapping);
+    
     layout_initialized_ = true;
     layout::PrintOverallLayout(layout_);
-    layoutspace_ = nullptr;
   }
   else{
-    std::cout << "No Layout specified, will search both constraint and actual layout, create dummy layout below." << std::endl;
     layout_initialized_ = false;
+    std::cout << "No Layout specified, using concordant layout with authblock_lines searching." << std::endl;
     layout_ = layout::InitializeDummyLayout(workload_, externalPortMapping);
     layout::PrintOverallLayout(layout_);
-    // Create layoutspace_ here (skeleton)
   }
+
 }
 
 Mapper::~Mapper()
@@ -431,12 +429,6 @@ Mapper::~Mapper()
   {
     delete mapspace_;
   }
-
-  if (layoutspace_)
-  {
-    delete layoutspace_;
-  }
-
 
   if (sparse_optimizations_)
   {
@@ -636,7 +628,7 @@ Mapper::Result Mapper::Run()
 
         if (layout_initialized_){ // ToDo: @Jianming modify here
           engine.Evaluate(mapping, workload_, layout_, sparse_optimizations_, crypto_, false);
-        } else
+        }else
           engine.Evaluate(mapping, workload_, sparse_optimizations_, crypto_, false);
 
         mapping.PrettyPrint(std::cout, arch_specs_.topology.StorageLevelNames(),
@@ -677,8 +669,8 @@ Mapper::Result Mapper::Run()
   if (global_best_.valid)
   {
     global_best_.mapping.PrettyPrint(map_txt_str, arch_specs_.topology.StorageLevelNames(),
-                                     global_best_.stats.utilized_capacities,
-                                     global_best_.stats.tile_sizes);
+                                    global_best_.stats.utilized_capacities,
+                                    global_best_.stats.tile_sizes);
 
     // std::ofstream map_yaml_file(map_yaml_file_name);
     // global_best_.mapping.PrintAsConstraints(map_yaml_file_name);
@@ -826,6 +818,11 @@ Mapper::Result Mapper::Run()
     global_best_.mapping.FormatAsYaml(yaml_out, arch_specs_.topology.StorageLevelNames());
     yaml_out << YAML::EndSeq;
     yaml_out << YAML::EndMap;
+    
+    // Dump the global best layout to YAML file
+    std::string layout_filename = out_prefix_ + ".layout.yaml";
+    layout::DumpLayoutToYAML(global_best_.layout, layout_filename);
+    std::cout << "Best layout saved to " << layout_filename << std::endl;
   }
 #endif
   if (!cfg_string_) {

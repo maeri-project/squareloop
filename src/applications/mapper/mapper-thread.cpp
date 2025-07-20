@@ -160,6 +160,7 @@ bool EvaluationResult::UpdateIfBetter(const EvaluationResult& other, const std::
     valid = true;
     mapping = other.mapping;
     stats = other.stats;
+    layout = other.layout;  // Copy layout
     updated = true;
   }
   return updated;
@@ -174,6 +175,7 @@ bool EvaluationResult::UpdateIfEqual(const EvaluationResult& other, const std::v
     valid = true;
     mapping = other.mapping;
     stats = other.stats;
+    layout = other.layout;  // Copy layout
     updated = true;
   }
   return updated;
@@ -263,6 +265,7 @@ void MapperThread::Stats::UpdateFails(FailClass fail_class, std::string fail_rea
     }
   }
 }
+
 
 MapperThread::MapperThread(
   unsigned thread_id,
@@ -456,10 +459,9 @@ void MapperThread::Run()
         // Re-evaluate the mapping
         if (layout_initialized_){
           engine.Evaluate(index_factor_best.mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
-        }else{
-          engine.Evaluate(index_factor_best.mapping, workload_, sparse_optimizations_, crypto_, !diagnostics_on_);
-        }
-
+        }else
+          engine.Evaluate(index_factor_best.mapping, workload_, index_factor_best.layout, sparse_optimizations_, crypto_, !diagnostics_on_);
+          
         if (index_factor_best.valid) {
             auto topology = engine.GetTopology();
             mutex_->lock();
@@ -614,15 +616,92 @@ void MapperThread::Run()
                                [](bool cur, const model::EvalStatus& status)
                                { return cur && status.success; });
     }else{
-      layoutspace_ = layoutspace::CreateLayoutSpace(mapping, arch_specs_, layout_);
-      // ToDo: @Jianming If layoutspace_ has no legal layout choices for current architecture, skip this mapping and jump to next mapping (how to do it?)
-      // layout_ = layoutspace_->ConstructLayout(index_factor_best.mapping, &layout_, !diagnostics_on_);
-      // layout::PrintOverallLayout(layout_);
-
-      status_per_level = engine.Evaluate(mapping, workload_, sparse_optimizations_, crypto_, !diagnostics_on_);
-      success &= std::accumulate(status_per_level.begin(), status_per_level.end(), true,
-                               [](bool cur, const model::EvalStatus& status)
-                               { return cur && status.success; });
+      layoutspace_ = layoutspace::CreateLayoutSpace(mapping, arch_specs_, layout_, false);
+      std::cout << "checkpoint 1: layoutspace_->num_layout_candidates: " << layoutspace_->num_layout_candidates << std::endl;
+      
+      // Initialize global optimal tracking variables
+      std::uint64_t mapping_specific_best_latency = UINT64_MAX;
+      double mapping_specific_best_energy_per_compute = std::numeric_limits<double>::max();
+      layout::Layouts mapping_specific_best_layout;
+      bool has_valid_layout = false;
+      std::cout << "checkpoint 2: initialization done" << std::endl;
+      
+      for(layoutspace::ID layout_id(layoutspace_->AllSizes()); layout_id.Integer() < layoutspace_->num_layout_candidates; layout_id.Increment())
+      {
+        auto construction_status = layoutspace_->ConstructLayout(layout_id, &layout_, false);
+        std::cout << "checkpoint 3: construct a layout" << std::endl;
+        success &= std::accumulate(construction_status.begin(), construction_status.end(), true,
+                                    [](bool cur, const layoutspace::Status& status)
+                                    { return cur && status.success; });
+        layout::PrintOverallLayout(layout_);
+        if(!success) continue;
+          status_per_level = engine.Evaluate(mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
+          // Extract run-time latency and energy efficiency from evaluation results
+        std::cout << "checkpoint 4: evaluate a layout" << std::endl;
+        std::uint64_t runtime_latency = engine.Cycles();
+        double total_energy = engine.Energy();
+        std::uint64_t actual_computes = engine.GetTopology().ActualComputes();
+        std::uint64_t algorithmic_computes = engine.GetTopology().AlgorithmicComputes();
+        
+        // Calculate energy efficiency metrics
+        double energy_per_compute = (actual_computes > 0) ? (total_energy / actual_computes) : 0.0;
+        double energy_per_algorithmic_compute = (algorithmic_computes > 0) ? (total_energy / algorithmic_computes) : 0.0;
+        
+        std::cout << "[" << thread_id_ << "] METRICS: "
+        << "Latency=" << runtime_latency << " cycles, "
+        << "Energy=" << total_energy << " pJ, "
+        << "Energy/Compute=" << energy_per_compute << " pJ/compute, "
+        << "Energy/AlgCompute=" << energy_per_algorithmic_compute << " pJ/alg-compute"
+        << std::endl;
+        
+        // Track global optimal values (prefer smaller values)
+        bool is_better = false;
+        std::string improvement_reason = "";
+        
+        if (!has_valid_layout) {
+          // First valid layout
+          is_better = true;
+          improvement_reason = "first valid layout";
+        }
+        else if (runtime_latency < mapping_specific_best_latency) {
+          // Better latency
+          is_better = true;
+          improvement_reason = "better latency";
+        }
+        else if (runtime_latency == mapping_specific_best_latency && energy_per_compute < mapping_specific_best_energy_per_compute) {
+          // Same latency but better energy efficiency
+          is_better = true;
+          improvement_reason = "same latency, better energy efficiency";
+        }
+        
+        if (is_better) {
+          mapping_specific_best_latency = runtime_latency;
+          mapping_specific_best_energy_per_compute = energy_per_compute;
+          mapping_specific_best_layout = layout_;
+          has_valid_layout = true;
+          
+          std::cout << "[" << thread_id_ << "] NEW GLOBAL OPTIMAL: "
+          << "Latency=" << mapping_specific_best_latency << " cycles, "
+          << "Energy/Compute=" << mapping_specific_best_energy_per_compute << " pJ/compute "
+          << "(" << improvement_reason << ")"
+          << std::endl;
+        }
+      }
+      
+      // Print final global optimal results
+      if (has_valid_layout) {
+        std::cout << "[" << thread_id_ << "] FINAL GLOBAL OPTIMAL: "
+        << "Latency=" << mapping_specific_best_latency << " cycles, "
+        << "Energy/Compute=" << mapping_specific_best_energy_per_compute << " pJ/compute"
+        << std::endl;
+        
+        // Optional: Print layout details for the optimal layout
+        std::cout << "[" << thread_id_ << "] OPTIMAL LAYOUT:" << std::endl;
+        layout::PrintOverallLayout(mapping_specific_best_layout);
+        layout_ = mapping_specific_best_layout;
+      } else {
+        std::cout << "[" << thread_id_ << "] No valid layouts found." << std::endl;
+      }
     }
 
     if (!success)
@@ -650,7 +729,7 @@ void MapperThread::Run()
     // Output results at log interval
     auto topology =  engine.GetTopology();
     auto stats = topology.GetStats();
-    EvaluationResult result = { true, mapping, stats };
+    EvaluationResult result = { true, mapping, stats, layout_ };  // Include layout_ in result
 
     if(log_all_mappings_)
     {
@@ -669,7 +748,7 @@ void MapperThread::Run()
         if (layout_initialized_){
           engine.Evaluate(index_factor_best.mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
         }else
-          engine.Evaluate(index_factor_best.mapping, workload_, sparse_optimizations_, crypto_, !diagnostics_on_);
+          engine.Evaluate(index_factor_best.mapping, workload_, index_factor_best.layout, sparse_optimizations_, crypto_, !diagnostics_on_);
 
         auto topology = engine.GetTopology();
 

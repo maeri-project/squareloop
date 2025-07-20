@@ -120,7 +120,7 @@ LayoutSpace* ParseAndConstruct(config::CompoundConfigNode config,
 
   if (layoutspace_template == "Legal")
   {
-    layoutspace = new Legal(arch_specs, mapping, layout);
+    layoutspace = new Legal(arch_specs, mapping, layout, false);
   }
   else
   {
@@ -137,10 +137,11 @@ LayoutSpace* ParseAndConstruct(config::CompoundConfigNode config,
 
 LayoutSpace* CreateLayoutSpace(const Mapping& mapping,
                                model::Engine::Specs& arch_specs,
-                               layout::Layouts& layout)
+                               layout::Layouts& layout,
+                              bool skip_init)
 {
 
-  return new Legal(arch_specs, mapping, layout, false);
+  return new Legal(arch_specs, mapping, layout, skip_init);
 }
 
 } // namespace layoutspace

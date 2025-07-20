@@ -48,7 +48,8 @@ LayoutSpace* ParseAndConstruct(config::CompoundConfigNode config,
 
 LayoutSpace* CreateLayoutSpace(const Mapping& mapping,
                                model::Engine::Specs& arch_specs,
-                               layout::Layouts& layout);
+                               layout::Layouts& layout,
+                               bool skip_init);
 
 //--------------------------------------------//
 //        Return Next Feasible Layout         //

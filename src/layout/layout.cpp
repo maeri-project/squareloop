@@ -492,16 +492,19 @@ namespace layout
         layout.intraline.push_back(intranest);
 
         // --- AuthBlock nest with dummy values ---
-        LayoutNest authblock_nest;
-        authblock_nest.data_space = ds;
-        authblock_nest.type = "authblock_lines";
-        authblock_nest.ranks = layout.dataSpaceToRank[ds];
-        // Set all factors to 1 for dummy layout
-        for (const auto &r : authblock_nest.ranks)
-        {
-          authblock_nest.factors[r] = 1;
+        // AuthBlock is left as blank for the memory level that does not need Authentication.
+        if (layout.target == "DRAM"){
+          LayoutNest authblock_nest;
+          authblock_nest.data_space = ds;
+          authblock_nest.type = "authblock_lines";
+          authblock_nest.ranks = layout.dataSpaceToRank[ds];
+          // Set all factors to 1 for dummy layout
+          for (const auto &r : authblock_nest.ranks)
+          {
+            authblock_nest.factors[r] = 1;
+          }
+          layout.authblock_lines.push_back(authblock_nest);
         }
-        layout.authblock_lines.push_back(authblock_nest);
       }
 
       layouts.push_back(layout);
@@ -517,7 +520,7 @@ namespace layout
 
   //------------------------------------------------------------------------------
   // PrintOverallLayout
-  // Iterates over the nest’s skew descriptors and prints each term (including
+  // Iterates over the nest's skew descriptors and prints each term (including
   // rank name and, now, all related ranks based on shared dimensions).
   void
   PrintOverallLayout(Layouts layouts)
@@ -582,6 +585,42 @@ namespace layout
         }
       }
       for (const auto &nest : layout.intraline)
+      {
+        std::cout << "  Data space: " << nest.data_space << std::endl;
+        std::cout << "  Type: " << nest.type << std::endl;
+        for (const auto &r : nest.ranks)
+        {
+          int factor = (nest.factors.find(r) != nest.factors.end()
+                            ? nest.factors.at(r)
+                            : 1);
+          auto dims = layout.rankToFactorizedDimensionID.at(r);
+          std::cout << "    Rank: " << r << " dimension=";
+          if (dims.size() == 1)
+          {
+            std::cout << dims[0] << "-"
+                      << layout.rankToDimensionName.at(r)[0];
+          }
+          else
+          {
+            std::cout << "(";
+            for (size_t i = 0; i < dims.size(); i++)
+            {
+              std::cout << dims[i] << (i != dims.size() - 1 ? "," : "");
+            }
+            std::cout << ")-(";
+            auto names = layout.rankToDimensionName.at(r);
+            for (size_t i = 0; i < names.size(); i++)
+            {
+              std::cout << names[i]
+                        << (i != names.size() - 1 ? "," : "");
+            }
+            std::cout << ")";
+          }
+          std::cout << ", factor=" << factor << std::endl;
+        }
+      }
+      // Add AuthBlock nests printing
+      for (const auto &nest : layout.authblock_lines)
       {
         std::cout << "  Data space: " << nest.data_space << std::endl;
         std::cout << "  Type: " << nest.type << std::endl;
@@ -821,5 +860,108 @@ namespace layout
       std::cout << std::endl;
     }
   }
+
+//------------------------------------------------------------------------------
+// DumpLayoutToYAML
+// Dumps the layout to a YAML file following the pattern in test_layout.yaml
+//------------------------------------------------------------------------------
+void DumpLayoutToYAML(const Layouts& layouts, const std::string& filename)
+{
+  std::ofstream yaml_file(filename);
+  if (!yaml_file.is_open())
+  {
+    std::cerr << "Error: Could not open " << filename << " for writing." << std::endl;
+    return;
+  }
+
+  yaml_file << "layout:" << std::endl;
+  
+  for (const auto& layout : layouts)
+  {
+    // Write interline nests
+    for (const auto& nest : layout.interline)
+    {
+      yaml_file << "  - target: " << layout.target << std::endl;
+      yaml_file << "    type: " << nest.type << std::endl;
+      
+      // Generate factors string
+      std::string factors_str = "";
+      for (const auto& rank : nest.ranks)
+      {
+        auto factor_it = nest.factors.find(rank);
+        uint32_t factor = (factor_it != nest.factors.end()) ? factor_it->second : 1;
+        if (!factors_str.empty()) factors_str += " ";
+        factors_str += rank + "=" + std::to_string(factor);
+      }
+      yaml_file << "    factors: " << factors_str << std::endl;
+      
+      // Generate permutation string
+      std::string permutation_str = "";
+      for (const auto& rank : nest.ranks)
+      {
+        permutation_str += rank;
+      }
+      yaml_file << "    permutation: " << permutation_str << std::endl;
+    }
+    
+    // Write intraline nests
+    for (const auto& nest : layout.intraline)
+    {
+      yaml_file << "  - target: " << layout.target << std::endl;
+      yaml_file << "    type: " << nest.type << std::endl;
+      
+      // Generate factors string
+      std::string factors_str = "";
+      for (const auto& rank : nest.ranks)
+      {
+        auto factor_it = nest.factors.find(rank);
+        uint32_t factor = (factor_it != nest.factors.end()) ? factor_it->second : 1;
+        if (!factors_str.empty()) factors_str += " ";
+        factors_str += rank + "=" + std::to_string(factor);
+      }
+      yaml_file << "    factors: " << factors_str << std::endl;
+      
+      // Generate permutation string
+      std::string permutation_str = "";
+      for (const auto& rank : nest.ranks)
+      {
+        permutation_str += rank;
+      }
+      yaml_file << "    permutation: " << permutation_str << std::endl;
+    }
+    
+    // Write authblock_lines nests if they exist and are not empty
+    for (const auto& nest : layout.authblock_lines)
+    {
+      if (!nest.factors.empty())
+      {
+        yaml_file << "  - target: " << layout.target << std::endl;
+        yaml_file << "    type: " << nest.type << std::endl;
+        
+        // Generate factors string
+        std::string factors_str = "";
+        for (const auto& rank : nest.ranks)
+        {
+          auto factor_it = nest.factors.find(rank);
+          uint32_t factor = (factor_it != nest.factors.end()) ? factor_it->second : 1;
+          if (!factors_str.empty()) factors_str += " ";
+          factors_str += rank + "=" + std::to_string(factor);
+        }
+        yaml_file << "    factors: " << factors_str << std::endl;
+        
+        // Generate permutation string
+        std::string permutation_str = "";
+        for (const auto& rank : nest.ranks)
+        {
+          permutation_str += rank;
+        }
+        yaml_file << "    permutation: " << permutation_str << std::endl;
+      }
+    }
+  }
+  
+  yaml_file.close();
+  std::cout << "Layout dumped to " << filename << std::endl;
+}
 
 } // namespace layout

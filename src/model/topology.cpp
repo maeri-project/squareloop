@@ -35,7 +35,7 @@
  #include "sparse-analysis/sparse-analysis.hpp"
  #include "workload/workload.hpp"
  
-//  #define DEBUG 
+ #define DEBUG 
  bool gHideInconsequentialStats =
    (getenv("TIMELOOP_HIDE_INCONSEQUENTIAL_STATS") == NULL) ||
    (strcmp(getenv("TIMELOOP_HIDE_INCONSEQUENTIAL_STATS"), "0") != 0);
@@ -1462,7 +1462,7 @@
        std::cout << "Evaluate Storage Level " << storage_level_id << " -- " << layout[storage_level_id].target << std::endl;
 #endif
        assert(layout.size() > storage_level_id);
-       auto s = storage_level->Evaluate(tiles[storage_level_id], keep_masks[storage_level_id], layout[storage_level_id], 
+       auto s = storage_level->Evaluate(tiles[storage_level_id], keep_masks[storage_level_id], layout[layout.size()-1-storage_level_id], 
                                       analysis,
                                       current_level_loopnest,
                                       subtile_mapping_loopnest,

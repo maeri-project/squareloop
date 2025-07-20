@@ -44,6 +44,7 @@ struct EvaluationResult
   bool valid = false;
   Mapping mapping;
   model::Topology::Stats stats;
+  layout::Layouts layout;  // Add layout field
 
   bool UpdateIfBetter(const EvaluationResult& other, const std::vector<std::string>& metrics);
   bool UpdateIfEqual(const EvaluationResult& other, const std::vector<std::string>& metrics);

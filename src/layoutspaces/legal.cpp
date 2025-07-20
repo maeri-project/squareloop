@@ -26,7 +26,8 @@
  */
 
 #include "layoutspaces/legal.hpp"
-// #define DEBUG_CONCORDANT_LAYOUT
+#define DEBUG_CONCORDANT_LAYOUT
+// #define DEBUG_BUFFER_CAPACITY_CONSTRAINT
 
 namespace layoutspace
 {
@@ -49,6 +50,12 @@ Legal::Legal(
     legal_space_empty_(false)
 {
   layout::PrintOverallLayout(layout);
+
+  // Step 0: (1) Initialize the data bypass logic
+  if (!skip_init)
+  {
+    Init(arch_specs, mapping);
+  }
 
   // ToDo: Need to define a layout constraint.
   // Create a legal layoutspace when no layout configuration is provided
@@ -83,13 +90,9 @@ Legal::Legal(
   // Step 2: Check buffer capacity constraint
   CheckBufferCapacityConstraint(arch_specs, mapping);
 
-  // Step 3: Reform layout to be legal
-  ReformLayoutToLegal(arch_specs);
+  // Step 3: CreateSpace
+  CreateSpace(arch_specs);
 
-  if (!skip_init)
-  {
-    Init();
-  }
 }
 
 Legal::~Legal()
@@ -108,75 +111,124 @@ Legal::~Legal()
 //
 // Init() - called by constructor or derived classes.
 //
-void Legal::Init()
+void Legal::Init(model::Engine::Specs arch_specs,
+  const Mapping& mapping)
 {
-  // Setup all the layout sub-spaces.
-  InitDataLayoutSpace();       // Define the place holder for (1) layout constraint and (2) optimal layout candidate
-
-  // Sanity checks.
-  for (int i = 0; i < int(layoutspace::Dimension::Num); i++)
+  unsigned num_storage_levels = mapping.loop_nest.storage_tiling_boundaries.size();
+  unsigned num_data_spaces = layout_.at(0).intraline.size();
+  kept_data_spaces.clear();
+  bypassed_data_spaces.clear();
+  for (unsigned storage_level = 0; storage_level < num_storage_levels; storage_level++)
   {
-    std::cout << "LayoutSpace Dimension [" << layoutspace::Dimension(i)
-              << "] Size: " << size_[i] << std::endl;
+    auto storage_level_specs = arch_specs.topology.GetStorageLevel(storage_level);
+#ifdef DEBUG_BUFFER_CAPACITY_CONSTRAINT
+    std::cout << "    Level " << storage_level << " (" << storage_level_specs->name.Get() << "): ";
+#endif
+
+    for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++)
+    {
+      // Check if this dataspace is bypassed at this storage level
+      bool is_kept = mapping.datatype_bypass_nest.at(ds_idx).test(storage_level);
+
+      if (is_kept)
+      {
+        if (ds_idx < layout_.at(storage_level).data_space.size())
+          kept_data_spaces.push_back(layout_.at(storage_level).data_space[ds_idx]);
+        else
+          kept_data_spaces.push_back("DataSpace" + std::to_string(ds_idx));
+      }
+      else
+      {
+        if (ds_idx < layout_.at(storage_level).data_space.size())
+          bypassed_data_spaces.push_back(layout_.at(storage_level).data_space[ds_idx]);
+        else
+          bypassed_data_spaces.push_back("DataSpace" + std::to_string(ds_idx));
+      }
+    }
+
+#ifdef DEBUG_BUFFER_CAPACITY_CONSTRAINT
+    std::cout << "Keep=[";
+    for (size_t i = 0; i < kept_data_spaces.size(); i++)
+    {
+      std::cout << kept_data_spaces[i];
+      if (i < kept_data_spaces.size() - 1) std::cout << ", ";
+    }
+    std::cout << "], Bypass=[";
+    for (size_t i = 0; i < bypassed_data_spaces.size(); i++)
+    {
+      std::cout << bypassed_data_spaces[i];
+      if (i < bypassed_data_spaces.size() - 1) std::cout << ", ";
+    }
+    std::cout << "]" << std::endl;
+#endif
   }
 
-  // Check for integer overflow in the above multiplications.
-  uint128_t de_cumulative_prod = Size();
-  for (int i = 0; i < int(layoutspace::Dimension::Num); i++)
-  {
-    de_cumulative_prod /= size_[i];
-  }
-  if (de_cumulative_prod != 1)
-  {
-    std::cerr << "ERROR: overflow detected: layoutspace size appears to be "
-              << "greater than 2^128. Please add some layoutspace constraints."
-              << std::endl;
-    exit(1);
-  }
-}
+  // Step 0: (2) Initialize the storage level capacity vectors
+  storage_level_total_capacity.resize(num_storage_levels, 0);
+  storage_level_line_capacity.resize(num_storage_levels, 0);
+   // Iterate through each storage level
+   for (unsigned storage_level = 0; storage_level < num_storage_levels; storage_level++)
+   {
+     auto storage_level_specs = arch_specs.topology.GetStorageLevel(storage_level);
 
-//
-// InitDataLayoutSpace()
-//
-void Legal::InitDataLayoutSpace()
-{
-  // Initialize available data layout patterns
-  available_patterns_ = {"linear", "blocked", "interleaved"};
-  size_[int(Dimension::Intraline)] = available_patterns_.size();
-}
+     // Extract memory specifications
+     std::uint64_t total_capacity = 0;
+     std::uint64_t block_size = 0;
+     std::uint64_t line_capacity = 0;
+     double read_bandwidth = 0.0;
+     double write_bandwidth = 0.0;
 
-//
-// InitPruned()
-//
-void Legal::InitPruned(uint128_t layout_id)
-{
-  (void)layout_id; // Suppress unused parameter warning
-  // For now, just call regular init
-  // In the future, this could initialize a pruned subset based on layout_id
-  Init();
-}
+     // Extract block_size (elements per memory line)
+     if (storage_level_specs->block_size.IsSpecified())
+     {
+       block_size = storage_level_specs->block_size.Get();
+     }
 
-//
-// Split()
-//
-std::vector<LayoutSpace*> Legal::Split(std::uint64_t num_splits)
-{
-  std::vector<LayoutSpace*> retval;
+     // Extract bandwidth specifications
+     if (storage_level_specs->read_bandwidth.IsSpecified())
+     {
+       read_bandwidth = storage_level_specs->read_bandwidth.Get();
+     }
 
-  // For now, create identical copies for each split
-  // In a more sophisticated implementation, we would divide the space
-  for (std::uint64_t i = 0; i < num_splits; i++)
-  {
-    auto split = new Legal(arch_specs_, mapping_, layout_, true);
-    split->split_id_ = i;
-    split->num_parent_splits_ = num_splits;
-    split->Init();
+     if (storage_level_specs->write_bandwidth.IsSpecified())
+     {
+       write_bandwidth = storage_level_specs->write_bandwidth.Get();
+     }
 
-    splits_.push_back(split);
-    retval.push_back(split);
-  }
+     // Extract total capacity
+     if (storage_level_specs->size.IsSpecified())
+     {
+       total_capacity = storage_level_specs->size.Get();
+     }
+     else
+     {
+       std::cout << "    WARNING: Storage level " << storage_level
+                 << " (" << storage_level_specs->name.Get() << ") has unspecified size hence do it as infinite" << std::endl;
+       total_capacity = std::numeric_limits<uint64_t>::max();
+     }
 
-  return retval;
+     // Line capacity is the number of elements that can be accessed in parallel
+     // Use the maximum of read_bandwidth and write_bandwidth, or block_size as fallback
+     line_capacity = static_cast<std::uint64_t>(std::max(read_bandwidth, write_bandwidth));
+     if (line_capacity == 0)
+     {
+       line_capacity = block_size;  // Fallback to block_size
+     }
+
+     // Store capacity values in member variables
+     storage_level_total_capacity[storage_level] = static_cast<std::uint32_t>(total_capacity);
+     storage_level_line_capacity[storage_level] = static_cast<std::uint32_t>(line_capacity);
+
+ #ifdef DEBUG_BUFFER_CAPACITY_CONSTRAINT
+     std::cout << "    Storage Level " << storage_level
+               << " (" << storage_level_specs->name.Get() << "):" << std::endl;
+     std::cout << "      Block size: " << block_size << " elements per line" << std::endl;
+     std::cout << "      Total capacity: " << total_capacity << " elements" << std::endl;
+     std::cout << "      Line capacity (bandwidth): " << line_capacity << " elements/cycle" << std::endl;
+     std::cout << "      Read bandwidth: " << read_bandwidth << " elements/cycle" << std::endl;
+     std::cout << "      Write bandwidth: " << write_bandwidth << " elements/cycle" << std::endl;
+ #endif
+    }
 }
 
 //
@@ -184,23 +236,127 @@ std::vector<LayoutSpace*> Legal::Split(std::uint64_t num_splits)
 //
 std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layouts, bool break_on_failure)
 {
-  (void)break_on_failure; // Suppress unused parameter warning for skeleton implementation
-  std::vector<Status> status_per_level;
+  (void)break_on_failure; // Suppress unused parameter warning
+
+  // If no variable factors, just return the original layout
+  if (variable_authblock_factors_.empty())
+  {
+    // Copy the current layout to the output parameter
+    if (layouts != nullptr)
+    {
+      *layouts = layout_;
+    }
+
+    Status success_status;
+    success_status.success = true;
+    success_status.fail_reason = "";
+    return {success_status};
+  }
 
   // Decode the layout ID into component choices
-  auto data_layout_idx = static_cast<size_t>(layout_id[int(Dimension::Intraline)]);
-  (void) data_layout_idx; // Suppress unused parameter warning for now
-  (void) layouts; // Suppress unused parameter warning for now
-  // Create layouts for each storage level
-  // @ToDo: iterate layout space and return a layout for evaluation.
+  uint128_t layout_int = layout_id.Integer();
+
+  // Check if the layout ID fits in 64-bit range
+  if (layout_int > std::numeric_limits<std::uint64_t>::max())
+  {
+    Status error_status;
+    error_status.success = false;
+    error_status.fail_reason = "Layout ID exceeds 64-bit range";
+    return {error_status};
+  }
+
+  // Safe cast to 64-bit
+  std::uint64_t linear_id = static_cast<std::uint64_t>(layout_int);
+
+  // Validate layout ID range
+  if (linear_id >= num_layout_candidates)
+  {
+    Status error_status;
+    error_status.success = false;
+    error_status.fail_reason = "Layout ID " + std::to_string(linear_id) + " exceeds candidate space size " + std::to_string(num_layout_candidates);
+    return {error_status};
+  }
+
+  // Decode the linear ID into individual factor choices using modular arithmetic
+  std::vector<uint32_t> factor_choices(variable_authblock_factors_.size());
+  std::uint64_t remaining_id = linear_id;
+
+  for (size_t i = 0; i < variable_authblock_factors_.size(); i++)
+  {
+    uint32_t range = authblock_factor_ranges_[i];
+    factor_choices[i] = (remaining_id % range) + 1; // +1 because factors start from 1
+    remaining_id /= range;
+  }
+
+  std::cout << "Constructing layout ID " << linear_id << " with factor choices: [";
+  for (size_t i = 0; i < factor_choices.size(); i++)
+  {
+    std::cout << factor_choices[i];
+    if (i < factor_choices.size() - 1) std::cout << ", ";
+  }
+  std::cout << "]" << std::endl;
+
+  // Create a copy of the current layout to modify
+  layout::Layouts modified_layout = layout_;
+
+  // Apply the decoded factor choices to create the specific layout
+  for (size_t i = 0; i < variable_authblock_factors_.size(); i++)
+  {
+    auto& var_factor = variable_authblock_factors_[i];
+    unsigned lvl = std::get<0>(var_factor);
+    unsigned ds_idx = std::get<1>(var_factor);
+    std::string rank = std::get<2>(var_factor);
+    uint32_t chosen_factor = factor_choices[i];
+
+    // Validate indices
+    if (lvl >= modified_layout.size())
+    {
+      Status error_status;
+      error_status.success = false;
+      error_status.fail_reason = "Invalid storage level " + std::to_string(lvl) + " in variable factor";
+      return {error_status};
+    }
+
+    if (ds_idx >= modified_layout[lvl].authblock_lines.size())
+    {
+      Status error_status;
+      error_status.success = false;
+      error_status.fail_reason = "Invalid data space index " + std::to_string(ds_idx) + " in variable factor";
+      return {error_status};
+    }
+
+    // Apply the chosen factor to the authblock_lines nest
+    auto& authblock_nest = modified_layout[lvl].authblock_lines[ds_idx];
+
+    // Check if rank exists in the authblock nest
+    auto rank_it = std::find(authblock_nest.ranks.begin(), authblock_nest.ranks.end(), rank);
+    if (rank_it == authblock_nest.ranks.end())
+    {
+      Status error_status;
+      error_status.success = false;
+      error_status.fail_reason = "Rank " + rank + " not found in authblock_lines nest for level " + std::to_string(lvl) + ", dataspace " + std::to_string(ds_idx);
+      return {error_status};
+    }
+
+    // Set the chosen factor value
+    authblock_nest.factors[rank] = chosen_factor;
+
+    std::cout << "  Applied factor " << chosen_factor << " to level " << lvl
+              << ", dataspace " << ds_idx << ", rank " << rank << std::endl;
+  }
+
+  // Copy the modified layout to the output parameter
+  if (layouts != nullptr)
+  {
+    *layouts = modified_layout;
+  }
 
   // Return success status
   Status success_status;
   success_status.success = true;
   success_status.fail_reason = "";
-  status_per_level.push_back(success_status);
 
-  return status_per_level;
+  return {success_status};
 }
 
 //
@@ -238,7 +394,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
   unsigned num_loops = mapping.loop_nest.loops.size();
   unsigned num_storage_levels = mapping.loop_nest.storage_tiling_boundaries.size();
   unsigned num_data_spaces = layout_.at(0).intraline.size();
-  unsigned inv_storage_level = num_storage_levels-2; 
+  unsigned inv_storage_level = num_storage_levels-2;
 
   // For DEBUG PURPOSES, we keep the original code below.
   /*
@@ -310,21 +466,58 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
     }
   }
 
+
+  // Calculate cumulative product from end to first index
+  cumulatively_intraline_dimval.resize(storage_level_intraline_dimid_to_loopend.size());
+
+  // Initialize all levels with the initial map
+  for (unsigned lvl = 0; lvl < cumulatively_intraline_dimval.size(); lvl++)
+  {
+    cumulatively_intraline_dimval[lvl] = initial_dimid_to_loopend;
+  }
+
+  // Initialize the last level (no multiplication needed)
+  if (!storage_level_intraline_dimid_to_loopend.empty())
+  {
+    unsigned last_lvl = storage_level_intraline_dimid_to_loopend.size() - 1;
+    cumulatively_intraline_dimval[last_lvl] = storage_level_intraline_dimid_to_loopend[last_lvl];
+
+    // Calculate cumulative product from second-to-last level backwards to first level
+    for (int lvl = static_cast<int>(storage_level_intraline_dimid_to_loopend.size()) - 2; lvl >= 0; lvl--)
+    {
+      for (const auto& kv : storage_level_intraline_dimid_to_loopend[lvl])
+      {
+        std::uint32_t dim_id = kv.first;
+        std::uint32_t current_value = kv.second;
+
+        // Multiply current level value with cumulative product from next level
+        if (cumulatively_intraline_dimval[lvl + 1].find(dim_id) != cumulatively_intraline_dimval[lvl + 1].end())
+        {
+          cumulatively_intraline_dimval[lvl][dim_id] = current_value * cumulatively_intraline_dimval[lvl + 1][dim_id];
+        }
+        else
+        {
+          cumulatively_intraline_dimval[lvl][dim_id] = current_value;
+        }
+      }
+    }
+  }
+
   // Calculate cumulative product from end to first index
   cumulatively_product_dimval.resize(storage_level_overall_dimval.size());
-  
+
   // Initialize all levels with the initial map
   for (unsigned lvl = 0; lvl < cumulatively_product_dimval.size(); lvl++)
   {
     cumulatively_product_dimval[lvl] = initial_dimid_to_loopend;
   }
-  
+
   // Initialize the last level (no multiplication needed)
   if (!storage_level_overall_dimval.empty())
   {
     unsigned last_lvl = storage_level_overall_dimval.size() - 1;
     cumulatively_product_dimval[last_lvl] = storage_level_overall_dimval[last_lvl];
-    
+
     // Calculate cumulative product from second-to-last level backwards to first level
     for (int lvl = static_cast<int>(storage_level_overall_dimval.size()) - 2; lvl >= 0; lvl--)
     {
@@ -332,7 +525,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
       {
         std::uint32_t dim_id = kv.first;
         std::uint32_t current_value = kv.second;
-        
+
         // Multiply current level value with cumulative product from next level
         if (cumulatively_product_dimval[lvl + 1].find(dim_id) != cumulatively_product_dimval[lvl + 1].end())
         {
@@ -405,7 +598,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
         uint32_t total = 0;
         if (dim_ids.size() > 1){
           const auto& coefficient = layout_.at(lvl).rankToCoefficientValue[rank];
-          for (unsigned idx=0; idx < dim_ids.size(); idx++){ 
+          for (unsigned idx=0; idx < dim_ids.size(); idx++){
             auto dim_value = storage_level_intraline_dimid_to_loopend[lvl][dim_ids[idx]];
             if (idx == dim_ids.size()-1)
               total +=  dim_value*coefficient[idx] - 1;
@@ -429,7 +622,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
         total = 0;
         if (dim_ids.size() > 1){
           const auto& coefficient = layout_.at(lvl).rankToCoefficientValue[rank];
-          for (unsigned idx=0; idx < dim_ids.size(); idx++){ 
+          for (unsigned idx=0; idx < dim_ids.size(); idx++){
             auto dim_value = storage_level_interline_dimid_to_loopend[lvl][dim_ids[idx]];
             if (idx == dim_ids.size()-1)
               total +=  dim_value*coefficient[idx] - 1;
@@ -461,7 +654,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
   // second level: number data spaces
   // third level: size of tensor
   for (unsigned lvl=0; lvl < num_storage_levels; lvl++){
-    for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++){ 
+    for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++){
       uint32_t dataspace_size_cur_lvl = 0;
       for (auto & rank: layout_.at(lvl).intraline.at(ds_idx).ranks){
         auto intraline_rank_value = layout_.at(lvl).intraline.at(ds_idx).factors[rank];
@@ -482,217 +675,50 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
   }
 }
 
-
-//
-// ReformLayoutToLegal() - Step 3: Reform layout to be legal with mapping
-//
-void Legal::ReformLayoutToLegal(model::Engine::Specs arch_specs)
-{
-  std::cout << "Step 3: Reforming layout to be legal..." << std::endl;
-
-  // Calculate requested parallelism (RP) as product of spatial loop extents
-  uint64_t requested_parallelism = 1;
-  for (const auto& spatial_loop : concordant_spatial_loops_)
-  {
-    requested_parallelism *= spatial_loop.second;
-  }
-
-  std::cout << "  Requested Parallelism (RP) = " << requested_parallelism << std::endl;
-
-  // Define buffer line capacity (this would typically come from architecture specs)
-  // For now, using a representative value - in real implementation this should come from arch_specs_
-  uint64_t line_cap = 64; // Example line capacity
-  std::cout << "  Buffer Line Capacity = " << line_cap << std::endl;
-
-  // Step 2.1: Check if all requested data fits in on-chip buffer
-  if (!CheckBufferCapacityConstraint(arch_specs, mapping_))
-  {
-    std::cout << "  ERROR: Requested data does not fit in on-chip buffer. Legal space is empty." << std::endl;
-    legal_space_empty_ = true;
-    return;
-  }
-
-  // Step 2.2: Handle different cases based on RP vs line_cap
-  if (requested_parallelism == line_cap)
-  {
-    std::cout << "  RP == line_cap: No additional tiling needed" << std::endl;
-    // Do nothing - current layout is already legal
-  }
-  else if (requested_parallelism > line_cap)
-  {
-    std::cout << "  RP > line_cap: Need further tiling and loop movement" << std::endl;
-    HandleOverParallelism(requested_parallelism, line_cap);
-  }
-  else // requested_parallelism < line_cap
-  {
-    std::cout << "  RP < line_cap: Can pack more data and tile temporal loops" << std::endl;
-    HandleUnderParallelism(requested_parallelism, line_cap);
-  }
-
-  legal_space_empty_ = false;
-  std::cout << "  Layout reform completed successfully" << std::endl;
-}
-
 //
 // CheckBufferCapacityConstraint() - Check if data fits in buffer
 //
 bool Legal::CheckBufferCapacityConstraint(model::Engine::Specs arch_specs, const Mapping& mapping)
 {
+
+#ifdef DEBUG_BUFFER_CAPACITY_CONSTRAINT
   std::cout << "  Checking buffer capacity constraints..." << std::endl;
-  
+#endif
   unsigned num_storage_levels = arch_specs.topology.NumStorageLevels();
   unsigned num_data_spaces = layout_.at(0).intraline.size();
-  
-  // Validate that we have dimension values for each storage level
-  if (cumulatively_product_dimval.size() != num_storage_levels)
-  {
-    std::cout << "    ERROR: Mismatch between storage levels (" << num_storage_levels 
-              << ") and dimension value levels (" << cumulatively_product_dimval.size() << ")" << std::endl;
-    return false;
-  }
-  
-  // Get bypass information from mapping using direct bitset access
-  std::cout << "  Analyzing data space bypass configuration:" << std::endl;
+
   for (unsigned storage_level = 0; storage_level < num_storage_levels; storage_level++)
   {
-    auto storage_level_specs = arch_specs.topology.GetStorageLevel(storage_level);
-    std::cout << "    Level " << storage_level << " (" << storage_level_specs->name.Get() << "): ";
-    
-    std::vector<std::string> kept_data_spaces, bypassed_data_spaces;
-    
-    for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++)
-    {
-      // Check if this dataspace is bypassed at this storage level
-      bool is_kept = mapping.datatype_bypass_nest.at(ds_idx).test(storage_level);
-      
-      if (is_kept)
-      {
-        if (ds_idx < layout_.at(storage_level).data_space.size())
-          kept_data_spaces.push_back(layout_.at(storage_level).data_space[ds_idx]);
-        else
-          kept_data_spaces.push_back("DataSpace" + std::to_string(ds_idx));
-      }
-      else
-      {
-        if (ds_idx < layout_.at(storage_level).data_space.size())
-          bypassed_data_spaces.push_back(layout_.at(storage_level).data_space[ds_idx]);
-        else
-          bypassed_data_spaces.push_back("DataSpace" + std::to_string(ds_idx));
-      }
-    }
-    
-    std::cout << "Keep=[";
-    for (size_t i = 0; i < kept_data_spaces.size(); i++)
-    {
-      std::cout << kept_data_spaces[i];
-      if (i < kept_data_spaces.size() - 1) std::cout << ", ";
-    }
-    std::cout << "], Bypass=[";
-    for (size_t i = 0; i < bypassed_data_spaces.size(); i++)
-    {
-      std::cout << bypassed_data_spaces[i];
-      if (i < bypassed_data_spaces.size() - 1) std::cout << ", ";
-    }
-    std::cout << "]" << std::endl;
-  }
-  
-  // Iterate through each storage level
-  for (unsigned storage_level = 0; storage_level < num_storage_levels; storage_level++)
-  {
-    auto storage_level_specs = arch_specs.topology.GetStorageLevel(storage_level);
-    
-    // Extract memory specifications
-    std::uint64_t total_capacity = 0;
-    std::uint64_t block_size = 0;
-    std::uint64_t line_capacity = 0;
-    std::uint64_t word_bits = 0;
-    double read_bandwidth = 0.0;
-    double write_bandwidth = 0.0;
-    
-    // Extract word_bits
-    if (storage_level_specs->word_bits.IsSpecified())
-    {
-      word_bits = storage_level_specs->word_bits.Get();
-    }
-    
-    // Extract block_size (elements per memory line)
-    if (storage_level_specs->block_size.IsSpecified())
-    {
-      block_size = storage_level_specs->block_size.Get();
-    }
-    
-    // Extract bandwidth specifications
-    if (storage_level_specs->read_bandwidth.IsSpecified())
-    {
-      read_bandwidth = storage_level_specs->read_bandwidth.Get();
-    }
-    
-    if (storage_level_specs->write_bandwidth.IsSpecified())
-    {
-      write_bandwidth = storage_level_specs->write_bandwidth.Get();
-    }
-    
-    // Extract total capacity
-    if (storage_level_specs->size.IsSpecified())
-    {
-      total_capacity = storage_level_specs->size.Get();
-    }
-    else
-    {
-      std::cout << "    WARNING: Storage level " << storage_level 
-                << " (" << storage_level_specs->name.Get() << ") has unspecified size" << std::endl;
-      continue;
-    }
-    
-    // Line capacity is the number of elements that can be accessed in parallel
-    // Use the maximum of read_bandwidth and write_bandwidth, or block_size as fallback
-    line_capacity = static_cast<std::uint64_t>(std::max(read_bandwidth, write_bandwidth));
-    if (line_capacity == 0)
-    {
-      line_capacity = block_size;  // Fallback to block_size
-    }
-    
-    // Calculate memory depth from total capacity and block size
-    std::uint64_t memory_depth = (block_size > 0) ? (total_capacity / block_size) : 0;
-    
-    std::cout << "    Storage Level " << storage_level 
-              << " (" << storage_level_specs->name.Get() << "):" << std::endl;
-    std::cout << "      Memory depth: " << memory_depth << " lines" << std::endl;
-    std::cout << "      Block size: " << block_size << " elements per line" << std::endl;
-    std::cout << "      Total capacity: " << total_capacity << " elements" << std::endl;
-    std::cout << "      Line capacity (bandwidth): " << line_capacity << " elements/cycle" << std::endl;
-    std::cout << "      Word bits: " << word_bits << " bits" << std::endl;
-    std::cout << "      Read bandwidth: " << read_bandwidth << " elements/cycle" << std::endl;
-    std::cout << "      Write bandwidth: " << write_bandwidth << " elements/cycle" << std::endl;
-    
-    // Get cumulative dimension values for this storage level
+  // Get cumulative dimension values for this storage level
+    std::uint64_t total_capacity = storage_level_total_capacity[storage_level];
+    std::uint64_t line_capacity = storage_level_line_capacity[storage_level];
     const auto& level_dimval = cumulatively_product_dimval[storage_level];
-    
+
     // Calculate total data requirements at this storage level
     std::uint64_t total_data_size = 0;
     std::uint64_t total_parallel_accesses = 0;
-    
+
     for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++)
     {
       // Check if this dataspace is bypassed at this storage level
       bool is_kept = mapping.datatype_bypass_nest.at(ds_idx).test(storage_level);
-      
+
       std::uint64_t dataspace_total_size = 1;    // Total data size for this dataspace
       std::uint64_t dataspace_parallel_size = 1; // Parallel access requirement for this dataspace
-      
+
       if (is_kept)
       {
         // Calculate data size using layout factors and cumulative dimension values
         const auto& ranks = layout_.at(storage_level).intraline.at(ds_idx).ranks;
-        
+
         for (auto& rank : ranks)
         {
           auto intraline_factor = layout_.at(storage_level).intraline.at(ds_idx).factors[rank];
           auto interline_factor = layout_.at(storage_level).interline.at(ds_idx).factors[rank];
-          
+
           // Get dimension IDs for this rank
           const auto& dim_ids = layout_.at(storage_level).rankToFactorizedDimensionID.at(rank);
-          
+
           // Calculate rank size using cumulative dimension values
           std::uint64_t rank_dimension_product = 1;
           for (auto dim_id : dim_ids)
@@ -702,25 +728,25 @@ bool Legal::CheckBufferCapacityConstraint(model::Engine::Specs arch_specs, const
               rank_dimension_product *= level_dimval.at(dim_id);
             }
           }
-          
+
           // The actual rank size is constrained by the layout factors and dimension values
-          std::uint64_t rank_total_size = std::min(rank_dimension_product, 
+          std::uint64_t rank_total_size = std::min(rank_dimension_product,
                                                   static_cast<std::uint64_t>(intraline_factor * interline_factor));
-          std::uint64_t rank_parallel_size = std::min(rank_dimension_product, 
+          std::uint64_t rank_parallel_size = std::min(rank_dimension_product,
                                                      static_cast<std::uint64_t>(intraline_factor));
-          
+
           // Accumulate across ranks (multiplicative since ranks are dimensions)
           dataspace_total_size *= rank_total_size;
           dataspace_parallel_size *= rank_parallel_size;
         }
-        
+
         // Handle case with no ranks (scalar data)
         if (ranks.empty())
         {
           dataspace_total_size = 1;
           dataspace_parallel_size = 1;
         }
-        
+
         // Add to total requirements across all data spaces (only if not bypassed)
         total_data_size += dataspace_total_size;
         total_parallel_accesses += dataspace_parallel_size;
@@ -731,7 +757,7 @@ bool Legal::CheckBufferCapacityConstraint(model::Engine::Specs arch_specs, const
         dataspace_total_size = 0;
         dataspace_parallel_size = 0;
       }
-      
+#ifdef DEBUG_BUFFER_CAPACITY_CONSTRAINT
       std::cout << "      Data space " << ds_idx;
       if (ds_idx < layout_.at(storage_level).data_space.size())
       {
@@ -740,99 +766,176 @@ bool Legal::CheckBufferCapacityConstraint(model::Engine::Specs arch_specs, const
       std::cout << (is_kept ? " [KEPT]" : " [BYPASSED]") << ":" << std::endl;
       std::cout << "        Total data size: " << dataspace_total_size << " elements" << std::endl;
       std::cout << "        Parallel accesses: " << dataspace_parallel_size << " elements" << std::endl;
+#endif
     }
-    
+
+#ifdef DEBUG_BUFFER_CAPACITY_CONSTRAINT
     std::cout << "      TOTAL data size across all spaces: " << total_data_size << " elements" << std::endl;
     std::cout << "      TOTAL parallel accesses: " << total_parallel_accesses << " elements" << std::endl;
-    
+#endif
+
     // Check capacity constraint: total data size should not exceed buffer capacity
     if (total_data_size > total_capacity)
-    {
-      std::cout << "    ERROR: Total data size (" << total_data_size 
-                << ") exceeds memory capacity (" << total_capacity << ")" << std::endl;
-      return false;
-    }
-    
+      throw std::runtime_error("Buffer capacity constraint violation: Total data size (" + std::to_string(total_data_size) + ") exceeds memory capacity (" + std::to_string(total_capacity) + ")");
+
     // Check bandwidth constraint: parallel accesses must fit in line capacity
     if (total_parallel_accesses > line_capacity)
-    {
-      std::cout << "    ERROR: Total parallel accesses (" << total_parallel_accesses 
-                << ") exceed line capacity (" << line_capacity << ")" << std::endl;
-      return false;
-    }
-    
-    std::cout << "    ✓ Storage level " << storage_level << " constraints satisfied" << std::endl;
+      throw std::runtime_error(" Buffer bandwidth constraint violation: Total parallel accesses (" + std::to_string(total_parallel_accesses) + ") exceed line capacity (" + std::to_string(line_capacity) + ")");
+
+    std::cout << "    ✓ Storage level " << storage_level << " has sufficient (1) space and (2) bandwidth" << std::endl;
   }
-  
+
   std::cout << "  ✓ All buffer capacity constraints satisfied" << std::endl;
+
+  // Print storage level capacities
+  std::cout << "Storage level capacities:" << std::endl;
+  for (uint32_t i = 0; i < storage_level_total_capacity.size(); i++) {
+    std::cout << "  Level " << i << ":" << std::endl;
+    std::cout << "    Total capacity: " << storage_level_total_capacity[i] << std::endl;
+    std::cout << "    Line capacity: " << storage_level_line_capacity[i] << std::endl;
+  }
   return true;
 }
 
 //
-// HandleOverParallelism() - Handle case where RP > line_cap
+// CreateSpace() - Step 3: Generate all possible authblock_lines factor combinations
 //
-void Legal::HandleOverParallelism(uint64_t requested_parallelism, uint64_t line_cap)
+void Legal::CreateSpace(model::Engine::Specs arch_specs)
 {
-  std::cout << "    Implementing further intraline tiling..." << std::endl;
+  (void) arch_specs; // Suppress unused parameter warning
 
-  // Calculate tiling factor needed
-  uint64_t tiling_factor = (requested_parallelism + line_cap - 1) / line_cap; // Ceiling division
-  std::cout << "    Tiling factor needed: " << tiling_factor << std::endl;
+  std::cout << "Step 3: Creating layout candidate space from authblock_lines factors..." << std::endl;
 
-  // Create new design space for:
-  // 1. Which spatial loops to tile further
-  // 2. How to move some loops from intraline to interline
+  unsigned num_storage_levels = layout_.size();
+  unsigned num_data_spaces = layout_.at(0).intraline.size();
 
-  // For demonstration, tile the largest spatial loop
-  if (!concordant_spatial_loops_.empty())
+  // Identify storage levels with non-empty authblock_lines and collect variable factors
+  variable_authblock_factors_.clear();
+
+  for (unsigned lvl = 0; lvl < num_storage_levels; lvl++)
   {
-    auto& largest_loop = *std::max_element(concordant_spatial_loops_.begin(),
-                                          concordant_spatial_loops_.end(),
-                                          [](const auto& a, const auto& b) { return a.second < b.second; });
+    bool has_non_empty_authblock = false;
 
-    std::cout << "    Tiling spatial loop " << largest_loop.first
-              << " (size " << largest_loop.second << ")" << std::endl;
+    // Check if authblock_lines vector has enough elements first
+    if (layout_.at(lvl).authblock_lines.size() >= num_data_spaces)
+    {
+      for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++)
+      {
+        if (!layout_.at(lvl).authblock_lines.at(ds_idx).factors.empty())
+        {
+          has_non_empty_authblock = true;
+          break;
+        }
+      }
+    }
 
-    // Split the loop: part stays intraline, part becomes interline
-    uint64_t intraline_portion = largest_loop.second / tiling_factor;
-    uint64_t interline_portion = tiling_factor;
+    if (has_non_empty_authblock)
+    {
+      std::cout << "  Level " << lvl << " has non-empty authblock_lines, will generate candidates" << std::endl;
 
-    std::cout << "    Split: intraline=" << intraline_portion
-              << ", interline=" << interline_portion << std::endl;
+      // Collect variable authblock_lines factors for this level
+      for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++)
+      {
+        const auto& authblock_nest = layout_.at(lvl).authblock_lines.at(ds_idx);
+        // const auto& interline_nest = layout_.at(lvl).interline.at(ds_idx);
+        // const auto& intraline_nest = layout_.at(lvl).intraline.at(ds_idx);
+
+        // Check if this nest has non-empty factors
+        if (!authblock_nest.factors.empty())
+        {
+          for (const auto& rank : authblock_nest.ranks)
+          {
+            // Calculate max value from cumulatively_product_dimval instead of nest factors
+            uint32_t max_value = 1;
+            uint32_t max_value_intraline = 1;
+            uint32_t max_factor = 1;
+
+            // Get dimension IDs for this rank
+            auto dims = layout_.at(lvl).rankToFactorizedDimensionID.at(rank);
+
+            // Calculate cumulative product for all dimensions of this rank
+            for (uint32_t dim_id : dims)
+            {
+              auto cumulative_it = cumulatively_product_dimval[lvl+1].find(dim_id); // lvl+1 because the lvl=0 is off-chip DRAM, and lvl=1 is global buffer (on-chip)
+              if (cumulative_it != cumulatively_product_dimval[lvl+1].end())
+              {
+                max_value *= cumulative_it->second;
+              }
+              else
+              {
+                std::cout << "Warning: dimension ID " << dim_id << " not found in cumulatively_product_dimval for level " << lvl << std::endl;
+              }
+
+              auto cumulative_it_intraline = cumulatively_intraline_dimval[lvl].find(dim_id); // lvl+1 because the lvl=0 is off-chip DRAM, and lvl=1 is global buffer (on-chip)
+              if (cumulative_it_intraline != cumulatively_intraline_dimval[lvl].end())
+              {
+                max_value_intraline *= cumulative_it_intraline->second;
+              }
+              else
+              {
+                std::cout << "Warning: dimension ID " << dim_id << " not found in max_value_intraline for level " << lvl << std::endl;
+              }
+            }
+
+            std::cout << " lvl=" << lvl << " ds_idx=" << ds_idx << " rank=" << rank << " dims=[";
+            for (size_t i = 0; i < dims.size(); i++)
+            {
+              std::cout << dims[i];
+              if (i < dims.size() - 1) std::cout << ",";
+            }
+            max_factor = static_cast<uint32_t>(std::ceil(static_cast<double>(max_value) / static_cast<double>(max_value_intraline)));
+            std::cout << "] "<< "max_value=" << max_value << " max_value_intraline=" << max_value_intraline << "  max_factor(max_value/max_value_intraline)=" << max_factor << std::endl;
+
+            // Only add if max_factor > 1 (there are variations possible)
+            if (max_factor > 1)
+            {
+              variable_authblock_factors_.push_back(std::make_tuple(lvl, ds_idx, rank, max_factor));
+
+              std::cout << "  Variable factor: Level " << lvl
+                       << ", DataSpace " << ds_idx
+                       << ", Rank " << rank
+                       << ", Dimensions: [";
+              for (size_t i = 0; i < dims.size(); i++)
+              {
+                std::cout << dims[i];
+                if (i < dims.size() - 1) std::cout << ",";
+              }
+              std::cout << "], max_factor: " << max_factor << std::endl;
+            }
+          }
+        }
+      }
+    }
+    else
+    {
+      std::cout << "  Level " << lvl << " has empty authblock_lines, skipping candidate generation" << std::endl;
+    }
   }
-}
 
-//
-// HandleUnderParallelism() - Handle case where RP < line_cap
-//
-void Legal::HandleUnderParallelism(uint64_t requested_parallelism, uint64_t line_cap)
-{
-  std::cout << "    Packing spatial data and tiling temporal loops..." << std::endl;
+  std::cout << " Total variable authblock factors found: " << variable_authblock_factors_.size() << std::endl;
 
-  uint64_t remaining_capacity = line_cap - requested_parallelism;
-  std::cout << "    Remaining line capacity: " << remaining_capacity << std::endl;
-
-  // Enumerate temporal loops that can be packed into remaining slots
-  for (const auto& temporal_loop : concordant_temporal_loops_)
+  // If no variable factors found, we have only one candidate (the original layout)
+  if (variable_authblock_factors_.empty())
   {
-    if (remaining_capacity >= temporal_loop.second)
-    {
-      std::cout << "    Can pack temporal loop " << temporal_loop.first
-                << " (size " << temporal_loop.second << ") into remaining slots" << std::endl;
-      remaining_capacity -= temporal_loop.second;
-    }
-    else if (remaining_capacity > 1)
-    {
-      // Tile the temporal loop to fit remaining capacity
-      uint64_t tile_size = remaining_capacity;
-      std::cout << "    Tiling temporal loop " << temporal_loop.first
-                << " with tile size " << tile_size << std::endl;
-      remaining_capacity = 0;
-      break;
-    }
+    std::cout << "  No variable authblock_lines factors found. Single layout candidate." << std::endl;
+    num_layout_candidates = 1;
+    return;
   }
 
-  std::cout << "    Final remaining capacity: " << remaining_capacity << std::endl;
+  // Calculate total number of combinations
+  num_layout_candidates = 1;
+  authblock_factor_ranges_.clear();
+
+  for (const auto& var_factor : variable_authblock_factors_)
+  {
+    uint32_t max_factor = std::get<3>(var_factor);
+    authblock_factor_ranges_.push_back(max_factor); // Values from 1 to max_factor, so max_factor combinations
+    num_layout_candidates *= max_factor;
+  }
+
+  std::cout << "  Total authblock_lines layout candidates: " << num_layout_candidates << std::endl;
+  std::cout << "  Variable factors count: " << variable_authblock_factors_.size() << std::endl;
+  std::cout << "  ✓ Layout candidate space created successfully" << std::endl;
 }
 
 } // namespace layoutspace

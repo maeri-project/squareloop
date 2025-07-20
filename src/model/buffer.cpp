@@ -42,7 +42,7 @@ BOOST_CLASS_EXPORT(model::BufferLevel)
 #include "util/misc.hpp"
 #include "util/numeric.hpp"
 
-// #define DEBUG
+#define DEBUG
 
 namespace model
 {
@@ -1333,7 +1333,20 @@ namespace model
       ds.auth_block_size = 1;
       ds.memory_line = 1;
       auto intra_nest = layout.intraline[data_space_id];
-      auto auth_nest = layout.authblock_lines[data_space_id];
+      
+      // Check if authblock_lines has enough elements to safely access data_space_id
+      layout::LayoutNest auth_nest;
+      if (data_space_id < layout.authblock_lines.size() && 
+          !layout.authblock_lines[data_space_id].factors.empty()) {
+        auth_nest = layout.authblock_lines[data_space_id];
+      } else {
+        // Create a default auth_nest with empty factors if authblock_lines is not available
+        auth_nest.data_space = intra_nest.data_space;
+        auth_nest.type = "authblock_lines";
+        auth_nest.ranks = intra_nest.ranks;
+        // auth_nest.factors is left empty, so the .find() calls below will return .end()
+      }
+      
       for (const auto &r : intra_nest.ranks) // Analyze slowdown per rank
       {
         int factor = (intra_nest.factors.find(r) != intra_nest.factors.end() ? intra_nest.factors.at(r) : 1);
@@ -1612,7 +1625,9 @@ namespace model
       ds.crypto_hash_reads_per_line = 0;
       // only consider crypto if config is provided AND only for offchip memory
       // (DRAM) ToDo: can this be checked in a cleaner way?
-      if (crypto_config != nullptr && crypto_config->crypto_initialized_ && !layout.authblock_lines[data_space_id].factors.empty()) {
+      bool has_authblock_factors = (data_space_id < layout.authblock_lines.size() && 
+                                    !layout.authblock_lines[data_space_id].factors.empty());
+      if (crypto_config != nullptr && crypto_config->crypto_initialized_ && has_authblock_factors) {
         double word_size = specs_.word_bits.Get();
         crypto_blocks_per_line = std::ceil((double)ds.auth_block_size * word_size /
                                           (crypto_config->datapath));

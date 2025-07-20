@@ -82,6 +82,15 @@ class LayoutSpace
   std::array<uint128_t, int(Dimension::Num)> size_;
 
  public:
+  std::uint64_t num_layout_candidates;
+  std::vector<std::vector<std::uint32_t>> tensor_size; 
+  std::vector<std::map<std::uint32_t, std::uint32_t>> storage_level_overall_dimval;
+  std::vector<std::map<std::uint32_t, std::uint32_t>> cumulatively_intraline_dimval;
+  std::vector<std::map<std::uint32_t, std::uint32_t>> cumulatively_product_dimval;
+  std::vector<std::uint32_t> storage_level_total_capacity;
+  std::vector<std::uint32_t> storage_level_line_capacity;
+  std::vector<std::string> kept_data_spaces, bypassed_data_spaces;
+  
   LayoutSpace(model::Engine::Specs arch_specs,
               const Mapping& mapping,
               layout::Layouts& layout) :
@@ -92,10 +101,6 @@ class LayoutSpace
   {}
 
   virtual ~LayoutSpace() {}
-
-  virtual std::vector<LayoutSpace*> Split(std::uint64_t num_splits) = 0;
-
-  virtual void InitPruned(uint128_t local_layout_id) = 0;
 
   virtual std::vector<Status> ConstructLayout(ID layout_id, layout::Layouts* layouts, bool break_on_failure = true) = 0;
 

@@ -128,4 +128,7 @@ void PrintOneLvlLayout(Layout layout);
 //------------------------------------------------------------------------------
 void PrintOneLvlLayoutDataSpace(Layout layout, std::string data_space_in);
 
+//------------------------------------------------------------------------------
+void DumpLayoutToYAML(const Layouts& layouts, const std::string& filename);
+
 } // namespace layout

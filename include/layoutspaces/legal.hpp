@@ -61,10 +61,11 @@ class Legal : public LayoutSpace
   std::vector<std::pair<std::string, uint64_t>> concordant_spatial_loops_;
   bool legal_space_empty_;
 
+  // AuthBlock factor variation tracking
+  std::vector<std::tuple<unsigned, unsigned, std::string, uint32_t>> variable_authblock_factors_; // level, dataspace, rank, max_value
+  std::vector<uint32_t> authblock_factor_ranges_;
+
  public:
-  std::vector<std::vector<std::uint32_t>> tensor_size; 
-  std::vector<std::map<std::uint32_t, std::uint32_t>> storage_level_overall_dimval;
-  std::vector<std::map<std::uint32_t, std::uint32_t>> cumulatively_product_dimval;
 
   //
   // Legal() - Constructor for mapping-based layout creation
@@ -82,18 +83,10 @@ class Legal : public LayoutSpace
   //        Initialization and Setup          // 
   //------------------------------------------//
 
-  void Init();  
-  void InitDataLayoutSpace();
-  void InitPermutationSpace();
-  void InitBlockingFactorSpace();
-  void InitInterleavingSpace();
-  void InitPruned(uint128_t layout_id);
-
-  // Split the layoutspace (used for parallelization).
-  std::vector<LayoutSpace*> Split(std::uint64_t num_splits);
+  void Init(model::Engine::Specs arch_specs, const Mapping& mapping);  
 
   // Construct a specific layout from the layoutspace.
-  std::vector<Status> ConstructLayout(ID layout_id, layout::Layouts* layouts, bool break_on_failure = true);
+  std::vector<Status> ConstructLayout(ID layout_id, layout::Layouts* layouts, bool break_on_failure = true) override;
 
  protected:
 
@@ -105,10 +98,8 @@ class Legal : public LayoutSpace
 
   // Layout constraint methods
   void CreateConcordantLayout(const Mapping& mapping);
-  void ReformLayoutToLegal(model::Engine::Specs arch_specs);
+  void CreateSpace(model::Engine::Specs arch_specs);
   bool CheckBufferCapacityConstraint(model::Engine::Specs arch_specs, const Mapping& mapping);
-  void HandleOverParallelism(uint64_t requested_parallelism, uint64_t line_cap);
-  void HandleUnderParallelism(uint64_t requested_parallelism, uint64_t line_cap);
 };
 
 } // namespace layoutspace 
