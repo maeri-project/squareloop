@@ -35,6 +35,7 @@
 #include "mapping/mapping.hpp"
 
 using namespace boost::multiprecision;
+// #define DEBUG 
 
 namespace layoutspace
 {
@@ -104,6 +105,8 @@ class LayoutSpace
 
   virtual std::vector<Status> ConstructLayout(ID layout_id, layout::Layouts* layouts, bool break_on_failure = true) = 0;
 
+  virtual void CreateConcordantLayout(const Mapping& mapping) = 0;
+
   std::vector<Status> ConstructLayout(const uint128_t layout_id, layout::Layouts* layouts, bool break_on_failure = true)
   {
     ID clayout_id(size_);
@@ -130,6 +133,12 @@ class LayoutSpace
   {
     return size_;
   }
-};
+
+  layout::Layouts* GetLayout()
+  {
+    return &layout_;
+  }
+
+}; // class LayoutSpace
 
 } // namespace layoutspace

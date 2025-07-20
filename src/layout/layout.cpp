@@ -659,6 +659,208 @@ namespace layout
     }
   }
 
+  //------------------------------------------------------------------------------
+  // PrintOverallLayoutConcise
+  // Prints layout information in a concise format, grouping by data space and 
+  // showing factors in rank=factor format on single lines.
+  void
+  PrintOverallLayoutConcise(Layouts layouts)
+  {
+    std::cout << "Dimension Order: ";
+    for (size_t i = 0; i < layouts[0].dim_order.size(); i++)
+    {
+      char d = layouts[0].dim_order[i];
+      std::string dStr(1, d);
+      std::cout << d << "-" << layouts[0].dimensionToDimID[dStr];
+      if (i != layouts[0].dim_order.size() - 1)
+        std::cout << ", ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "Rank List: ";
+    for (const auto &r : layouts[0].rank_list)
+      std::cout << r << " ";
+    std::cout << std::endl << std::endl;
+
+    for (const auto &layout : layouts)
+    {
+      std::cout << "Target: " << layout.target << std::endl;
+      std::cout << " num_read_ports: " << layout.num_read_ports
+                << ", num_write_ports: " << layout.num_write_ports << std::endl;
+
+      // Get all unique data spaces from all nest types
+      std::set<std::string> data_spaces;
+      for (const auto &nest : layout.interline)
+        data_spaces.insert(nest.data_space);
+      for (const auto &nest : layout.intraline)
+        data_spaces.insert(nest.data_space);
+      for (const auto &nest : layout.authblock_lines)
+        data_spaces.insert(nest.data_space);
+
+      // For each data space, print all nest types in a compact format
+      for (const auto &ds : data_spaces)
+      {
+        std::cout << "  Data space: " << ds << std::endl;
+        
+        // Print interline factors
+        for (const auto &nest : layout.interline)
+        {
+          if (nest.data_space == ds)
+          {
+            std::cout << "    interline: ";
+            bool first = true;
+            for (const auto &r : nest.ranks)
+            {
+              if (!first) std::cout << ", ";
+              int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
+              std::cout << r << "=" << factor;
+              first = false;
+            }
+            std::cout << std::endl;
+            break;
+          }
+        }
+        
+        // Print intraline factors
+        for (const auto &nest : layout.intraline)
+        {
+          if (nest.data_space == ds)
+          {
+            std::cout << "    intraline: ";
+            bool first = true;
+            for (const auto &r : nest.ranks)
+            {
+              if (!first) std::cout << ", ";
+              int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
+              std::cout << r << "=" << factor;
+              first = false;
+            }
+            std::cout << std::endl;
+            break;
+          }
+        }
+        
+        // Print authblock_lines factors (only if it exists and has factors)
+        for (const auto &nest : layout.authblock_lines)
+        {
+          if (nest.data_space == ds && !nest.factors.empty())
+          {
+            std::cout << "    authblock_lines: ";
+            bool first = true;
+            for (const auto &r : nest.ranks)
+            {
+              if (!first) std::cout << ", ";
+              int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
+              std::cout << r << "=" << factor;
+              first = false;
+            }
+            std::cout << std::endl;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  void
+  PrintOverallLayoutConcise(Layouts layouts, std::ostream &os)
+  {
+    os << "Dimension Order: ";
+    for (size_t i = 0; i < layouts[0].dim_order.size(); i++)
+    {
+      char d = layouts[0].dim_order[i];
+      std::string dStr(1, d);
+      os << d << "-" << layouts[0].dimensionToDimID[dStr];
+      if (i != layouts[0].dim_order.size() - 1)
+        os << ", ";
+    }
+    os << std::endl;
+
+    os << "Rank List: ";
+    for (const auto &r : layouts[0].rank_list)
+      os << r << " ";
+    os << std::endl << std::endl;
+
+    for (const auto &layout : layouts)
+    {
+      os << "Target: " << layout.target << std::endl;
+      os << " num_read_ports: " << layout.num_read_ports
+                << ", num_write_ports: " << layout.num_write_ports << std::endl;
+
+      // Get all unique data spaces from all nest types
+      std::set<std::string> data_spaces;
+      for (const auto &nest : layout.interline)
+        data_spaces.insert(nest.data_space);
+      for (const auto &nest : layout.intraline)
+        data_spaces.insert(nest.data_space);
+      for (const auto &nest : layout.authblock_lines)
+        data_spaces.insert(nest.data_space);
+
+      // For each data space, print all nest types in a compact format
+      for (const auto &ds : data_spaces)
+      {
+        os << "  Data space: " << ds << std::endl;
+        
+        // Print interline factors
+        for (const auto &nest : layout.interline)
+        {
+          if (nest.data_space == ds)
+          {
+            os << "    interline: ";
+            bool first = true;
+            for (const auto &r : nest.ranks)
+            {
+              if (!first) os << ", ";
+              int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
+              os << r << "=" << factor;
+              first = false;
+            }
+            os << std::endl;
+            break;
+          }
+        }
+        
+        // Print intraline factors
+        for (const auto &nest : layout.intraline)
+        {
+          if (nest.data_space == ds)
+          {
+            os << "    intraline: ";
+            bool first = true;
+            for (const auto &r : nest.ranks)
+            {
+              if (!first) os << ", ";
+              int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
+              os << r << "=" << factor;
+              first = false;
+            }
+            os << std::endl;
+            break;
+          }
+        }
+        
+        // Print authblock_lines factors (only if it exists and has factors)
+        for (const auto &nest : layout.authblock_lines)
+        {
+          if (nest.data_space == ds && !nest.factors.empty())
+          {
+            os << "    authblock_lines: ";
+            bool first = true;
+            for (const auto &r : nest.ranks)
+            {
+              if (!first) os << ", ";
+              int factor = (nest.factors.find(r) != nest.factors.end() ? nest.factors.at(r) : 1);
+              os << r << "=" << factor;
+              first = false;
+            }
+            os << std::endl;
+            break;
+          }
+        }
+      }
+    }
+  }
+
   void
   PrintOneLvlLayout(Layout layout)
   {

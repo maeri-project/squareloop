@@ -28,6 +28,11 @@
 #include "layoutspaces/legal.hpp"
 
 #include "layoutspaces/layoutspace-factory.hpp"
+#include <map>
+#include <iostream>
+#include <cassert>
+#include <string>
+#include "mapping/loop.hpp"
 
 namespace layoutspace
 {
@@ -142,6 +147,139 @@ LayoutSpace* CreateLayoutSpace(const Mapping& mapping,
 {
 
   return new Legal(arch_specs, mapping, layout, skip_init);
+}
+
+//--------------------------------------------//
+//    Create Concordant Layout Standalone     //
+//--------------------------------------------//
+
+layout::Layouts CreateConcordantLayoutStandalone(const Mapping& mapping, layout::Layouts& layout)
+{
+  // Copy input layout to layout_local as a new independent variable
+  layout::Layouts layout_local = layout;
+  
+  // Clear authblock nested loops if they're non-empty
+  for (unsigned lvl = 0; lvl < layout_local.size(); lvl++)
+  {
+    for (unsigned ds_idx = 0; ds_idx < layout_local[lvl].authblock_lines.size(); ds_idx++)
+    {
+      if (!layout_local[lvl].authblock_lines[ds_idx].factors.empty())
+      {
+        // Clear the authblock factors to make it empty
+        layout_local[lvl].authblock_lines[ds_idx].factors.clear();
+#ifdef DEBUG
+        std::cout << "Cleared authblock_lines factors for level " << lvl << ", dataspace " << ds_idx << std::endl;
+#endif
+      }
+    }
+  }
+
+#ifdef DEBUG
+  std::cout << "Total number of storage levels: " << mapping.loop_nest.storage_tiling_boundaries.size() << std::endl;
+  std::cout << "Total number of layout levels: " << layout_local.size() << std::endl;
+  assert(mapping.loop_nest.storage_tiling_boundaries.size() == layout_local.size());
+  std::cout << "Total number of data spaces: " << layout_local.at(0).intraline.size() << std::endl;
+#endif
+
+  // Build a initialized map that assigns 1 to every dimension ID present in dim_order.
+  std::map<std::uint32_t, std::uint32_t> initial_dimid_to_loopend;
+  for (char dim_char : layout_local.at(0).dim_order)
+  {
+    // Convert the char stored in dim_order to a std::string so it can be used
+    // as a key into the dimensionToDimID map.
+    std::string dim_name(1, dim_char);
+
+    // Look up the dimension ID associated with this name.
+    auto dim_id_itr = layout_local.at(0).dimensionToDimID.find(dim_name);
+    if (dim_id_itr == layout_local.at(0).dimensionToDimID.end())
+    {
+      std::cerr << "ERROR: dimension name " << dim_name << " not found in dimensionToDimID map." << std::endl;
+      throw std::runtime_error("Invalid dimension name in dim_order");
+    }
+
+    initial_dimid_to_loopend[dim_id_itr->second] = 1;
+  }
+
+  /*
+      Step 1: Collect the interline nested loop and intraline nested loop.
+  */
+  unsigned num_loops = mapping.loop_nest.loops.size();
+  unsigned num_storage_levels = mapping.loop_nest.storage_tiling_boundaries.size();
+  unsigned num_data_spaces = layout_local.at(0).intraline.size();
+  unsigned inv_storage_level = num_storage_levels;
+
+  // Each storage level vector element starts as a copy of the prototype map.
+  std::vector<std::map<std::uint32_t, std::uint32_t>> storage_level_interline_dimid_to_loopend(mapping.loop_nest.storage_tiling_boundaries.size(), initial_dimid_to_loopend);
+  std::vector<std::map<std::uint32_t, std::uint32_t>> storage_level_intraline_dimid_to_loopend(mapping.loop_nest.storage_tiling_boundaries.size(), initial_dimid_to_loopend);
+
+  for (unsigned loop_level = num_loops-1; loop_level != static_cast<unsigned>(-1); loop_level--)
+  {
+    if (inv_storage_level > 0 &&
+        mapping.loop_nest.storage_tiling_boundaries.at(inv_storage_level-1) == loop_level)
+    {
+      inv_storage_level--;
+    }
+
+    if (loop::IsSpatial(mapping.loop_nest.loops.at(loop_level).spacetime_dimension))
+    {
+      storage_level_intraline_dimid_to_loopend[inv_storage_level][mapping.loop_nest.loops.at(loop_level).dimension] = mapping.loop_nest.loops.at(loop_level).end;
+    }else{
+      storage_level_interline_dimid_to_loopend.at(inv_storage_level)[mapping.loop_nest.loops.at(loop_level).dimension] = mapping.loop_nest.loops.at(loop_level).end;
+    }
+  }
+
+  /*
+      Step 2: Assign collapsed nested loop to the layout.
+  */
+  for(unsigned lvl=0; lvl < storage_level_intraline_dimid_to_loopend.size(); lvl++){
+    for (unsigned i = 0; i < num_data_spaces; i++){ // iterate over all data spaces
+      for(auto & rank: layout_local.at(lvl).intraline.at(i).ranks){ // iterate over all ranks of the data space
+        const auto& dim_ids = layout_local.at(lvl).rankToFactorizedDimensionID.at(rank);
+        uint32_t total = 0;
+        if (dim_ids.size() > 1){
+          const auto& coefficient = layout_local.at(lvl).rankToCoefficientValue[rank];
+          for (unsigned idx=0; idx < dim_ids.size(); idx++){
+            auto dim_value = storage_level_intraline_dimid_to_loopend[lvl][dim_ids[idx]];
+            if (idx == dim_ids.size()-1)
+              total +=  dim_value*coefficient[idx] - 1;
+            else
+              total +=  dim_value*coefficient[idx];
+#ifdef DEBUG
+            std::cout << "dim_value=" << dim_value << "--coef[" << idx << "]=" << coefficient[idx] << "; ";
+#endif
+          }
+        }
+        else{
+          auto dim_value = storage_level_intraline_dimid_to_loopend[lvl][dim_ids[0]];
+          total = dim_value;
+        }
+
+        layout_local.at(lvl).intraline.at(i).factors.at(rank) = total;
+#ifdef DEBUG
+        std::cout << "level=" << lvl << " i=" << i << " rank=" << rank << " intraline = " << total << std::endl;
+#endif
+
+        total = 0;
+        if (dim_ids.size() > 1){
+          const auto& coefficient = layout_local.at(lvl).rankToCoefficientValue[rank];
+          for (unsigned idx=0; idx < dim_ids.size(); idx++){
+            auto dim_value = storage_level_interline_dimid_to_loopend[lvl][dim_ids[idx]];
+            if (idx == dim_ids.size()-1)
+              total +=  dim_value*coefficient[idx] - 1;
+            else
+              total +=  dim_value*coefficient[idx];
+          }
+        }
+        else{
+          auto dim_value = storage_level_interline_dimid_to_loopend[lvl][dim_ids[0]];
+          total = dim_value;
+        }
+
+        layout_local.at(lvl).interline.at(i).factors.at(rank) = total;
+      }
+    }
+  }
+  return layout_local;
 }
 
 } // namespace layoutspace

@@ -122,6 +122,9 @@ std::vector<Layout> InitializeDummyLayout(problem::Workload& workload,
 //------------------------------------------------------------------------------
 void PrintOverallLayout(Layouts layout);
 
+void PrintOverallLayoutConcise(Layouts layout);
+void PrintOverallLayoutConcise(Layouts layout, std::ostream& out);
+
 //------------------------------------------------------------------------------
 void PrintOneLvlLayout(Layout layout);
 

@@ -34,27 +34,28 @@
 namespace layoutspace
 {
 
-//--------------------------------------------//
-//      Parser and LayoutSpace Factory        //
-//--------------------------------------------//
+  //--------------------------------------------//
+  //      Parser and LayoutSpace Factory        //
+  //--------------------------------------------//
 
-LayoutSpace* ParseAndConstruct(config::CompoundConfigNode config,
-                               model::Engine::Specs& arch_specs,
-                               layout::Layouts& layout);
+  LayoutSpace* ParseAndConstruct(config::CompoundConfigNode config,
+                                model::Engine::Specs& arch_specs,
+                                layout::Layouts& layout);
 
-//--------------------------------------------//
-//        Create Default LayoutSpace          //
-//--------------------------------------------//
+  //--------------------------------------------//
+  //        Create Default LayoutSpace          //
+  //--------------------------------------------//
 
-LayoutSpace* CreateLayoutSpace(const Mapping& mapping,
-                               model::Engine::Specs& arch_specs,
-                               layout::Layouts& layout,
-                               bool skip_init);
+  LayoutSpace* CreateLayoutSpace(const Mapping& mapping,
+                                model::Engine::Specs& arch_specs,
+                                layout::Layouts& layout,
+                                bool skip_init);
 
-//--------------------------------------------//
-//        Return Next Feasible Layout         //
-//--------------------------------------------//
 
-layout::Layouts* GetLayout();
+  //--------------------------------------------//
+  //    Create Concordant Layout Standalone     //
+  //--------------------------------------------//
+
+  layout::Layouts CreateConcordantLayoutStandalone(const Mapping& mapping, layout::Layouts& layout);
 
 } // namespace layoutspace 

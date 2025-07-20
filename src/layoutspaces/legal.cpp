@@ -107,7 +107,7 @@ Legal::Legal(
   CreateConcordantLayout(mapping);
 
   // Step 2: Check buffer capacity constraint
-  CheckBufferCapacityConstraint(arch_specs, mapping);
+  // CheckBufferCapacityConstraint(arch_specs, mapping); // only need to be enabled if mapping does not prevent buffer overflow.
 
   // Step 3: CreateSpace
   CreateSpace(arch_specs);
@@ -383,14 +383,16 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
   return {success_status};
 }
 
+
 //
-// CreateConcordantLayout() - Step 1: Create  layout from mapping
+// CreateConcordantLayout() - Step 1: Create layout from mapping
 //
 void Legal::CreateConcordantLayout(const Mapping& mapping)
 {
-  std::cout << "Step 1: Creating concordant layout from mapping..." << std::endl;
+  std::cout << "Step 1: Create Concordant Layout..." << std::endl;
   std::cout << "Total number of storage levels: " << mapping.loop_nest.storage_tiling_boundaries.size() << std::endl;
   std::cout << "Total number of layout levels: " << layout_.size() << std::endl;
+  assert(mapping.loop_nest.storage_tiling_boundaries.size() == layout_.size());
   std::cout << "Total number of data spaces: " << layout_.at(0).intraline.size() << std::endl;
 
   // Build a initialized map that assigns 1 to every dimension ID present in dim_order.
@@ -442,7 +444,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
   }
 
   for(unsigned lvl=0; lvl < storage_level_intraline_dimid_to_loopend.size(); lvl++){
-    for (unsigned i = 0; i < layout_.at(0).intraline.size(); i++){ // iterate over all data
+    for (unsigned i = 0; i < num_data_spaces; i++){ // iterate over all data
       for (const auto& kv : storage_level_interline_dimid_to_loopend[lvl])
       {
         storage_level_overall_dimval[lvl][kv.first] = storage_level_intraline_dimid_to_loopend[lvl][kv.first] * storage_level_interline_dimid_to_loopend[lvl][kv.first];
@@ -573,7 +575,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
       Step 3: Assign collapsed nested loop to the layout.
   */
   for(unsigned lvl=0; lvl < storage_level_intraline_dimid_to_loopend.size(); lvl++){
-    for (unsigned i = 0; i < layout_.at(0).intraline.size(); i++){ // iterate over all data spaces
+    for (unsigned i = 0; i < num_data_spaces; i++){ // iterate over all data spaces
       for(auto & rank: layout_.at(lvl).intraline.at(i).ranks){ // iterate over all ranks of the data space
         const auto& dim_ids = layout_.at(lvl).rankToFactorizedDimensionID.at(rank);
         uint32_t total = 0;
@@ -626,7 +628,6 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
 
 #ifdef DEBUG_CONCORDANT_LAYOUT
   layout::PrintOverallLayout(layout_);
-#endif
 
   std::vector<std::vector<uint32_t>> tensor_size;
   tensor_size.resize(num_storage_levels, std::vector<uint32_t>(num_data_spaces, 0));
@@ -683,6 +684,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
     }
     std::cout << std::endl;
   }
+#endif
 }
 
 //
