@@ -525,7 +525,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
   /*
       Step 2: Print out the collapsed interline nested loop and intraline nested loop.
   */
-// #ifdef DEBUG_CONCORDANT_LAYOUT
+#ifdef DEBUG_CONCORDANT_LAYOUT
   std::cout << "storage_level_interline_dimid_to_loopend:" << std::endl;
   for (unsigned lvl = 0; lvl < storage_level_interline_dimid_to_loopend.size(); lvl++) // iterate over all storage levels
   {
@@ -569,12 +569,12 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
     }
     std::cout << std::endl;
   }
-// #endif
+#endif
 
   /*
       Step 3: Assign collapsed nested loop to the layout.
   */
-  for(unsigned lvl=0; lvl < storage_level_intraline_dimid_to_loopend.size(); lvl++){
+  for(unsigned lvl=0; lvl < cumulatively_intraline_dimval.size(); lvl++){
     for (unsigned i = 0; i < num_data_spaces; i++){ // iterate over all data spaces
       for(auto & rank: layout_.at(lvl).intraline.at(i).ranks){ // iterate over all ranks of the data space
         const auto& dim_ids = layout_.at(lvl).rankToFactorizedDimensionID.at(rank);
@@ -582,7 +582,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
         if (dim_ids.size() > 1){
           const auto& coefficient = layout_.at(lvl).rankToCoefficientValue[rank];
           for (unsigned idx=0; idx < dim_ids.size(); idx++){
-            auto dim_value = storage_level_intraline_dimid_to_loopend[lvl][dim_ids[idx]];
+            auto dim_value = cumulatively_intraline_dimval[lvl][dim_ids[idx]];
             if (idx == dim_ids.size()-1){
               if (dim_value == 1){
                 total +=  dim_value - 1;
@@ -603,7 +603,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
           }
         }
         else{
-          auto dim_value = storage_level_intraline_dimid_to_loopend[lvl][dim_ids[0]];
+          auto dim_value = cumulatively_intraline_dimval[lvl][dim_ids[0]];
           total = dim_value;
         }
 
@@ -616,7 +616,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
         if (dim_ids.size() > 1){
           const auto& coefficient = layout_.at(lvl).rankToCoefficientValue[rank];
           for (unsigned idx=0; idx < dim_ids.size(); idx++){
-            auto dim_value = storage_level_interline_dimid_to_loopend[lvl][dim_ids[idx]];
+            auto dim_value = (cumulatively_product_dimval[lvl][dim_ids[idx]] + cumulatively_intraline_dimval[lvl][dim_ids[idx]] - 1) / cumulatively_intraline_dimval[lvl][dim_ids[idx]];
             if (idx == dim_ids.size()-1){
               if (dim_value == 1){
                 total +=  dim_value - 1;
@@ -634,7 +634,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
           }
         }
         else{
-          auto dim_value = storage_level_interline_dimid_to_loopend[lvl][dim_ids[0]];
+          auto dim_value = (cumulatively_product_dimval[lvl][dim_ids[0]] + cumulatively_intraline_dimval[lvl][dim_ids[0]] - 1) / cumulatively_intraline_dimval[lvl][dim_ids[0]];
           total = dim_value;
         }
 

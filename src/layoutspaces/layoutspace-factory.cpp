@@ -213,6 +213,7 @@ layout::Layouts CreateConcordantLayoutStandalone(const Mapping& mapping, layout:
   // Each storage level vector element starts as a copy of the prototype map.
   std::vector<std::map<std::uint32_t, std::uint32_t>> storage_level_interline_dimid_to_loopend(mapping.loop_nest.storage_tiling_boundaries.size(), initial_dimid_to_loopend);
   std::vector<std::map<std::uint32_t, std::uint32_t>> storage_level_intraline_dimid_to_loopend(mapping.loop_nest.storage_tiling_boundaries.size(), initial_dimid_to_loopend);
+  std::vector<std::map<std::uint32_t, std::uint32_t>> storage_level_overall_dimval(mapping.loop_nest.storage_tiling_boundaries.size(), initial_dimid_to_loopend);
 
   for (unsigned loop_level = num_loops-1; loop_level != static_cast<unsigned>(-1); loop_level--)
   {
@@ -230,10 +231,150 @@ layout::Layouts CreateConcordantLayoutStandalone(const Mapping& mapping, layout:
     }
   }
 
+  for(unsigned lvl=0; lvl < storage_level_intraline_dimid_to_loopend.size(); lvl++){
+    for (unsigned i = 0; i < num_data_spaces; i++){ // iterate over all data
+      for (const auto& kv : storage_level_interline_dimid_to_loopend[lvl])
+      {
+        storage_level_overall_dimval[lvl][kv.first] = storage_level_intraline_dimid_to_loopend[lvl][kv.first] * storage_level_interline_dimid_to_loopend[lvl][kv.first];
+      }
+    }
+  }
+
+  // Calculate cumulative product from end to first index
+  std::vector<std::map<std::uint32_t, std::uint32_t>> cumulatively_intraline_dimval(storage_level_intraline_dimid_to_loopend.size());
+  cumulatively_intraline_dimval.resize(storage_level_intraline_dimid_to_loopend.size());
+
+  // Initialize all levels with the initial map
+  for (unsigned lvl = 0; lvl < cumulatively_intraline_dimval.size(); lvl++)
+  {
+    cumulatively_intraline_dimval[lvl] = initial_dimid_to_loopend;
+  }
+
+  // Initialize the last level (no multiplication needed)
+  if (!storage_level_intraline_dimid_to_loopend.empty())
+  {
+    cumulatively_intraline_dimval[0] = storage_level_intraline_dimid_to_loopend[0];
+
+    // Calculate cumulative product from second-to-last level backwards to first level
+    for (int lvl = 1; lvl < static_cast<int>(storage_level_intraline_dimid_to_loopend.size()); lvl++)
+    {
+      for (const auto& kv : storage_level_intraline_dimid_to_loopend[lvl])
+      {
+        std::uint32_t dim_id = kv.first;
+        std::uint32_t current_value = kv.second;
+
+        // Multiply current level value with cumulative product from next level
+        if (cumulatively_intraline_dimval[lvl - 1].find(dim_id) != cumulatively_intraline_dimval[lvl - 1].end())
+        {
+          cumulatively_intraline_dimval[lvl][dim_id] = current_value * cumulatively_intraline_dimval[lvl - 1][dim_id];
+        }
+        else
+        {
+          cumulatively_intraline_dimval[lvl][dim_id] = current_value;
+        }
+      }
+    }
+  }
+
+  // Calculate cumulative product from end to first index
+  std::vector<std::map<std::uint32_t, std::uint32_t>> cumulatively_product_dimval(storage_level_overall_dimval.size());
+  cumulatively_product_dimval.resize(storage_level_overall_dimval.size());
+
+  // Initialize all levels with the initial map
+  for (unsigned lvl = 0; lvl < cumulatively_product_dimval.size(); lvl++)
+  {
+    cumulatively_product_dimval[lvl] = initial_dimid_to_loopend;
+  }
+
+  // Initialize the last level (no multiplication needed)
+  if (!storage_level_overall_dimval.empty())
+  {
+    cumulatively_product_dimval[0] = storage_level_overall_dimval[0];
+
+    // Calculate cumulative product from second-to-last level backwards to first level
+    for (int lvl = 1; lvl < static_cast<int>(storage_level_overall_dimval.size()); lvl++)
+    {
+      for (const auto& kv : storage_level_overall_dimval[lvl])
+      {
+        std::uint32_t dim_id = kv.first;
+        std::uint32_t current_value = kv.second;
+
+        // Multiply current level value with cumulative product from next level
+        if (cumulatively_product_dimval[lvl - 1].find(dim_id) != cumulatively_product_dimval[lvl - 1].end())
+        {
+          cumulatively_product_dimval[lvl][dim_id] = current_value * cumulatively_product_dimval[lvl - 1][dim_id];
+        }
+        else
+        {
+          cumulatively_product_dimval[lvl][dim_id] = current_value;
+        }
+      }
+    }
+  }
+
+#ifdef DEBUG
+  std::cout << mapping << std::endl;
+
+  std::cout << "storage_level_interline_dimid_to_loopend:" << std::endl;
+  for (unsigned lvl = 0; lvl < storage_level_interline_dimid_to_loopend.size(); lvl++) // iterate over all storage levels
+  {
+    std::cout << "storage level=" << lvl << std::endl;
+    for (const auto& kv : storage_level_interline_dimid_to_loopend[lvl])
+    {
+      std::cout << layout_local.at(0).dim_order[kv.first] << ":" << kv.second << " ";
+    }
+    std::cout << std::endl;
+  }
+
+  std::cout << "storage_level_intraline_dimid_to_loopend:" << std::endl;
+  for (unsigned lvl = 0; lvl < storage_level_intraline_dimid_to_loopend.size(); lvl++) // iterate over all storage levels
+  {
+    std::cout << "storage level=" << lvl << std::endl;
+    for (const auto& kv : storage_level_intraline_dimid_to_loopend[lvl])
+    {
+      std::cout << layout_local.at(0).dim_order[kv.first] << ":" << kv.second << " ";
+    }
+    std::cout << std::endl;
+  }
+
+  std::cout << "storage_level_overall_dimval:" << std::endl;
+  for (unsigned lvl = 0; lvl < storage_level_overall_dimval.size(); lvl++) // iterate over all storage levels
+  {
+    std::cout << "storage level=" << lvl << std::endl;
+    for (const auto& kv : storage_level_overall_dimval[lvl])
+    {
+      std::cout << layout_local.at(0).dim_order[kv.first] << ":" << kv.second << " ";
+    }
+    std::cout << std::endl;
+  }
+
+  std::cout << "cumulatively_product_dimval:" << std::endl;
+  for (unsigned lvl = 0; lvl < cumulatively_product_dimval.size(); lvl++) // iterate over all storage levels
+  {
+    std::cout << "storage level=" << lvl << std::endl;
+    for (const auto& kv : cumulatively_product_dimval[lvl])
+    {
+      std::cout << layout_local.at(0).dim_order[kv.first] << ":" << kv.second << " ";
+    }
+    std::cout << std::endl;
+  }
+
+  std::cout << "cumulatively_intraline_dimval:" << std::endl;
+  for (unsigned lvl = 0; lvl < cumulatively_intraline_dimval.size(); lvl++) // iterate over all storage levels
+  {
+    std::cout << "storage level=" << lvl << std::endl;
+    for (const auto& kv : cumulatively_intraline_dimval[lvl])
+    {
+      std::cout << layout_local.at(0).dim_order[kv.first] << ":" << kv.second << " ";
+    }
+    std::cout << std::endl;
+  }
+#endif
+
   /*
       Step 2: Assign collapsed nested loop to the layout.
   */
-  for(unsigned lvl=0; lvl < storage_level_intraline_dimid_to_loopend.size(); lvl++){
+  for(unsigned lvl=0; lvl < cumulatively_intraline_dimval.size(); lvl++){
     for (unsigned i = 0; i < num_data_spaces; i++){ // iterate over all data spaces
       for(auto & rank: layout_local.at(lvl).intraline.at(i).ranks){ // iterate over all ranks of the data space
         const auto& dim_ids = layout_local.at(lvl).rankToFactorizedDimensionID.at(rank);
@@ -241,7 +382,7 @@ layout::Layouts CreateConcordantLayoutStandalone(const Mapping& mapping, layout:
         if (dim_ids.size() > 1){
           const auto& coefficient = layout_local.at(lvl).rankToCoefficientValue[rank];
           for (unsigned idx=0; idx < dim_ids.size(); idx++){
-            auto dim_value = storage_level_intraline_dimid_to_loopend[lvl][dim_ids[idx]];
+            auto dim_value = cumulatively_intraline_dimval[lvl][dim_ids[idx]];
             if (idx == dim_ids.size()-1){
               if (dim_value == 1){
                 total +=  dim_value - 1;
@@ -262,7 +403,7 @@ layout::Layouts CreateConcordantLayoutStandalone(const Mapping& mapping, layout:
           }
         }
         else{
-          auto dim_value = storage_level_intraline_dimid_to_loopend[lvl][dim_ids[0]];
+          auto dim_value = cumulatively_intraline_dimval[lvl][dim_ids[0]];
           total = dim_value;
         }
 
@@ -275,7 +416,7 @@ layout::Layouts CreateConcordantLayoutStandalone(const Mapping& mapping, layout:
         if (dim_ids.size() > 1){
           const auto& coefficient = layout_local.at(lvl).rankToCoefficientValue[rank];
           for (unsigned idx=0; idx < dim_ids.size(); idx++){
-            auto dim_value = storage_level_interline_dimid_to_loopend[lvl][dim_ids[idx]];
+            auto dim_value =  (cumulatively_product_dimval[lvl][dim_ids[idx]] + cumulatively_intraline_dimval[lvl][dim_ids[idx]] - 1) / cumulatively_intraline_dimval[lvl][dim_ids[idx]];
             if (idx == dim_ids.size()-1){
               if (dim_value == 1){
                 total +=  dim_value - 1;
@@ -293,7 +434,7 @@ layout::Layouts CreateConcordantLayoutStandalone(const Mapping& mapping, layout:
           }
         }
         else{
-          auto dim_value = storage_level_interline_dimid_to_loopend[lvl][dim_ids[0]];
+          auto dim_value = (cumulatively_product_dimval[lvl][dim_ids[0]] + cumulatively_intraline_dimval[lvl][dim_ids[0]] - 1) / cumulatively_intraline_dimval[lvl][dim_ids[0]];
           total = dim_value;
         }
 
