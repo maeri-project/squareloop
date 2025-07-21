@@ -34,6 +34,8 @@
 #include <string>
 #include "mapping/loop.hpp"
 
+#define DEBUG 
+
 namespace layoutspace
 {
 
@@ -240,10 +242,20 @@ layout::Layouts CreateConcordantLayoutStandalone(const Mapping& mapping, layout:
           const auto& coefficient = layout_local.at(lvl).rankToCoefficientValue[rank];
           for (unsigned idx=0; idx < dim_ids.size(); idx++){
             auto dim_value = storage_level_intraline_dimid_to_loopend[lvl][dim_ids[idx]];
-            if (idx == dim_ids.size()-1)
-              total +=  dim_value*coefficient[idx] - 1;
-            else
-              total +=  dim_value*coefficient[idx];
+            if (idx == dim_ids.size()-1){
+              if (dim_value == 1){
+                total +=  dim_value - 1;
+              }else{
+                total +=  dim_value*coefficient[idx] - 1;
+              }
+            }
+            else{
+              if (dim_value == 1){
+                total +=  dim_value;
+              }else{
+                total +=  dim_value*coefficient[idx];
+              }
+            }
 #ifdef DEBUG
             std::cout << "dim_value=" << dim_value << "--coef[" << idx << "]=" << coefficient[idx] << "; ";
 #endif
@@ -264,10 +276,20 @@ layout::Layouts CreateConcordantLayoutStandalone(const Mapping& mapping, layout:
           const auto& coefficient = layout_local.at(lvl).rankToCoefficientValue[rank];
           for (unsigned idx=0; idx < dim_ids.size(); idx++){
             auto dim_value = storage_level_interline_dimid_to_loopend[lvl][dim_ids[idx]];
-            if (idx == dim_ids.size()-1)
-              total +=  dim_value*coefficient[idx] - 1;
-            else
-              total +=  dim_value*coefficient[idx];
+            if (idx == dim_ids.size()-1){
+              if (dim_value == 1){
+                total +=  dim_value - 1;
+              }else{
+                total +=  dim_value*coefficient[idx] - 1;
+              }
+            }
+            else{
+              if (dim_value == 1){
+                total +=  dim_value;
+              }else{
+                total +=  dim_value*coefficient[idx];
+              }
+            }
           }
         }
         else{

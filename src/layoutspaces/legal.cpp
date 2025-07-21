@@ -583,10 +583,20 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
           const auto& coefficient = layout_.at(lvl).rankToCoefficientValue[rank];
           for (unsigned idx=0; idx < dim_ids.size(); idx++){
             auto dim_value = storage_level_intraline_dimid_to_loopend[lvl][dim_ids[idx]];
-            if (idx == dim_ids.size()-1)
-              total +=  dim_value*coefficient[idx] - 1;
-            else
-              total +=  dim_value*coefficient[idx];
+            if (idx == dim_ids.size()-1){
+              if (dim_value == 1){
+                total +=  dim_value - 1;
+              }else{
+                total +=  dim_value*coefficient[idx] - 1;
+              }
+            }
+            else{
+              if (dim_value == 1){
+                total +=  dim_value;
+              }else{
+                total +=  dim_value*coefficient[idx];
+              }
+            }
 #ifdef DEBUG_CONCORDANT_LAYOUT
             std::cout << "dim_value=" << dim_value << "--coef[" << idx << "]=" << coefficient[idx] << "; ";
 #endif
@@ -607,10 +617,20 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
           const auto& coefficient = layout_.at(lvl).rankToCoefficientValue[rank];
           for (unsigned idx=0; idx < dim_ids.size(); idx++){
             auto dim_value = storage_level_interline_dimid_to_loopend[lvl][dim_ids[idx]];
-            if (idx == dim_ids.size()-1)
-              total +=  dim_value*coefficient[idx] - 1;
-            else
-              total +=  dim_value*coefficient[idx];
+            if (idx == dim_ids.size()-1){
+              if (dim_value == 1){
+                total +=  dim_value - 1;
+              }else{
+                total +=  dim_value*coefficient[idx] - 1;
+              }
+            }
+            else{
+              if (dim_value == 1){
+                total +=  dim_value;
+              }else{
+                total +=  dim_value*coefficient[idx];
+              }
+            }
           }
         }
         else{
@@ -651,10 +671,20 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
             if (cumulative_it != cumulatively_product_dimval[lvl].end())
             {
               auto dim_value = cumulative_it->second;
-              if (idx == dim_ids.size()-1)
-                rank_size += dim_value*coefficient[idx] - 1;
-              else
-                rank_size += dim_value*coefficient[idx];
+              if (idx == dim_ids.size()-1){
+                if (dim_value == 1){
+                  rank_size += dim_value - 1;
+                }else{
+                  rank_size += dim_value*coefficient[idx] - 1;
+                }
+              }
+              else{
+                if (dim_value == 1){
+                  rank_size += dim_value;
+                }else{
+                  rank_size += dim_value*coefficient[idx];
+                }
+              }
             }
           }
         }
@@ -739,10 +769,20 @@ bool Legal::CheckBufferCapacityConstraint(model::Engine::Specs arch_specs, const
               if (level_dimval.find(dim_ids[idx]) != level_dimval.end())
               {
                 auto dim_value = level_dimval.at(dim_ids[idx]);
-                if (idx == dim_ids.size()-1)
-                  rank_dimension_product += dim_value*coefficient[idx] - 1;
-                else
-                  rank_dimension_product += dim_value*coefficient[idx];
+                if (idx == dim_ids.size()-1){
+                  if (dim_value == 1){
+                    rank_dimension_product += dim_value - 1;
+                  }else{
+                    rank_dimension_product += dim_value*coefficient[idx] - 1;
+                  }
+                }
+                else{
+                  if (dim_value == 1){
+                    rank_dimension_product += dim_value;
+                  }else{
+                    rank_dimension_product += dim_value*coefficient[idx];
+                  }
+                }
               }
             }
           }

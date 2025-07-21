@@ -4,6 +4,7 @@
 #include <cctype>
 #include <iostream>
 #include <sstream>
+#include <stack>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -111,11 +112,11 @@ std::map<std::string, unsigned> parseOrderMapping(const std::string &mappingStri
 
 std::vector<Layout> ParseAndConstruct(config::CompoundConfigNode layoutArray,
                                                  problem::Workload& workload,
-      std::map<std::string, std::pair<uint32_t,uint32_t>>& targetToPortValue);
+      std::unordered_map<std::string, std::pair<uint32_t,uint32_t>>& targetToPortValue);
 
 
 std::vector<Layout> InitializeDummyLayout(problem::Workload& workload,
-      std::map<std::string, std::pair<uint32_t,uint32_t>>& targetToPortValue);
+      std::unordered_map<std::string, std::pair<uint32_t,uint32_t>>& targetToPortValue);
 
 //------------------------------------------------------------------------------
 // Helper function to print a Nest's loop order.

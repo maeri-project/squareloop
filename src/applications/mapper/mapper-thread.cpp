@@ -832,6 +832,7 @@ void MapperThread::Run()
   } // while ()
 
 
+  std::cout << "done mapping search" << std::endl;
   // =================
   // Secondary mapper loop -- search layout
   // =================

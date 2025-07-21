@@ -1458,9 +1458,9 @@
 
      // if analysis
      if(analysis->IsLayoutInitialized()){
-#ifdef DEBUG
+// #ifdef DEBUG
+// #endif
        std::cout << "Evaluate Storage Level " << storage_level_id << " -- " << layout[storage_level_id].target << std::endl;
-#endif
        assert(layout.size() > storage_level_id);
        auto s = storage_level->Evaluate(tiles[storage_level_id], keep_masks[storage_level_id], layout[storage_level_id],
                                       analysis,

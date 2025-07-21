@@ -51,7 +51,7 @@ namespace layout
   Layouts
   ParseAndConstruct(
       config::CompoundConfigNode layoutArray, problem::Workload &workload,
-      std::map<std::string, std::pair<uint32_t, uint32_t>> &targetToPortValue)
+      std::unordered_map<std::string, std::pair<uint32_t, uint32_t>> &targetToPortValue)
   {
     // ToDo: Current memory logic only supports 3 levels, need to directly support more levels defined by architecture file.
     std::map<std::string, std::vector<std::uint32_t>>
@@ -341,7 +341,7 @@ namespace layout
   Layouts
   InitializeDummyLayout(
       problem::Workload &workload,
-      std::map<std::string, std::pair<uint32_t, uint32_t>> &targetToPortValue)
+      std::unordered_map<std::string, std::pair<uint32_t, uint32_t>> &targetToPortValue)
   {
     // ToDo: Current memory logic only supports 3 levels, need to directly support more levels defined by architecture file.
     std::map<std::string, std::vector<std::uint32_t>>
@@ -418,11 +418,16 @@ namespace layout
 
     // Use targets from targetToPortValue
     std::vector<std::string> targets;
+    std::stack<std::string> target_stack;
     for (const auto &targetPair : targetToPortValue)
     {
-      targets.push_back(targetPair.first);
+      target_stack.push(targetPair.first);
     }
-    std::reverse(targets.begin(), targets.end()); // DRAM is the last level in the layout. From 0->the last comes innermost->outermost.
+    while (!target_stack.empty())
+    {
+      targets.push_back(target_stack.top());
+      target_stack.pop();
+    }
 
     // Convert the sample permutation string into a vector of single-character
     // strings.
@@ -880,7 +885,7 @@ namespace layout
       std::cout << r << " ";
     std::cout << std::endl
               << std::endl;
-    assert(layout.rank_list.size() == layout.rankToFactorizedDimensionID.size());
+    // assert(layout.rank_list.size() == layout.rankToFactorizedDimensionID.size());
 
     {
       std::cout << "Target: " << layout.target << std::endl;

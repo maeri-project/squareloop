@@ -1361,8 +1361,12 @@ namespace model
 #endif
         }
       }
+      std::cerr << "In Layout: " << specs_.name.Get() << std::endl;
+
       if (ds.memory_line > specs_.block_size.Get())
       {
+        std::cout << "debug msg" << std::endl;
+        layout::PrintOneLvlLayout(layout);
         std::cerr << "ERROR: " << specs_.name.Get()
                   << " memory line infered from layout ("
                   << ds.memory_line << ") is longer than allowed by architecture ("
