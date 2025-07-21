@@ -1362,7 +1362,7 @@ namespace model
         }
       }
 
-      if (ds.memory_line > specs_.block_size.Get())
+      if (ds.memory_line > specs_.block_size.Get() && mask[data_space_id])
       {
         std::cerr << "ERROR: " << specs_.name.Get()
                   << " memory line infered from layout ("
