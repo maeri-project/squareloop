@@ -34,7 +34,7 @@
 #include <string>
 #include "mapping/loop.hpp"
 
-#define DEBUG 
+// #define DEBUG 
 
 namespace layoutspace
 {

@@ -486,7 +486,7 @@ void MapperThread::Run()
     // Terminate.
     if (terminate)
     {
-      if (live_status_)
+      if (live_s tatus_)
       {
         mutex_->lock();
         mvaddstr(thread_id_ + ncurses_line_offset, 0, "-");

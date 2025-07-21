@@ -69,7 +69,7 @@ def generate_workload_yaml(df, model, workload_name, workload_save_to, exclude_l
             else:
                 module_name = module_name_list[0]
             weight_tensor_info = param_list[module_name]
-            
+
             # while there can be multiple parents (i.e., bmm between two matrices in self attention)
             # we are currently looking for conv2d and linear -> #parents should be 1
             parent_layer_name = eval(row['parent_layers'])[0]
@@ -81,7 +81,7 @@ def generate_workload_yaml(df, model, workload_name, workload_save_to, exclude_l
             Q = output_tensor_shape[3] if len(output_tensor_shape) == 4 else 1
             M = weight_tensor_info['M']
             C = weight_tensor_info['C']
-            
+
             if row['layer_type'] == 'conv2d':
                 R, S = weight_tensor_info['RS']
                 Hstride, Wstride = weight_tensor_info['stride']
@@ -90,7 +90,7 @@ def generate_workload_yaml(df, model, workload_name, workload_save_to, exclude_l
                 R, S = 1, 1
                 Hstride, Wstride = 1, 1
                 Hdilation, Wdilation = 1, 1
-            
+
             if row['layer_type'] == 'conv2d':
                 # depthwise convolution?
                 if (weight_tensor_info['groups'] > 1) and (weight_tensor_info['groups'] == input_tensor_shape[1]):
@@ -105,7 +105,7 @@ def generate_workload_yaml(df, model, workload_name, workload_save_to, exclude_l
                     workload['problem']['instance']['Wdilation'] = Wdilation
                     workload['problem']['instance']['Hstride'] = Hstride
                     workload['problem']['instance']['Wstride'] = Wstride
-                
+
                 # normal convolution -- note that grouped conv with groups > 1 but not depthwise is not supported
                 elif (weight_tensor_info['groups'] > 1):
                     raise NotImplementedError("Grouped convolution that is NOT depthwise-separable is not supported!")
@@ -132,12 +132,12 @@ def generate_workload_yaml(df, model, workload_name, workload_save_to, exclude_l
 
             else:
                 raise NotImplementedError("Unsupported layer type {}".format(row['layer_type']))
-            
+
             with open(os.path.join(workload_save_to, '{}_layer{}.yaml'.format(workload_name, layer_cnt)), 'w') as f:
                 yaml.dump(workload, f)
-            
+
             layer_cnt += 1
-    
+
 def determine_dependency(df, workload_name, save_to, exclude_layer_types=[]):
     # iterate through conv2d/linear layers, and find the parent layer
     # if parent is another conv2d/lienar -> direct dependency
@@ -167,17 +167,17 @@ def determine_dependency(df, workload_name, save_to, exclude_layer_types=[]):
                     result.add(p)
                 else:
                     dfs(p)
-        
+
         dfs(name)
         return list(result)
-    
+
     # First, build a directed graph representing the layer dependencies
     # We'll represent it as an adjacency list where key is a node and value is its children
     graph: Dict[str, List[str]] = {}
-    
+
     # Also build a reverse graph for parents
     parents: Dict[str, List[str]] = {}
-    
+
     # Initialize empty lists for each node
     for layer in df['layer_label']:
         graph[layer] = []
@@ -185,19 +185,19 @@ def determine_dependency(df, workload_name, save_to, exclude_layer_types=[]):
 
     layer_label_to_idx: Dict[str, int] = {}
     layer_cnt = 1
-    
+
     # Fill in the graph based on parent_layers relationships
     for _, row in df.iterrows():
         layer = row['layer_label']
         parent_layers_str = row['parent_layers']
-        
+
         # Skip if there are no parent layers
         if not parent_layers_str or pd.isna(parent_layers_str):
             continue
-            
+
         # Convert parent_layers string to list (assuming comma-separated format)
         parent_layers = eval(parent_layers_str)
-        
+
         # Add edges from parents to this layer
         for parent in parent_layers:
             if parent in graph:
@@ -207,13 +207,13 @@ def determine_dependency(df, workload_name, save_to, exclude_layer_types=[]):
         if row['layer_type'] in layer_types:
             layer_label_to_idx[layer] = layer_cnt
             layer_cnt += 1
-                
+
     def get_operations_between(node1, node2):
-        
+
         # Check if both nodes exist in the graph
         if node1 not in graph or node2 not in graph:
             return []
-        
+
         # Find all nodes reachable from node1 using BFS
         reachable_from_node1 = set()
         queue = deque([node1])
@@ -223,11 +223,11 @@ def determine_dependency(df, workload_name, save_to, exclude_layer_types=[]):
             for child in graph[current]:
                 if child not in reachable_from_node1:
                     queue.append(child)
-        
+
         # If node2 is not reachable from node1, return empty list
         if node2 not in reachable_from_node1:
             return []
-        
+
         # Find all ancestors of node2 using reverse BFS
         ancestors_of_node2 = set()
         queue = deque([node2])
@@ -237,18 +237,18 @@ def determine_dependency(df, workload_name, save_to, exclude_layer_types=[]):
             for parent in parents[current]:
                 if parent not in ancestors_of_node2:
                     queue.append(parent)
-        
+
         # Find nodes that are both reachable from node1 and ancestors of node2
         # These are the nodes on paths between node1 and node2
         between_nodes = reachable_from_node1.intersection(ancestors_of_node2)
-        
+
         # Remove node1 and node2 from the result
         between_nodes.discard(node1)
         between_nodes.discard(node2)
-        
+
         # Return as a sorted list
         return sorted(list(between_nodes))
-    
+
     # iterate through model and find all conv2d/linear layers
     consecutive_dict: Dict[int, List[int]] = {}
     dependent_dict: Dict[int, List[int]] = {}
@@ -267,7 +267,7 @@ def determine_dependency(df, workload_name, save_to, exclude_layer_types=[]):
             else:
                 continue
         dependent_dict[idx] = [layer_label_to_idx[x] for x in dependent] if len(dependent) > 0 else []
-    
+
     with open(os.path.join(save_to, '{}_consecutive.yaml'.format(workload_name)), 'w') as f:
         yaml.dump(consecutive_dict, f)
     with open(os.path.join(save_to, '{}_dependent.yaml'.format(workload_name)), 'w') as f:
@@ -277,7 +277,7 @@ def model_analysis(model, input, save_dir, model_tag, exclude_layer_types=[]):
     # check if save_dir exists, if not create
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
-        
+
     torchlens_save_path = os.path.join(save_dir, 'torchlens.csv')
     generate_torchlens_history(model, input, torchlens_save_path)
     df = pd.read_csv(torchlens_save_path)
@@ -301,15 +301,9 @@ if __name__ == '__main__':
             x = F.relu(self.conv1(x))
             x = F.relu(self.conv2(x))
             return x
-    
+
     model = testnet2()
     x = torch.rand(1, 64, 64, 64)
 
     model_analysis(model, x, 'test/testnet2', 'testnet2')
-    
-
-
-
-            
-            
 

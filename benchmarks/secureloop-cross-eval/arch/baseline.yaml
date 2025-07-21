@@ -26,10 +26,10 @@ architecture:
         class: smartbuffer_SRAM
         name: shared_glb
       - attributes:
-          block-size: 1
+          block-size: 16
           depth: 16
           meshX: 14
-          width: 16
+          width: 256
           word-bits: 16
         class: regfile
         name: DummyBuffer[0..13]
