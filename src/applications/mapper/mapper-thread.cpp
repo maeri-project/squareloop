@@ -493,6 +493,117 @@ void MapperThread::Run()
         refresh();
         mutex_->unlock();
       }
+
+      std::cout << "done mapping search" << std::endl;
+      std::cout << "stats_.thread_best.valid: " << stats_.thread_best.valid << std::endl;
+      std::cout << "layout_initialized_: " << layout_initialized_ << std::endl;
+      // =================
+      // Secondary mapper loop -- search layout
+      // =================
+      // Perform layout search on the final best mapping (only if layout was not pre-initialized)
+      if (!layout_initialized_ && stats_.thread_best.valid)
+      {
+        mutex_->lock();
+        log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: "
+                    << "Performing layout optimization on best mapping found."
+                    << std::endl;
+        mutex_->unlock();
+
+        layoutspace_ = layoutspace::CreateLayoutSpace(stats_.thread_best.mapping, arch_specs_, layout_, false);
+
+        // Initialize global optimal tracking variables
+        std::uint64_t mapping_specific_best_latency = UINT64_MAX;
+        double mapping_specific_best_energy_per_compute = std::numeric_limits<double>::max();
+        layout::Layouts mapping_specific_best_layout;
+        bool has_valid_layout = false;
+
+        for(layoutspace::ID layout_id(layoutspace_->AllSizes()); layout_id.Integer() < layoutspace_->num_layout_candidates; layout_id.Increment())
+        {
+          auto construction_status = layoutspace_->ConstructLayout(layout_id, &layout_, false);
+          bool layout_success = std::accumulate(construction_status.begin(), construction_status.end(), true,
+                                      [](bool cur, const layoutspace::Status& status)
+                                      { return cur && status.success; });
+          if(!layout_success) continue;
+
+          auto status_per_level = engine.Evaluate(stats_.thread_best.mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
+
+          // Extract run-time latency and energy efficiency from evaluation results
+          std::uint64_t runtime_latency = engine.Cycles();
+          double total_energy = engine.Energy();
+          std::uint64_t actual_computes = engine.GetTopology().ActualComputes();
+          double energy_per_compute = (actual_computes > 0) ? (total_energy / actual_computes) : 0.0;
+
+          // Track global optimal values (prefer smaller values)
+          bool is_better = false;
+          std::string improvement_reason = "";
+
+          if (!has_valid_layout) {
+            // First valid layout
+            is_better = true;
+            improvement_reason = "layout update: first valid layout";
+          }
+          else if (runtime_latency < mapping_specific_best_latency) {
+            // Better latency
+            is_better = true;
+            improvement_reason = "layout update: better latency";
+          }
+          else if (runtime_latency == mapping_specific_best_latency && energy_per_compute < mapping_specific_best_energy_per_compute) {
+            // Same latency but better energy efficiency
+            is_better = true;
+            improvement_reason = "layout update: same latency, better energy efficiency";
+          }
+
+          if (is_better) {
+            mapping_specific_best_latency = runtime_latency;
+            mapping_specific_best_energy_per_compute = energy_per_compute;
+            mapping_specific_best_layout = layout_;
+            has_valid_layout = true;
+
+            mutex_->lock();
+            log_stream_ << "[" << thread_id_ << "] NEW LAYOUT OPTIMAL: "
+            << "Latency=" << mapping_specific_best_latency << " cycles, "
+            << "Energy/Compute=" << mapping_specific_best_energy_per_compute << " pJ/compute "
+            << "(" << improvement_reason << ")"
+            << std::endl;
+            mutex_->unlock();
+          }
+        }
+
+        // Update the best result with the optimal layout
+        if (has_valid_layout) {
+          mutex_->lock();
+          log_stream_ << "[" << thread_id_ << "] FINAL LAYOUT OPTIMAL: "
+          << "Latency=" << mapping_specific_best_latency << " cycles, "
+          << "Energy/Compute=" << mapping_specific_best_energy_per_compute << " pJ/compute"
+          << std::endl;
+
+          // Print layout details for the optimal layout
+          log_stream_ << "[" << thread_id_ << "] OPTIMAL LAYOUT:" << std::endl;
+          mutex_->unlock();
+
+          layout::PrintOverallLayout(mapping_specific_best_layout);
+
+          // Update the thread best with the optimal layout and re-evaluate to get final stats
+          layout_ = mapping_specific_best_layout;
+          auto final_status = engine.Evaluate(stats_.thread_best.mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
+          auto final_topology = engine.GetTopology();
+          auto final_stats = final_topology.GetStats();
+
+          // Update the thread best with the final optimized result
+          EvaluationResult final_result = { true, stats_.thread_best.mapping, final_stats, layout_ };
+          stats_.thread_best = final_result;
+
+          // Sync the final optimized result to global best
+          mutex_->lock();
+          best_->UpdateIfBetter(stats_.thread_best, optimization_metrics_);
+          mutex_->unlock();
+
+        } else {
+          mutex_->lock();
+          log_stream_ << "[" << thread_id_ << "] No valid layouts found for best mapping." << std::endl;
+          mutex_->unlock();
+        }
+      }
       break;
     }
 
@@ -830,114 +941,4 @@ void MapperThread::Run()
       }
     }
   } // while ()
-
-
-  std::cout << "done mapping search" << std::endl;
-  // =================
-  // Secondary mapper loop -- search layout
-  // =================
-  // Perform layout search on the final best mapping (only if layout was not pre-initialized)
-  if (!layout_initialized_ && stats_.thread_best.valid)
-  {
-    mutex_->lock();
-    log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: "
-                << "Performing layout optimization on best mapping found."
-                << std::endl;
-    mutex_->unlock();
-
-    layoutspace_ = layoutspace::CreateLayoutSpace(stats_.thread_best.mapping, arch_specs_, layout_, false);
-
-    // Initialize global optimal tracking variables
-    std::uint64_t mapping_specific_best_latency = UINT64_MAX;
-    double mapping_specific_best_energy_per_compute = std::numeric_limits<double>::max();
-    layout::Layouts mapping_specific_best_layout;
-    bool has_valid_layout = false;
-
-    for(layoutspace::ID layout_id(layoutspace_->AllSizes()); layout_id.Integer() < layoutspace_->num_layout_candidates; layout_id.Increment())
-    {
-      auto construction_status = layoutspace_->ConstructLayout(layout_id, &layout_, false);
-      bool layout_success = std::accumulate(construction_status.begin(), construction_status.end(), true,
-                                  [](bool cur, const layoutspace::Status& status)
-                                  { return cur && status.success; });
-      if(!layout_success) continue;
-
-      auto status_per_level = engine.Evaluate(stats_.thread_best.mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
-
-      // Extract run-time latency and energy efficiency from evaluation results
-      std::uint64_t runtime_latency = engine.Cycles();
-      double total_energy = engine.Energy();
-      std::uint64_t actual_computes = engine.GetTopology().ActualComputes();
-      double energy_per_compute = (actual_computes > 0) ? (total_energy / actual_computes) : 0.0;
-
-      // Track global optimal values (prefer smaller values)
-      bool is_better = false;
-      std::string improvement_reason = "";
-
-      if (!has_valid_layout) {
-        // First valid layout
-        is_better = true;
-        improvement_reason = "layout update: first valid layout";
-      }
-      else if (runtime_latency < mapping_specific_best_latency) {
-        // Better latency
-        is_better = true;
-        improvement_reason = "layout update: better latency";
-      }
-      else if (runtime_latency == mapping_specific_best_latency && energy_per_compute < mapping_specific_best_energy_per_compute) {
-        // Same latency but better energy efficiency
-        is_better = true;
-        improvement_reason = "layout update: same latency, better energy efficiency";
-      }
-
-      if (is_better) {
-        mapping_specific_best_latency = runtime_latency;
-        mapping_specific_best_energy_per_compute = energy_per_compute;
-        mapping_specific_best_layout = layout_;
-        has_valid_layout = true;
-
-        mutex_->lock();
-        log_stream_ << "[" << thread_id_ << "] NEW LAYOUT OPTIMAL: "
-        << "Latency=" << mapping_specific_best_latency << " cycles, "
-        << "Energy/Compute=" << mapping_specific_best_energy_per_compute << " pJ/compute "
-        << "(" << improvement_reason << ")"
-        << std::endl;
-        mutex_->unlock();
-      }
-    }
-
-    // Update the best result with the optimal layout
-    if (has_valid_layout) {
-      mutex_->lock();
-      log_stream_ << "[" << thread_id_ << "] FINAL LAYOUT OPTIMAL: "
-      << "Latency=" << mapping_specific_best_latency << " cycles, "
-      << "Energy/Compute=" << mapping_specific_best_energy_per_compute << " pJ/compute"
-      << std::endl;
-
-      // Print layout details for the optimal layout
-      log_stream_ << "[" << thread_id_ << "] OPTIMAL LAYOUT:" << std::endl;
-      mutex_->unlock();
-
-      layout::PrintOverallLayout(mapping_specific_best_layout);
-
-      // Update the thread best with the optimal layout and re-evaluate to get final stats
-      layout_ = mapping_specific_best_layout;
-      auto final_status = engine.Evaluate(stats_.thread_best.mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
-      auto final_topology = engine.GetTopology();
-      auto final_stats = final_topology.GetStats();
-
-      // Update the thread best with the final optimized result
-      EvaluationResult final_result = { true, stats_.thread_best.mapping, final_stats, layout_ };
-      stats_.thread_best = final_result;
-
-      // Sync the final optimized result to global best
-      mutex_->lock();
-      best_->UpdateIfBetter(stats_.thread_best, optimization_metrics_);
-      mutex_->unlock();
-
-    } else {
-      mutex_->lock();
-      log_stream_ << "[" << thread_id_ << "] No valid layouts found for best mapping." << std::endl;
-      mutex_->unlock();
-    }
-  }
 }
