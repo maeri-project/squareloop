@@ -36,6 +36,9 @@ namespace crypto {
     int xor_cycle = 0;
     int xor_energy_per_datapath = 0;
     bool crypto_initialized_ = false;
+
+    bool shared = false;
+    int number_engines = 1;
   };
   
   //------------------------------------------------------------------------------

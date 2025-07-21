@@ -1097,6 +1097,7 @@ namespace model
 
   BufferLevel::LatencyStats
   BufferLevel::CheckTileTypes(const layout::Layout& layout,
+                              const crypto::CryptoConfig *crypto_config,
                               const tiling::CompoundMask &mask,
                               std::vector<std::vector<std::string>>& rank_groups,
                               std::vector<std::map<TileTypeDescriptor, int>>& cnt_tile_types,
@@ -1106,7 +1107,7 @@ namespace model
     std::unordered_map<std::string, int> rank_id_to_lines;
     std::vector<bool> dataspace_rb(per_dataspace.size(), false);
     bool first_tile_possible = (specs_.technology.Get() == Technology::DRAM);
-    auto latency_stats = CheckTileTypesRecursive(layout, mask, rank_groups, cnt_tile_types, per_dataspace, compute_cycles, 
+    auto latency_stats = CheckTileTypesRecursive(layout, crypto_config, mask, rank_groups, cnt_tile_types, per_dataspace, compute_cycles, 
                                    rank_id_to_lines, dataspace_rb, 1, first_tile_possible, 0);
     if (first_tile_possible)
     {
@@ -1117,6 +1118,7 @@ namespace model
 
   BufferLevel::LatencyStats
   BufferLevel::CheckTileTypesRecursive(const layout::Layout& layout,
+                                       const crypto::CryptoConfig *crypto_config,
                                        const tiling::CompoundMask &mask,
                                        std::vector<std::vector<std::string>>& rank_groups,
                                        std::vector<std::map<TileTypeDescriptor, int>>& cnt_tile_types,
@@ -1148,12 +1150,12 @@ namespace model
       }
       if (group_it_idx+1 < rank_groups.size()) 
       {
-        rec_stats = CheckTileTypesRecursive(layout, mask, rank_groups, cnt_tile_types, per_dataspace, compute_cycles, 
+        rec_stats = CheckTileTypesRecursive(layout, crypto_config, mask, rank_groups, cnt_tile_types, per_dataspace, compute_cycles, 
                                             rank_id_to_lines, dataspace_rb_new, cur_cnt*cnt, first_tile_possible_new, group_it_idx+1);
       }
       else
       {
-        rec_stats = CheckTileTypesBase(layout, mask, per_dataspace, compute_cycles, 
+        rec_stats = CheckTileTypesBase(layout, crypto_config, mask, per_dataspace, compute_cycles, 
                                        rank_id_to_lines, dataspace_rb_new, cur_cnt*cnt, first_tile_possible_new);
       }
       latency_stats.overall_critical_path_latency += rec_stats.overall_critical_path_latency;
@@ -1165,6 +1167,7 @@ namespace model
 
   BufferLevel::LatencyStats
   BufferLevel::CheckTileTypesBase(const layout::Layout& layout,
+                                  const crypto::CryptoConfig *crypto_config,
                                   const tiling::CompoundMask &mask,
                                   std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
                                   uint64_t compute_cycles,
@@ -1210,8 +1213,14 @@ namespace model
         memory_latency_read += std::ceil(lines * (double)ds.auth_block_size / ds.memory_line) 
                               + std::ceil(ds.crypto_hash_reads_per_line * lines);
       }
-      // TODO: make this configurable between one vs multiple crypto engines (sum vs max)
-      crypto_latency = std::max(crypto_latency, (uint64_t)(ds.crypto_latency_per_line * lines));
+      if (!(crypto_config->shared)) 
+      {
+        crypto_latency = std::max(crypto_latency, (uint64_t)(ds.crypto_latency_per_line * std::ceil(lines / crypto_config->number_engines)));
+      }
+      else
+      {
+        crypto_latency += (uint64_t)(ds.crypto_latency_per_line * lines);
+      }
       latency_stats.overall_lines += lines * cur_cnt;
 #ifdef DEBUG
       std::cout << "DS " << data_space_id << " num_lines " << lines << " cnt " << cur_cnt << std::endl;
@@ -1220,6 +1229,10 @@ namespace model
       std::cout << "MEM_LAT_WRITE " << data_space_id << " " << memory_latency_write*cur_cnt << std::endl;
       std::cout << std::endl;
 #endif
+    }
+    if (crypto_config->shared)
+    {
+      crypto_latency /= crypto_config->number_engines;
     }
     double block_size = specs_.block_size.IsSpecified() ? specs_.block_size.Get() : 1;
     double read_ports = 1;
@@ -1668,7 +1681,7 @@ namespace model
     std::cout << " *** step 4 *** " << std::endl;
 #endif
 
-    LatencyStats latency_stats = CheckTileTypes(layout, mask, rank_groups, cnt_tile_types, per_dataspace, compute_cycles);
+    LatencyStats latency_stats = CheckTileTypes(layout, crypto_config, mask, rank_groups, cnt_tile_types, per_dataspace, compute_cycles);
 
     // ****************************************************************
     // Step 5: Analyze -- Bandwidth Modeling vs Layout based Modeling
