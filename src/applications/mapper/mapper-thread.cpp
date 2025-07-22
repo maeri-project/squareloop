@@ -542,15 +542,15 @@ void MapperThread::Run()
         // Iterate in order: IntraLineSpace → PackingSpace → AuthSpace
         for (uint64_t layout_auth_id = 0; layout_auth_id < authblock_candidates; layout_auth_id++)
         {
-          log_stream_ << "[" << thread_id_ << "] Processing IntraLineSpace " << layout_id << "/" << intraline_candidates << std::endl;
+          log_stream_ << "[" << thread_id_ << "] Testing layout combination: AuthSpace=" << layout_auth_id << std::endl;
           
           for (uint64_t layout_packing_id = 0; layout_packing_id < packing_candidates; layout_packing_id++)
-          {
+          { 
             log_stream_ << "[" << thread_id_ << "] Processing PackingSpace " << layout_packing_id << "/" << packing_candidates << std::endl;
             
             for (uint64_t layout_id = 0; layout_id < intraline_candidates; layout_id++)
             {
-              log_stream_ << "[" << thread_id_ << "] Testing layout combination: IntraLineSpace=" << layout_id 
+              log_stream_ << "[" << thread_id_ << "]  IntraLineSpace=" << layout_id 
                           << ", PackingSpace=" << layout_packing_id
                           << ", AuthSpace=" << layout_auth_id << std::endl;
                           
