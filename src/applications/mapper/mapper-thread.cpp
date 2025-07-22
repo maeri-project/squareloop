@@ -534,37 +534,43 @@ void MapperThread::Run()
           }
         }
 
-        log_stream_ << "[" << thread_id_ << "] Starting layout optimization with " 
-                    << intraline_candidates << " IntraLineSpace candidates, "
-                    << packing_candidates << " PackingSpace candidates, and "
-                    << authblock_candidates << " AuthSpace candidates." << std::endl;
+        log_stream_ << "[" << thread_id_ << "] Starting independent ordered layout optimization:" << std::endl;
+        log_stream_ << "[" << thread_id_ << "] - " << intraline_candidates << " IntraLineSpace candidates" << std::endl;
+        log_stream_ << "[" << thread_id_ << "] - " << packing_candidates << " PackingSpace candidates" << std::endl;
+        log_stream_ << "[" << thread_id_ << "] - " << authblock_candidates << " AuthSpace candidates" << std::endl;
 
-        // Iterate in order: IntraLineSpace → PackingSpace → AuthSpace
-        for (uint64_t layout_auth_id = 0; layout_auth_id < authblock_candidates; layout_auth_id++)
+        // Track best IDs for each design space
+        uint64_t best_layout_id = 0;
+        uint64_t best_layout_packing_id = 0;
+        uint64_t best_layout_auth_id = 0;
+
+        // Phase 1: Search IntraLineSpace (with cleared authblock_lines and default PackingSpace=0)
+        log_stream_ << "[" << thread_id_ << "] Phase 1: Optimizing IntraLineSpace (clearing authblock_lines for pure evaluation)..." << std::endl;
+        for (uint64_t layout_id = 0; layout_id < intraline_candidates; layout_id++)
         {
-          log_stream_ << "[" << thread_id_ << "] Testing layout combination: AuthSpace=" << layout_auth_id << std::endl;
+          log_stream_ << "[" << thread_id_ << "] Testing IntraLineSpace " << layout_id << "/" << intraline_candidates << std::endl;
           
-          for (uint64_t layout_packing_id = 0; layout_packing_id < packing_candidates; layout_packing_id++)
-          { 
-            log_stream_ << "[" << thread_id_ << "] Processing PackingSpace " << layout_packing_id << "/" << packing_candidates << std::endl;
-            
-            for (uint64_t layout_id = 0; layout_id < intraline_candidates; layout_id++)
-            {
-              log_stream_ << "[" << thread_id_ << "]  IntraLineSpace=" << layout_id 
-                          << ", PackingSpace=" << layout_packing_id
-                          << ", AuthSpace=" << layout_auth_id << std::endl;
-                          
-              auto construction_status = legal_layoutspace->ConstructLayout(layout_id, layout_auth_id, layout_packing_id, &layout_, false);
-              bool layout_success = std::accumulate(construction_status.begin(), construction_status.end(), true,
-                                          [](bool cur, const layoutspace::Status& status)
-                                          { return cur && status.success; });
-              if(!layout_success) {
-                log_stream_ << "[" << thread_id_ << "] Layout construction failed for combination (" 
-                            << layout_id << "," << layout_packing_id << "," << layout_auth_id << ")" << std::endl;
-                continue;
-              }
+          auto construction_status = legal_layoutspace->ConstructLayout(layout_id, 0, 0, &layout_, false);
+          bool layout_success = std::accumulate(construction_status.begin(), construction_status.end(), true,
+                                      [](bool cur, const layoutspace::Status& status)
+                                      { return cur && status.success; });
+          if(!layout_success) {
+            log_stream_ << "[" << thread_id_ << "] IntraLineSpace " << layout_id << " construction failed" << std::endl;
+            continue;
+          }
 
-          auto status_per_level = engine.Evaluate(stats_.thread_best.mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
+          // Clear authblock_lines for pure IntraLineSpace evaluation
+          layout::Layouts intraline_only_layout = layout_;
+          for (unsigned lvl = 0; lvl < intraline_only_layout.size(); lvl++) {
+            for (unsigned ds_idx = 0; ds_idx < intraline_only_layout[lvl].authblock_lines.size(); ds_idx++) {
+              // Clear all authblock factors to eliminate their effect
+              intraline_only_layout[lvl].authblock_lines[ds_idx].factors.clear();
+            }
+          }
+          
+          log_stream_ << "[" << thread_id_ << "] Cleared authblock_lines for IntraLineSpace " << layout_id << " evaluation" << std::endl;
+
+          auto status_per_level = engine.Evaluate(stats_.thread_best.mapping, workload_, intraline_only_layout, sparse_optimizations_, crypto_, !diagnostics_on_);
 
           // Extract run-time latency and energy efficiency from evaluation results
           std::uint64_t runtime_latency = engine.Cycles();
@@ -572,41 +578,149 @@ void MapperThread::Run()
           std::uint64_t actual_computes = engine.GetTopology().ActualComputes();
           double energy_per_compute = (actual_computes > 0) ? (total_energy / actual_computes) : 0.0;
 
-          // Track global optimal values (prefer smaller values)
+          // Track optimal values (prefer smaller values)
           bool is_better = false;
           std::string improvement_reason = "";
 
           if (!has_valid_layout) {
             // First valid layout
             is_better = true;
-            improvement_reason = "layout update: first valid layout";
+            improvement_reason = "IntraLineSpace: first valid layout";
           }
           else if (runtime_latency < mapping_specific_best_latency) {
             // Better latency
             is_better = true;
-            improvement_reason = "layout update: better latency";
+            improvement_reason = "IntraLineSpace: better latency";
           }
           else if (runtime_latency == mapping_specific_best_latency && energy_per_compute < mapping_specific_best_energy_per_compute) {
             // Same latency but better energy efficiency
             is_better = true;
-            improvement_reason = "layout update: same latency, better energy efficiency";
+            improvement_reason = "IntraLineSpace: same latency, better energy efficiency";
           }
 
           if (is_better) {
             mapping_specific_best_latency = runtime_latency;
             mapping_specific_best_energy_per_compute = energy_per_compute;
-            mapping_specific_best_layout = layout_;
+            mapping_specific_best_layout = intraline_only_layout; // Store the layout with cleared authblock_lines
+            best_layout_id = layout_id;
             has_valid_layout = true;
 
-            log_stream_ << "[" << thread_id_ << "] NEW LAYOUT OPTIMAL: "
-            << "Latency=" << mapping_specific_best_latency << " cycles, "
-            << "Energy/Compute=" << mapping_specific_best_energy_per_compute << " pJ/compute "
-            << "(" << improvement_reason << ")"
-            << std::endl;
+            log_stream_ << "[" << thread_id_ << "] NEW INTRALINE OPTIMAL: ID=" << best_layout_id
+                        << ", Latency=" << mapping_specific_best_latency << " cycles"
+                        << ", Energy/Compute=" << mapping_specific_best_energy_per_compute << " pJ/compute"
+                        << " (" << improvement_reason << ") [authblock_lines cleared]" << std::endl;
           }
-          } // end AuthSpace loop
-          } // end PackingSpace loop
-        } // end IntraLineSpace loop
+        }
+
+        // Phase 2: Search PackingSpace (with best IntraLineSpace and default AuthSpace=0)
+        // Note: authblock_lines clearing from Phase 1 does not affect this phase as layout is reconstructed
+        if (has_valid_layout && packing_candidates > 1) {
+          log_stream_ << "[" << thread_id_ << "] Phase 2: Optimizing PackingSpace with best IntraLineSpace=" << best_layout_id << " (authblock_lines restored)..." << std::endl;
+          for (uint64_t layout_packing_id = 0; layout_packing_id < packing_candidates; layout_packing_id++)
+          {
+            log_stream_ << "[" << thread_id_ << "] Testing PackingSpace " << layout_packing_id << "/" << packing_candidates << std::endl;
+            
+            auto construction_status = legal_layoutspace->ConstructLayout(best_layout_id, 0, layout_packing_id, &layout_, false);
+            bool layout_success = std::accumulate(construction_status.begin(), construction_status.end(), true,
+                                        [](bool cur, const layoutspace::Status& status)
+                                        { return cur && status.success; });
+            if(!layout_success) {
+              log_stream_ << "[" << thread_id_ << "] PackingSpace " << layout_packing_id << " construction failed" << std::endl;
+              continue;
+            }
+
+            auto status_per_level = engine.Evaluate(stats_.thread_best.mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
+
+            // Extract run-time latency and energy efficiency from evaluation results
+            std::uint64_t runtime_latency = engine.Cycles();
+            double total_energy = engine.Energy();
+            std::uint64_t actual_computes = engine.GetTopology().ActualComputes();
+            double energy_per_compute = (actual_computes > 0) ? (total_energy / actual_computes) : 0.0;
+
+            // Check if better than current best
+            bool is_better = false;
+            std::string improvement_reason = "";
+
+            if (runtime_latency < mapping_specific_best_latency) {
+              is_better = true;
+              improvement_reason = "PackingSpace: better latency";
+            }
+            else if (runtime_latency == mapping_specific_best_latency && energy_per_compute < mapping_specific_best_energy_per_compute) {
+              is_better = true;
+              improvement_reason = "PackingSpace: same latency, better energy efficiency";
+            }
+
+            if (is_better) {
+              mapping_specific_best_latency = runtime_latency;
+              mapping_specific_best_energy_per_compute = energy_per_compute;
+              mapping_specific_best_layout = layout_;
+              best_layout_packing_id = layout_packing_id;
+
+              log_stream_ << "[" << thread_id_ << "] NEW PACKING OPTIMAL: ID=" << best_layout_packing_id
+                          << ", Latency=" << mapping_specific_best_latency << " cycles"
+                          << ", Energy/Compute=" << mapping_specific_best_energy_per_compute << " pJ/compute"
+                          << " (" << improvement_reason << ")" << std::endl;
+            }
+          }
+        }
+
+        // Phase 3: Search AuthSpace (with best IntraLineSpace and best PackingSpace)
+        // Note: authblock_lines are fully functional in this phase
+        if (has_valid_layout && authblock_candidates > 1) {
+          log_stream_ << "[" << thread_id_ << "] Phase 3: Optimizing AuthSpace with best IntraLineSpace=" << best_layout_id 
+                      << " and PackingSpace=" << best_layout_packing_id << " (authblock_lines active)..." << std::endl;
+          for (uint64_t layout_auth_id = 0; layout_auth_id < authblock_candidates; layout_auth_id++)
+          {
+            log_stream_ << "[" << thread_id_ << "] Testing AuthSpace " << layout_auth_id << "/" << authblock_candidates << std::endl;
+            
+            auto construction_status = legal_layoutspace->ConstructLayout(best_layout_id, layout_auth_id, best_layout_packing_id, &layout_, false);
+            bool layout_success = std::accumulate(construction_status.begin(), construction_status.end(), true,
+                                        [](bool cur, const layoutspace::Status& status)
+                                        { return cur && status.success; });
+            if(!layout_success) {
+              log_stream_ << "[" << thread_id_ << "] AuthSpace " << layout_auth_id << " construction failed" << std::endl;
+              continue;
+            }
+
+            auto status_per_level = engine.Evaluate(stats_.thread_best.mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
+
+            // Extract run-time latency and energy efficiency from evaluation results
+            std::uint64_t runtime_latency = engine.Cycles();
+            double total_energy = engine.Energy();
+            std::uint64_t actual_computes = engine.GetTopology().ActualComputes();
+            double energy_per_compute = (actual_computes > 0) ? (total_energy / actual_computes) : 0.0;
+
+            // Check if better than current best
+            bool is_better = false;
+            std::string improvement_reason = "";
+
+            if (runtime_latency < mapping_specific_best_latency) {
+              is_better = true;
+              improvement_reason = "AuthSpace: better latency";
+            }
+            else if (runtime_latency == mapping_specific_best_latency && energy_per_compute < mapping_specific_best_energy_per_compute) {
+              is_better = true;
+              improvement_reason = "AuthSpace: same latency, better energy efficiency";
+            }
+
+            if (is_better) {
+              mapping_specific_best_latency = runtime_latency;
+              mapping_specific_best_energy_per_compute = energy_per_compute;
+              mapping_specific_best_layout = layout_;
+              best_layout_auth_id = layout_auth_id;
+
+              log_stream_ << "[" << thread_id_ << "] NEW AUTH OPTIMAL: ID=" << best_layout_auth_id
+                          << ", Latency=" << mapping_specific_best_latency << " cycles"
+                          << ", Energy/Compute=" << mapping_specific_best_energy_per_compute << " pJ/compute"
+                          << " (" << improvement_reason << ")" << std::endl;
+            }
+          }
+        }
+
+        // Final optimal configuration
+        log_stream_ << "[" << thread_id_ << "] FINAL OPTIMAL CONFIGURATION: IntraLineSpace=" << best_layout_id
+                    << ", PackingSpace=" << best_layout_packing_id << ", AuthSpace=" << best_layout_auth_id 
+                    << " (authblock_lines effects included in final result)" << std::endl;
 
         // Update the best result with the optimal layout
         if (has_valid_layout) {
