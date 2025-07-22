@@ -5,5 +5,5 @@ mapper:
   num-threads: 1
   optimization-metrics:
   - edp
-  timeout: 20
+  timeout: 2000
   victory-condition: 300

@@ -34,7 +34,7 @@
 #include <string>
 #include "mapping/loop.hpp"
 
-// #define DEBUG 
+#define DEBUG 
 
 namespace layoutspace
 {
@@ -147,7 +147,6 @@ LayoutSpace* CreateLayoutSpace(const Mapping& mapping,
                                layout::Layouts& layout,
                               bool skip_init)
 {
-
   return new Legal(arch_specs, mapping, layout, skip_init);
 }
 

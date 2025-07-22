@@ -372,35 +372,30 @@ void MapperThread::Run()
   // =================
   while (true)
   {
-//     if (live_status_)
-//     {
-//       std::stringstream msg;
+    if (live_status_)
+    {
+      std::stringstream msg;
 
-//       msg << std::setw(3) << thread_id_ << std::setw(11) << total_mappings
-//           << std::setw(11) << (total_mappings - valid_mappings)  << std::setw(11) << valid_mappings
-//           << std::setw(11) << invalid_mappings_mapcnstr + invalid_mappings_eval
-//           << std::setw(11) << mappings_since_last_best_update;
+      msg << std::setw(3) << thread_id_ << std::setw(11) << total_mappings
+          << std::setw(11) << (total_mappings - valid_mappings)  << std::setw(11) << valid_mappings
+          << std::setw(11) << invalid_mappings_mapcnstr + invalid_mappings_eval
+          << std::setw(11) << mappings_since_last_best_update;
 
-//       if (valid_mappings > 0)
-//       {
-//         msg << std::setw(10) << OUT_FLOAT_FORMAT << std::setprecision(2) << OUT_PERCENT(stats_.thread_best.stats.utilization)
-//             << std::setw(11) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats_.thread_best.stats.energy /
-//           stats_.thread_best.stats.algorithmic_computes
-//             << std::setw(11) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats_.thread_best.stats.cycles;
-//         msg << std::endl;
-// #ifdef DEBUG_SHOW_MAPPING_LAYOUT
-//         msg << "Mapping: " << mapping << std::endl;
-//         layout::PrintOverallLayoutConcise(layout_, msg);
-//         msg << std::endl;
-// #endif
-//       }
+      if (valid_mappings > 0)
+      {
+        msg << std::setw(10) << OUT_FLOAT_FORMAT << std::setprecision(2) << OUT_PERCENT(stats_.thread_best.stats.utilization)
+            << std::setw(11) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats_.thread_best.stats.energy /
+          stats_.thread_best.stats.algorithmic_computes
+            << std::setw(11) << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << stats_.thread_best.stats.cycles;
+        msg << std::endl;
+      }
 
-//       mutex_->lock();
-//       mvaddstr(thread_id_ + ncurses_line_offset, 0, msg.str().c_str());
+      mutex_->lock();
+      mvaddstr(thread_id_ + ncurses_line_offset, 0, msg.str().c_str());
 
-//       refresh();
-//       mutex_->unlock();
-//     }
+      refresh();
+      mutex_->unlock();
+    }
 
     // Termination conditions.
     bool terminate = false;
@@ -467,7 +462,7 @@ void MapperThread::Run()
         if (layout_initialized_){
           engine.Evaluate(index_factor_best.mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
         }else
-          engine.Evaluate(index_factor_best.mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
+          engine.Evaluate(index_factor_best.mapping, workload_, sparse_optimizations_, !diagnostics_on_);
 
         if (index_factor_best.valid) {
             auto topology = engine.GetTopology();
@@ -503,11 +498,9 @@ void MapperThread::Run()
       // Perform layout search on the final best mapping (only if layout was not pre-initialized)
       if (!layout_initialized_ && stats_.thread_best.valid)
       {
-        mutex_->lock();
         log_stream_ << "[" << std::setw(3) << thread_id_ << "] STATEMENT: "
                     << "Performing layout optimization on best mapping found."
                     << std::endl;
-        mutex_->unlock();
 
         layoutspace_ = layoutspace::CreateLayoutSpace(stats_.thread_best.mapping, arch_specs_, layout_, false);
 
@@ -559,19 +552,16 @@ void MapperThread::Run()
             mapping_specific_best_layout = layout_;
             has_valid_layout = true;
 
-            mutex_->lock();
             log_stream_ << "[" << thread_id_ << "] NEW LAYOUT OPTIMAL: "
             << "Latency=" << mapping_specific_best_latency << " cycles, "
             << "Energy/Compute=" << mapping_specific_best_energy_per_compute << " pJ/compute "
             << "(" << improvement_reason << ")"
             << std::endl;
-            mutex_->unlock();
           }
         }
 
         // Update the best result with the optimal layout
         if (has_valid_layout) {
-          mutex_->lock();
           log_stream_ << "[" << thread_id_ << "] FINAL LAYOUT OPTIMAL: "
           << "Latency=" << mapping_specific_best_latency << " cycles, "
           << "Energy/Compute=" << mapping_specific_best_energy_per_compute << " pJ/compute"
@@ -579,7 +569,6 @@ void MapperThread::Run()
 
           // Print layout details for the optimal layout
           log_stream_ << "[" << thread_id_ << "] OPTIMAL LAYOUT:" << std::endl;
-          mutex_->unlock();
 
           layout::PrintOverallLayout(mapping_specific_best_layout);
 
@@ -599,9 +588,7 @@ void MapperThread::Run()
           mutex_->unlock();
 
         } else {
-          mutex_->lock();
           log_stream_ << "[" << thread_id_ << "] No valid layouts found for best mapping." << std::endl;
-          mutex_->unlock();
         }
       }
       break;
@@ -734,11 +721,16 @@ void MapperThread::Run()
                                [](bool cur, const model::EvalStatus& status)
                                { return cur && status.success; });
     }else{
-      // When layout is not initialized, create a concordant layout for the mapping
+      // When layout is not initialized, just using ideal layout to search the mapping first.
+#ifdef USING_CONCORDANT_LAYOUT_IN_MAPPING_SEARCH
       // Create a Legal layoutspace object for this mapping
       layout_local = layoutspace::CreateConcordantLayoutStandalone(mapping, layout_);
-      status_per_level = engine.Evaluate(mapping, workload_, layout_local, sparse_optimizations_, crypto_, !diagnostics_on_);
+      status_per_level = engine.Evaluate(mapping, workload_, layout_local, sparse_optimizations_, crypto_,!diagnostics_on_);
+#else
+      status_per_level = engine.Evaluate(mapping, workload_, sparse_optimizations_, !diagnostics_on_);
+#endif
 
+#ifdef USING_CONCORDANT_LAYOUT_IN_MAPPING_SEARCH
       if (live_status_)
       {
         std::stringstream msg;
@@ -766,8 +758,8 @@ void MapperThread::Run()
         refresh();
         mutex_->unlock();
       }
+#endif
 
-      // status_per_level = engine.Evaluate(mapping, workload_, sparse_optimizations_, crypto_, !diagnostics_on_);
       success &= std::accumulate(status_per_level.begin(), status_per_level.end(), true,
                                [](bool cur, const model::EvalStatus& status)
                                { return cur && status.success; });
@@ -817,7 +809,7 @@ void MapperThread::Run()
         if (layout_initialized_){
           engine.Evaluate(index_factor_best.mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
         }else
-          engine.Evaluate(index_factor_best.mapping, workload_, layout_local, sparse_optimizations_, crypto_, !diagnostics_on_);
+          engine.Evaluate(index_factor_best.mapping, workload_, sparse_optimizations_, !diagnostics_on_);
 
         auto topology = engine.GetTopology();
 

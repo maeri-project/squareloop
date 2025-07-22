@@ -2,12 +2,12 @@ architecture:
   subtree:
   - local:
     - attributes:
-        block-size: 8
-        read_bandwidth: 32
+        block-size: 64
+        read_bandwidth: 2048
         type: LPDDR4
-        width: 128
+        width: 1024
         word-bits: 16
-        write_bandwidth: 32
+        write_bandwidth: 2048
       class: DRAM
       name: DRAM
     name: system
@@ -16,20 +16,20 @@ architecture:
         technology: 45nm
       local:
       - attributes:
-          block-size: 8
-          memory_depth: 8192
-          memory_width: 128
-          n_banks: 32
-          read_bandwidth: 32
+          block-size: 64
+          memory_depth: 16384
+          memory_width: 1024
+          n_banks: 64
+          read_bandwidth: 2048
           word-bits: 16
-          write_bandwidth: 32
+          write_bandwidth: 2048
         class: smartbuffer_SRAM
         name: shared_glb
       - attributes:
-          block-size: 16
+          block-size: 64
           depth: 16
           meshX: 14
-          width: 256
+          width: 1024
           word-bits: 16
         class: regfile
         name: DummyBuffer[0..13]

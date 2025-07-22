@@ -1350,6 +1350,7 @@ namespace model
       for (const auto &r : intra_nest.ranks) // Analyze slowdown per rank
       {
         int factor = (intra_nest.factors.find(r) != intra_nest.factors.end() ? intra_nest.factors.at(r) : 1);
+        std::cout << "RANK " << r << " factor=" << factor << std::endl;
         ds.memory_line *= factor;
         factor *= (auth_nest.factors.find(r) != auth_nest.factors.end() ? auth_nest.factors.at(r) : 1);
         ds.auth_block_size *= factor;

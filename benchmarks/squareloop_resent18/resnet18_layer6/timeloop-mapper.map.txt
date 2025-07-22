@@ -1,0 +1,27 @@
+DRAM [ Weights:73728 (73728) Inputs:207936 (207936) Outputs:100352 (100352) ] 
+-----------------------------------------------------------------------------
+| for Q in [0:4)
+|   for M in [0:2)
+
+shared_glb [ Inputs:54720 (54720) Outputs:12544 (12544) ] 
+---------------------------------------------------------
+|     for M in [0:4)
+|       for P in [0:28)
+|         for C in [0:32)
+|           for M in [0:2) (Spatial-X)
+|             for Q in [0:7) (Spatial-X)
+
+DummyBuffer [ ] 
+---------------
+|               for C in [0:2) (Spatial-Y)
+|                 for S in [0:3) (Spatial-Y)
+
+ifmap_spad [ Inputs:3 (3) ] 
+weights_spad [ Weights:24 (24) ] 
+--------------------------------
+|                   for R in [0:3)
+
+psum_spad [ Outputs:8 (8) ] 
+---------------------------
+|                     for M in [0:8)
+|                       << Compute >>

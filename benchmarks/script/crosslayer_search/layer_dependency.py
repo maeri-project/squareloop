@@ -17,19 +17,65 @@ import torchlens as tl
 
 import pandas as pd
 
-conv_workload_template = {'problem': {'instance': {'C': 1, 'M': 1, 'N': 1, 'P': 1, 'Q': 1, 'R': 1, 'S': 1, 'Wdilation': 1, 'Wstride': 1, 'Hdilation': 1, 'Hstride': 1}, \
-                                      'shape': {'name': 'CNN_Layer', 'dimensions': ['C', 'M', 'R', 'S', 'N', 'P', 'Q'], \
-                                                'coefficients': [{'default': 1, 'name': 'Wstride'}, {'default': 1, 'name': 'Hstride'}, {'default': 1, 'name': 'Wdilation'}, {'default': 1, 'name': 'Hdilation'}], \
-                                                'data-spaces': [{'name': 'Weights', 'projection': [[['C']], [['M']], [['R']], [['S']]], 'ranks': ['C', 'M', 'R', 'S']}, {'name': 'Inputs', 'projection': [[['N']], [['C']], [['R', 'Wdilation'], ['P', 'Wstride']], [['S', 'Hdilation'], ['Q', 'Hstride']]], 'ranks': ['N', 'C', 'H', 'W']}, {'name': 'Outputs', 'projection': [[['N']], [['M']], [['P']], [['Q']]], 'read_write': True, 'ranks': ['N', 'M', 'P', 'Q']}]}}}
+conv_workload_template = {
+    "problem": {
+        "instance": {
+            "C": 1,
+            "M": 1,
+            "N": 1,
+            "P": 1,
+            "Q": 1,
+            "R": 1,
+            "S": 1,
+            "Wdilation": 1,
+            "Wstride": 1,
+            "Hdilation": 1,
+            "Hstride": 1,
+        },
+        "shape": {
+            "name": "CNN_Layer",
+            "dimensions": ["C", "M", "R", "S", "N", "P", "Q"],
+            "coefficients": [
+                {"default": 1, "name": "Wstride"},
+                {"default": 1, "name": "Hstride"},
+                {"default": 1, "name": "Wdilation"},
+                {"default": 1, "name": "Hdilation"},
+            ],
+            "data-spaces": [
+                {
+                    "name": "Weights",
+                    "projection": [[["C"]], [["M"]], [["R"]], [["S"]]],
+                    "ranks": ["C", "K", "R", "S"],
+                },
+                {
+                    "name": "Inputs",
+                    "projection": [
+                        [["N"]],
+                        [["C"]],
+                        [["R", "Wdilation"], ["P", "Wstride"]],
+                        [["S", "Hdilation"], ["Q", "Hstride"]],
+                    ],
+                    "ranks": ["N", "V", "H", "W"],
+                },
+                {
+                    "name": "Outputs",
+                    "projection": [[["N"]], [["M"]], [["P"]], [["Q"]]],
+                    "read_write": True,
+                    "ranks": ["N", "L", "P", "Q"],
+                },
+            ],
+        },
+    }
+}
 conv_dw_workload_template = {'problem': {'instance': {'C': 1, 'N': 1, 'P': 1, 'Q': 1, 'R': 1, 'S': 1, 'Wdilation': 1, 'Wstride': 1, 'Hdilation': 1, 'Hstride': 1}, \
                                          'shape': {'name': 'CNN_Layer', 'dimensions': ['C', 'R', 'S', 'N', 'P', 'Q'], \
                                                    'coefficients': [{'default': 1, 'name': 'Wstride'}, {'default': 1, 'name': 'Hstride'}, {'default': 1, 'name': 'Wdilation'}, {'default': 1, 'name': 'Hdilation'}], \
-                                                   'data-spaces': [{'name': 'Weights', 'projection': [[['C']], [['R']], [['S']]], 'ranks': ['C', 'R', 'S']}, {'name': 'Inputs', 'projection': [[['N']], [['C']], [['R', 'Wdilation'], ['P', 'Wstride']], [['S', 'Hdilation'], ['Q', 'Hstride']]], 'ranks': ['N', 'C', 'H', 'W']}, {'name': 'Outputs', 'projection': [[['N']], [['C']], [['P']], [['Q']]], 'read_write': True, 'ranks': ['N', 'C', 'P', 'Q']}]}}}
+                                                   'data-spaces': [{'name': 'Weights', 'projection': [[['C']], [['R']], [['S']]], 'ranks': ['C', 'R', 'S']}, {'name': 'Inputs', 'projection': [[['N']], [['C']], [['R', 'Wdilation'], ['P', 'Wstride']], [['S', 'Hdilation'], ['Q', 'Hstride']]], 'ranks': ['N', 'V', 'H', 'W']}, {'name': 'Outputs', 'projection': [[['N']], [['C']], [['P']], [['Q']]], 'read_write': True, 'ranks': ['N', 'L', 'P', 'Q']}]}}}
 # linear workload -> same as conv, but set P=Q=R=S=1
 linear_workload_template = {'problem': {'instance': {'C': 1, 'M': 1, 'N': 1, 'P': 1, 'Q': 1, 'R': 1, 'S': 1, 'Wdilation': 1, 'Wstride': 1, 'Hdilation': 1, 'Hstride': 1}, \
                                         'shape': {'name': 'Linear_Layer', 'dimensions': ['C', 'M', 'R', 'S', 'N', 'P', 'Q'], \
                                                   'coefficients': [{'default': 1, 'name': 'Wstride'}, {'default': 1, 'name': 'Hstride'}, {'default': 1, 'name': 'Wdilation'}, {'default': 1, 'name': 'Hdilation'}], \
-                                                  'data-spaces': [{'name': 'Weights', 'projection': [[['C']], [['M']], [['R']], [['S']]], 'ranks': ['C', 'M', 'R', 'S']}, {'name': 'Inputs', 'projection': [[['N']], [['C']], [['R', 'Wdilation'], ['P', 'Wstride']], [['S', 'Hdilation'], ['Q', 'Hstride']]], 'ranks': ['N', 'C', 'H', 'W']}, {'name': 'Outputs', 'projection': [[['N']], [['M']], [['P']], [['Q']]], 'read_write': True, 'ranks': ['N', 'M', 'P', 'Q']}]}}}
+                                                  'data-spaces': [{'name': 'Weights', 'projection': [[['C']], [['M']], [['R']], [['S']]], 'ranks': ['C', 'K', 'R', 'S']}, {'name': 'Inputs', 'projection': [[['N']], [['V']], [['R', 'Wdilation'], ['P', 'Wstride']], [['S', 'Hdilation'], ['Q', 'Hstride']]], 'ranks': ['N', 'V', 'H', 'W']}, {'name': 'Outputs', 'projection': [[['N']], [['M']], [['P']], [['Q']]], 'read_write': True, 'ranks': ['N', 'L', 'P', 'Q']}]}}}
 
 
 def generate_torchlens_history(module, input, save_to):
@@ -146,7 +192,7 @@ def determine_dependency(df, workload_name, save_to, exclude_layer_types=[]):
     # --> if not 'on-the-fly', not dependent
 
     supported_layer_types = ['conv2d', 'linear']
-    onthefly_types = ['relu', 'dropout']
+    onthefly_types = ['relu', 'dropout','batch_norm','batchnorm','maxpool2d', 'iadd']
 
     layer_types = [x for x in supported_layer_types if x not in exclude_layer_types]
 
@@ -286,9 +332,9 @@ def model_analysis(model, input, save_dir, model_tag, exclude_layer_types=[]):
 
 
 if __name__ == '__main__':
-    model = torchvision.models.AlexNet()
+    model = torchvision.models.resnet18()
     x = torch.rand(1, 3, 224, 224)
-    model_analysis(model, x, 'test/alexnet', 'AlexNet', exclude_layer_types=['linear'])
+    model_analysis(model, x, 'test/resnet18', 'resnet18', exclude_layer_types=['linear'])
 
     class testnet2(nn.Module):
         def __init__(self):
@@ -306,4 +352,3 @@ if __name__ == '__main__':
     x = torch.rand(1, 64, 64, 64)
 
     model_analysis(model, x, 'test/testnet2', 'testnet2')
-

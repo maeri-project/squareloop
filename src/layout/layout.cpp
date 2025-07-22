@@ -499,7 +499,7 @@ namespace layout
 
         // --- AuthBlock nest with dummy values ---
         // AuthBlock is left as blank for the memory level that does not need Authentication.
-        if (layout.target == "DRAM"){
+        if (layout.target == "DRAM" or layout.target == "MainMemory"){
           LayoutNest authblock_nest;
           authblock_nest.data_space = ds;
           authblock_nest.type = "authblock_lines";
