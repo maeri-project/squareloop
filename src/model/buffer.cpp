@@ -911,7 +911,7 @@ namespace model
     return rep[idx];
   }
 
-  std::pair<std::vector<std::vector<std::string>>, 
+  std::pair<std::vector<std::vector<std::string>>,
   std::vector<std::vector<problem::Shape::FlattenedDimensionID>>>
   BufferLevel::GroupRelatedRanks(const layout::Layout layout)
   {
@@ -1006,7 +1006,7 @@ namespace model
   {
     for (dims_it[dim_idx] = 0; dims_it[dim_idx] < (unsigned)std::max(dim_id_to_number_of_tiles[dims[dim_idx]], 1); dims_it[dim_idx]++)
     {
-      if (dim_idx+1 < dims.size()) 
+      if (dim_idx+1 < dims.size())
       {
         CountPerGroupTileTypesRecursive(layout, ranks, dims, rank_id_to_mapping_parallelism, rank_id_to_binding_parallelism,
                                         rank_id_to_dim_jumps, dim_id_to_number_of_tiles, per_dataspace, assume_zero_padding, assume_row_buffer,
@@ -1107,7 +1107,7 @@ namespace model
     std::unordered_map<std::string, int> rank_id_to_lines;
     std::vector<bool> dataspace_rb(per_dataspace.size(), false);
     bool first_tile_possible = (specs_.technology.Get() == Technology::DRAM);
-    auto latency_stats = CheckTileTypesRecursive(layout, crypto_config, mask, rank_groups, cnt_tile_types, per_dataspace, compute_cycles, 
+    auto latency_stats = CheckTileTypesRecursive(layout, crypto_config, mask, rank_groups, cnt_tile_types, per_dataspace, compute_cycles,
                                    rank_id_to_lines, dataspace_rb, 1, first_tile_possible, 0);
     if (first_tile_possible)
     {
@@ -1136,8 +1136,8 @@ namespace model
     auto& cur_ranks = rank_groups[group_it_idx];
     for (auto &[tile_type_desc, cnt] : cur_group_tile_types)
     {
-      auto& num_lines = tile_type_desc.num_lines; 
-      auto& dataspace_rb_cur = tile_type_desc.dataspace_rb; 
+      auto& num_lines = tile_type_desc.num_lines;
+      auto& dataspace_rb_cur = tile_type_desc.dataspace_rb;
       LatencyStats rec_stats;
       bool first_tile_possible_new = first_tile_possible && tile_type_desc.first_tile;
       for (unsigned i = 0; i < cur_ranks.size(); i++)
@@ -1148,14 +1148,14 @@ namespace model
       {
         dataspace_rb_new[ds_id] = dataspace_rb[ds_id] | dataspace_rb_cur[ds_id];
       }
-      if (group_it_idx+1 < rank_groups.size()) 
+      if (group_it_idx+1 < rank_groups.size())
       {
-        rec_stats = CheckTileTypesRecursive(layout, crypto_config, mask, rank_groups, cnt_tile_types, per_dataspace, compute_cycles, 
+        rec_stats = CheckTileTypesRecursive(layout, crypto_config, mask, rank_groups, cnt_tile_types, per_dataspace, compute_cycles,
                                             rank_id_to_lines, dataspace_rb_new, cur_cnt*cnt, first_tile_possible_new, group_it_idx+1);
       }
       else
       {
-        rec_stats = CheckTileTypesBase(layout, crypto_config, mask, per_dataspace, compute_cycles, 
+        rec_stats = CheckTileTypesBase(layout, crypto_config, mask, per_dataspace, compute_cycles,
                                        rank_id_to_lines, dataspace_rb_new, cur_cnt*cnt, first_tile_possible_new);
       }
       latency_stats.overall_critical_path_latency += rec_stats.overall_critical_path_latency;
@@ -1205,15 +1205,15 @@ namespace model
       // TODO: this shouldnt hardcode the dataspace id for writes
       if (data_space_id == 2)
       {
-        memory_latency_write += std::ceil(lines * (double)ds.auth_block_size / ds.memory_line) 
+        memory_latency_write += std::ceil(lines * (double)ds.auth_block_size / ds.memory_line)
                               + std::ceil(ds.crypto_hash_reads_per_line * lines);
       }
       else
       {
-        memory_latency_read += std::ceil(lines * (double)ds.auth_block_size / ds.memory_line) 
+        memory_latency_read += std::ceil(lines * (double)ds.auth_block_size / ds.memory_line)
                               + std::ceil(ds.crypto_hash_reads_per_line * lines);
       }
-      if (!(crypto_config->shared)) 
+      if (!(crypto_config->shared))
       {
         crypto_latency = std::max(crypto_latency, (uint64_t)(ds.crypto_latency_per_line * std::ceil(lines / crypto_config->number_engines)));
       }
@@ -1264,7 +1264,7 @@ namespace model
     latency_stats.total_cnt = cur_cnt;
 #ifdef DEBUG
     std::cout << "CUR_CNT=" << cur_cnt << std::endl << std::endl;
-#endif 
+#endif
     return latency_stats;
   }
 
@@ -1294,13 +1294,13 @@ namespace model
     for (auto &[data_space_id, ds] : per_dataspace_base)
     {
       auto nest = layout.intraline[data_space_id];
-      for (const auto &r : nest.ranks) 
+      for (const auto &r : nest.ranks)
       {
         auto dimsID = layout.rankToFactorizedDimensionID.at(r);
-        for (unsigned index = 0; index < dimsID.size(); index++) 
+        for (unsigned index = 0; index < dimsID.size(); index++)
         {
           if (dim_id_to_mapping_parallelism[dimsID[index]].first !=
-              dim_id_to_mapping_parallelism[dimsID[index]].second) 
+              dim_id_to_mapping_parallelism[dimsID[index]].second)
           {
             imperfect_ranks.push_back(r);
             break;
@@ -1346,10 +1346,10 @@ namespace model
       ds.auth_block_size = 1;
       ds.memory_line = 1;
       auto intra_nest = layout.intraline[data_space_id];
-      
+
       // Check if authblock_lines has enough elements to safely access data_space_id
       layout::LayoutNest auth_nest;
-      if (data_space_id < layout.authblock_lines.size() && 
+      if (data_space_id < layout.authblock_lines.size() &&
           !layout.authblock_lines[data_space_id].factors.empty()) {
         auth_nest = layout.authblock_lines[data_space_id];
       } else {
@@ -1359,11 +1359,10 @@ namespace model
         auth_nest.ranks = intra_nest.ranks;
         // auth_nest.factors is left empty, so the .find() calls below will return .end()
       }
-      
+
       for (const auto &r : intra_nest.ranks) // Analyze slowdown per rank
       {
         int factor = (intra_nest.factors.find(r) != intra_nest.factors.end() ? intra_nest.factors.at(r) : 1);
-        std::cout << "RANK " << r << " factor=" << factor << std::endl;
         ds.memory_line *= factor;
         factor *= (auth_nest.factors.find(r) != auth_nest.factors.end() ? auth_nest.factors.at(r) : 1);
         ds.auth_block_size *= factor;
@@ -1448,7 +1447,7 @@ namespace model
             int mapping_parallelism = std::max(dim_id_to_mapping_parallelism[dimsID[0]].first, 1);
             // adjust mapping parallelism for imperfect ranks
             auto imperfect_rank_it = find(imperfect_ranks.begin(), imperfect_ranks.end(), r);
-            if (imperfect_rank_it != imperfect_ranks.end()) 
+            if (imperfect_rank_it != imperfect_ranks.end())
             {
               int imperfect_rank_idx = imperfect_rank_it - imperfect_ranks.begin();
               if (bitmask & ((uint32_t)1 << imperfect_rank_idx))
@@ -1518,8 +1517,8 @@ namespace model
         layout, mask,
         crypto_config, compute_cycles,
         total_data_requested,
-        dim_id_to_number_of_tiles, 
-        rank_id_to_mapping_parallelism, rank_id_to_binding_parallelism,  
+        dim_id_to_number_of_tiles,
+        rank_id_to_mapping_parallelism, rank_id_to_binding_parallelism,
         rank_id_to_dim_jumps, per_dataspace,
         assume_row_buffer, assume_reuse, assume_zero_padding);
       all_slowdowns[bitmask] = result.first;
@@ -1548,10 +1547,10 @@ namespace model
   }
 
   std::pair<double, double> BufferLevel::ComputeBankConflictSlowdownIndividual(
-      const layout::Layout layout, 
+      const layout::Layout layout,
       const tiling::CompoundMask &mask,
       const crypto::CryptoConfig *crypto_config,
-      uint64_t compute_cycles, 
+      uint64_t compute_cycles,
       uint64_t total_data_requested,
       std::unordered_map<problem::Shape::FlattenedDimensionID, int> dim_id_to_number_of_tiles,
       std::unordered_map<std::string, int> &rank_id_to_mapping_parallelism,
@@ -1560,7 +1559,7 @@ namespace model
       std::unordered_map<unsigned, SlowdownIntermediateData> per_dataspace,
       const bool assume_row_buffer,
       const bool assume_reuse,
-      const bool assume_zero_padding) 
+      const bool assume_zero_padding)
   {
     (void)assume_reuse;
 
@@ -1603,7 +1602,7 @@ namespace model
     {
       cnt_tile_types.emplace_back(CountPerGroupTileTypes(layout, rank_groups[gid], dim_groups[gid],
                                                          rank_id_to_mapping_parallelism, rank_id_to_binding_parallelism,
-                                                         rank_id_to_dim_jumps, dim_id_to_number_of_tiles, per_dataspace, 
+                                                         rank_id_to_dim_jumps, dim_id_to_number_of_tiles, per_dataspace,
                                                          assume_zero_padding, assume_row_buffer));
 #ifdef DEBUG
       std::cout << "Group gid=" << gid << std::endl;
@@ -1640,7 +1639,7 @@ namespace model
       ds.crypto_hash_reads_per_line = 0;
       // only consider crypto if config is provided AND only for offchip memory
       // (DRAM) ToDo: can this be checked in a cleaner way?
-      bool has_authblock_factors = (data_space_id < layout.authblock_lines.size() && 
+      bool has_authblock_factors = (data_space_id < layout.authblock_lines.size() &&
                                     !layout.authblock_lines[data_space_id].factors.empty());
       if (crypto_config != nullptr && crypto_config->crypto_initialized_ && has_authblock_factors) {
         double word_size = specs_.word_bits.Get();
@@ -1697,7 +1696,7 @@ namespace model
     double num_lines_correction_ratio = average_line_requested_bw_modeling /
                                         average_line_requested_layout_modeling;
     double slowdown_current_dataspace = (latency_stats.total_cnt * double(compute_cycles)) /
-                                         latency_stats.overall_critical_path_latency; 
+                                         latency_stats.overall_critical_path_latency;
 
 #ifdef DEBUG
     std::cout << "average lines requested = " << latency_stats.overall_lines
@@ -1727,7 +1726,7 @@ namespace model
     std::vector<loop::Descriptor> &current_level_loopnest,
     std::vector<loop::Descriptor> &subtile_mapping_loopnest,
     std::vector<loop::Descriptor> &subtile_mapping_parallelism,
-    crypto::CryptoConfig *crypto_config) 
+    crypto::CryptoConfig *crypto_config)
   {
     overall_slowdown_ = 1.0; // Initialization
     auto dim_id_to_name = problem::GetShape()->FlattenedDimensionIDToName;
@@ -1930,7 +1929,7 @@ namespace model
       spatial_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(
         layout, mask, crypto_config, 1.0,
         dim_id_to_mapping_parallelism, dim_id_to_number_of_tiles,
-        dim_id_to_outer_size, per_dataspace, 
+        dim_id_to_outer_size, per_dataspace,
         assume_row_buffer, assume_reuse, assume_zero_padding);
 
       slowdown_spatial_check = spatial_bc_analysis_result.first;
@@ -1954,7 +1953,7 @@ namespace model
       subtile_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(
         layout, mask, crypto_config, compute_cycles,
         dim_id_to_subtile_shape, dim_id_to_number_of_tiles,
-        dim_id_to_outer_size, per_dataspace, 
+        dim_id_to_outer_size, per_dataspace,
         assume_row_buffer, assume_reuse, assume_zero_padding);
 
       slowdown_subtile_check = subtile_bc_analysis_result.first;

@@ -29,6 +29,7 @@
 
 #include "applications/mapper/mapper-thread.hpp"
 #include "layoutspaces/layoutspace-factory.hpp"
+#include "layoutspaces/legal.hpp"
 
 #define DEBUG_SHOW_MAPPING_LAYOUT
 bool gTerminate = false;
@@ -510,13 +511,58 @@ void MapperThread::Run()
         layout::Layouts mapping_specific_best_layout;
         bool has_valid_layout = false;
 
-        for(layoutspace::ID layout_id(layoutspace_->AllSizes()); layout_id.Integer() < layoutspace_->num_layout_candidates; layout_id.Increment())
+        // Calculate individual design space sizes
+        uint64_t intraline_candidates = 1;
+        auto legal_layoutspace = dynamic_cast<layoutspace::Legal*>(layoutspace_);
+        if (legal_layoutspace && !legal_layoutspace->variable_intraline_factors_.empty()) {
+          for (const auto& range : legal_layoutspace->intraline_conversion_ranges_) {
+            intraline_candidates *= range.size();
+          }
+        }
+        
+        uint64_t packing_candidates = 1;
+        if (legal_layoutspace && !legal_layoutspace->variable_packing_factors_.empty()) {
+          for (const auto& range : legal_layoutspace->packing_factor_ranges_) {
+            packing_candidates *= range.size();
+          }
+        }
+        
+        uint64_t authblock_candidates = 1; 
+        if (legal_layoutspace && !legal_layoutspace->variable_authblock_factors_.empty()) {
+          for (const auto& range : legal_layoutspace->authblock_factor_ranges_) {
+            authblock_candidates *= range.size();
+          }
+        }
+
+        log_stream_ << "[" << thread_id_ << "] Starting layout optimization with " 
+                    << intraline_candidates << " IntraLineSpace candidates, "
+                    << packing_candidates << " PackingSpace candidates, and "
+                    << authblock_candidates << " AuthSpace candidates." << std::endl;
+
+        // Iterate in order: IntraLineSpace → PackingSpace → AuthSpace
+        for (uint64_t layout_auth_id = 0; layout_auth_id < authblock_candidates; layout_auth_id++)
         {
-          auto construction_status = layoutspace_->ConstructLayout(layout_id, &layout_, false);
-          bool layout_success = std::accumulate(construction_status.begin(), construction_status.end(), true,
-                                      [](bool cur, const layoutspace::Status& status)
-                                      { return cur && status.success; });
-          if(!layout_success) continue;
+          log_stream_ << "[" << thread_id_ << "] Processing IntraLineSpace " << layout_id << "/" << intraline_candidates << std::endl;
+          
+          for (uint64_t layout_packing_id = 0; layout_packing_id < packing_candidates; layout_packing_id++)
+          {
+            log_stream_ << "[" << thread_id_ << "] Processing PackingSpace " << layout_packing_id << "/" << packing_candidates << std::endl;
+            
+            for (uint64_t layout_id = 0; layout_id < intraline_candidates; layout_id++)
+            {
+              log_stream_ << "[" << thread_id_ << "] Testing layout combination: IntraLineSpace=" << layout_id 
+                          << ", PackingSpace=" << layout_packing_id
+                          << ", AuthSpace=" << layout_auth_id << std::endl;
+                          
+              auto construction_status = legal_layoutspace->ConstructLayout(layout_id, layout_auth_id, layout_packing_id, &layout_, false);
+              bool layout_success = std::accumulate(construction_status.begin(), construction_status.end(), true,
+                                          [](bool cur, const layoutspace::Status& status)
+                                          { return cur && status.success; });
+              if(!layout_success) {
+                log_stream_ << "[" << thread_id_ << "] Layout construction failed for combination (" 
+                            << layout_id << "," << layout_packing_id << "," << layout_auth_id << ")" << std::endl;
+                continue;
+              }
 
           auto status_per_level = engine.Evaluate(stats_.thread_best.mapping, workload_, layout_, sparse_optimizations_, crypto_, !diagnostics_on_);
 
@@ -558,7 +604,9 @@ void MapperThread::Run()
             << "(" << improvement_reason << ")"
             << std::endl;
           }
-        }
+          } // end AuthSpace loop
+          } // end PackingSpace loop
+        } // end IntraLineSpace loop
 
         // Update the best result with the optimal layout
         if (has_valid_layout) {
