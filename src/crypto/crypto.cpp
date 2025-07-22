@@ -47,6 +47,12 @@ namespace crypto {
     if (!cryptoNode.lookupValue("xor-energy-per-datapath", cryptoCfg->xor_energy_per_datapath))
       std::cerr << "Warning: 'xor-energy-per-datapath' not found. Using default value.\n";
 
+    if (!cryptoNode.lookupValue("shared", cryptoCfg->shared))
+      std::cerr << "Warning: 'shared' not found. Using default value.\n";
+
+    if (!cryptoNode.lookupValue("number_engines", cryptoCfg->number_engines))
+      std::cerr << "Warning: 'number_engines' not found. Using default value.\n";
+
     return cryptoCfg;
   }
 

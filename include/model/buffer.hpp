@@ -514,12 +514,14 @@ class BufferLevel : public Level
                                   std::vector<unsigned>& dims_it,
                                   std::map<TileTypeDescriptor, int>& cnt_tile_types);
   LatencyStats CheckTileTypes(const layout::Layout& layout,
+                              const crypto::CryptoConfig *crypto_config,
                               const tiling::CompoundMask &mask,
                               std::vector<std::vector<std::string>>& rank_groups,
                               std::vector<std::map<TileTypeDescriptor, int>>& cnt_tile_types,
                               std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
                               uint64_t compute_cycles);
   LatencyStats CheckTileTypesRecursive(const layout::Layout& layout,
+                                       const crypto::CryptoConfig *crypto_config,
                                        const tiling::CompoundMask &mask,
                                        std::vector<std::vector<std::string>>& rank_groups,
                                        std::vector<std::map<TileTypeDescriptor, int>>& cnt_tile_types,
@@ -531,6 +533,7 @@ class BufferLevel : public Level
                                        bool first_tile_possible,
                                        unsigned group_it_idx);
   LatencyStats CheckTileTypesBase(const layout::Layout& layout,
+                                  const crypto::CryptoConfig *crypto_config,
                                   const tiling::CompoundMask &mask,
                                   std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
                                   uint64_t compute_cycles,
