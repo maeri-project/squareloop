@@ -295,7 +295,7 @@ void Legal::Init(model::Engine::Specs arch_specs,
   // Create a deep copy of the layout to ensure modifications don't affect the original
   CreateConcordantLayout(mapping);
   
-#define LAYOUT_CONSTRUCTION_DEBUG
+#ifdef LAYOUT_CONSTRUCTION_DEBUG
   std::cout << "\n=== LAYOUT CONSTRUCTION START ===" << std::endl;
   std::cout << "Layout IDs: IntraLine=" << layout_id << ", Auth=" << layout_auth_id 
             << ", Packing=" << layout_packing_id << std::endl;
@@ -454,14 +454,14 @@ void Legal::Init(model::Engine::Specs arch_specs,
       return {error_status};
     }
 
+    // Set the chosen factor value
+    authblock_nest.factors[rank] = chosen_factor;
+    
+#ifdef LAYOUT_CONSTRUCTION_DEBUG
     // Get the old factor for comparison
     uint32_t old_authblock_factor = (authblock_nest.factors.find(rank) != authblock_nest.factors.end()
                                     ? authblock_nest.factors.at(rank) : 1);
     
-    // Set the chosen factor value
-    authblock_nest.factors[rank] = chosen_factor;
-
-#ifdef LAYOUT_CONSTRUCTION_DEBUG
     std::cout << "[AuthSpace] Storage Level " << lvl << ", DataSpace " << ds_idx 
               << ", Rank '" << rank << "': authblock_lines factor " 
               << old_authblock_factor << " -> " << chosen_factor << std::endl;
@@ -598,12 +598,12 @@ void Legal::Init(model::Engine::Specs arch_specs,
     // Move the packing factor from interline to intraline
     uint32_t current_intraline_factor = (intraline_nest.factors.find(rank) != intraline_nest.factors.end()
                                         ? intraline_nest.factors.at(rank) : 1);
-    uint32_t current_interline_factor = (interline_nest.factors.find(rank) != interline_nest.factors.end()
-                                        ? interline_nest.factors.at(rank) : 1);
-    uint32_t new_intraline_factor = current_intraline_factor * packing_factor;
     uint32_t new_interline_factor = original_interline_factor / packing_factor;
+    uint32_t new_intraline_factor = current_intraline_factor * packing_factor;
 
-#ifdef LAYOUT_CONSTRUCTION_DEBUG
+  #ifdef LAYOUT_CONSTRUCTION_DEBUG
+    uint32_t current_interline_factor = (interline_nest.factors.find(rank) != interline_nest.factors.end()
+    ? interline_nest.factors.at(rank) : 1);
     std::cout << "[PackingSpace] Storage Level " << level << ", DataSpace " << ds_idx 
               << ", Rank '" << rank << "': Packing factor " << packing_factor 
               << " from interline to intraline (choice " << choice_index << ")" << std::endl;
@@ -959,6 +959,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
   }
 
   // Print out the tensor size
+#ifdef LAYOUT_CONSTRUCTION_DEBUG
   for (unsigned lvl=0; lvl < tensor_size.size(); lvl++){
     std::cout << "For a specific storage level " << lvl << ", the tensor size is: ";
     for (unsigned ds_idx = 0; ds_idx < tensor_size[lvl].size(); ds_idx++){
