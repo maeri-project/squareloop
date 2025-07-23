@@ -71,8 +71,18 @@ class Legal : public LayoutSpace
   std::vector<std::vector<uint32_t>> intraline_conversion_ranges_; // stores valid conversion divisors for each factor
 
   // Interline-to-intraline packing factor tracking (for unused line capacity)
-  std::vector<std::tuple<unsigned, unsigned, std::string, uint32_t>> variable_packing_factors_; // level, dataspace, rank, original_interline_factor
-  std::vector<std::vector<uint32_t>> packing_factor_ranges_; // stores valid packing divisors for each factor
+  // Restructured to support single-rank-per-level packing
+  struct PackingOption {
+    unsigned dataspace;
+    std::string rank;
+    uint32_t original_interline_factor;
+    uint32_t packing_factor;
+  };
+  
+  // Packing choices organized by storage level
+  // Each level can choose to pack exactly one rank (or no packing)
+  std::vector<std::vector<PackingOption>> packing_options_per_level_; // [level][option_index]
+  std::vector<uint64_t> packing_choices_per_level_; // number of choices for each level (including "no packing")
   unsigned num_storage_levels;
   unsigned num_data_spaces;
 
@@ -94,14 +104,11 @@ class Legal : public LayoutSpace
 
   void Init(model::Engine::Specs arch_specs, const Mapping& mapping);  
 
-  // Construct a specific layout from the layoutspace.
-  std::vector<Status> ConstructLayout(ID layout_id, layout::Layouts* layouts, bool break_on_failure = true) override;
-  
-  // Construct a specific layout using separate IDs for IntraLineSpace and AuthSpace.
-  std::vector<Status> ConstructLayout(uint64_t layout_id, uint64_t layout_auth_id, layout::Layouts* layouts, bool break_on_failure = true);
-  
+  // Override the pure virtual function from LayoutSpace base class
+  std::vector<Status> ConstructLayout(ID layout_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure = true) override;
+
   // Construct a specific layout using separate IDs for all three design spaces.
-  std::vector<Status> ConstructLayout(uint64_t layout_id, uint64_t layout_auth_id, uint64_t layout_packing_id, layout::Layouts* layouts, bool break_on_failure = true);
+  std::vector<Status> ConstructLayout(uint64_t layout_id, uint64_t layout_auth_id, uint64_t layout_packing_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure = true);
 
  protected:
 
@@ -114,9 +121,8 @@ class Legal : public LayoutSpace
   // Layout constraint methods
   void CreateConcordantLayout(const Mapping& mapping);
   void CreateSpace(model::Engine::Specs arch_specs);
-  void CreateIntraLineSpace(model::Engine::Specs arch_specs);
+  void CreateIntraLineSpace(model::Engine::Specs arch_specs, const Mapping& mapping);
   void CreateAuthSpace(model::Engine::Specs arch_specs);
-  bool CheckBufferCapacityConstraint(model::Engine::Specs arch_specs, const Mapping& mapping);
 };
 
 } // namespace layoutspace 

@@ -27,6 +27,8 @@
 
 #include "layoutspaces/legal.hpp"
 #include <set>
+#include <stdexcept>
+#include <cassert>
 // #define DEBUG_CONCORDANT_LAYOUT
 // #define DEBUG_BUFFER_CAPACITY_CONSTRAINT
 // #define DEBUG_CONSTRUCTION_LAYOUT
@@ -109,7 +111,7 @@ Legal::Legal(
 
   // Step 2: Check buffer capacity constraint
   // CheckBufferCapacityConstraint(arch_specs, mapping); // only need to be enabled if mapping does not prevent buffer overflow.
-  CreateIntraLineSpace(arch_specs);
+  CreateIntraLineSpace(arch_specs, mapping);
 
   // Step 3: CreateAuthSpace
   CreateAuthSpace(arch_specs);
@@ -249,488 +251,67 @@ void Legal::Init(model::Engine::Specs arch_specs,
      std::cout << "      Write bandwidth: " << write_bandwidth << " elements/cycle" << std::endl;
  #endif
     }
-}
-
-//
-// ConstructLayout()
-//
-std::vector<Status> Legal::ConstructLayout(ID layout_id_in, layout::Layouts* layouts, bool break_on_failure)
-{
-  (void)break_on_failure; // Suppress unused parameter warning
-
-  // This function splits the input layout_id_in into two separate design space IDs:
-  // - layout_auth_id: for AuthSpace (authblock factor variations)
-  // - layout_id: for IntraLineSpace (intraline-to-interline conversions)
-  // Combined layout space size = authblock_candidates × intraline_candidates
-
-  // If no variable factors, just return the original layout
-  if (variable_authblock_factors_.empty() && variable_intraline_factors_.empty())
-  {
-    // Copy the current layout to the output parameter
-    if (layouts != nullptr)
-    {
-      *layouts = layout_;
-    }
-
-    Status success_status;
-    success_status.success = true;
-    success_status.fail_reason = "";
-    return {success_status};
   }
 
-  // Decode the layout ID into component choices
-  uint128_t layout_int = layout_id_in.Integer();
-
-  // Check if the layout ID fits in 64-bit range
-  if (layout_int > std::numeric_limits<std::uint64_t>::max())
+  //
+  // ConstructLayout() - Original version with ID parameter (delegates to three-parameter version)
+  //
+  std::vector<Status> Legal::ConstructLayout(ID layout_id_in, layout::Layouts* layouts, Mapping mapping, bool break_on_failure)
   {
-    Status error_status;
-    error_status.success = false;
-    error_status.fail_reason = "Layout ID exceeds 64-bit range";
-    return {error_status};
-  }
+    (void)break_on_failure; // Suppress unused parameter warning
 
-  // Safe cast to 64-bit
-  std::uint64_t linear_id = static_cast<std::uint64_t>(layout_int);
-
-  // Validate layout ID range
-  if (linear_id >= num_layout_candidates)
-  {
-    Status error_status;
-    error_status.success = false;
-    error_status.fail_reason = "Layout ID " + std::to_string(linear_id) + " exceeds candidate space size " + std::to_string(num_layout_candidates);
-    return {error_status};
-  }
-
-  // Calculate the sizes of each design space
-  uint64_t authblock_candidates = 1;
-  for (const auto& range : authblock_factor_ranges_)
-  {
-    authblock_candidates *= range.size();
-  }
-  
-  uint64_t intraline_candidates = 1;
-  for (const auto& range : intraline_conversion_ranges_)
-  {
-    intraline_candidates *= range.size();
-  }
-
-  // Split the input layout_id into two separate IDs for each design space
-  std::uint64_t layout_auth_id = linear_id % authblock_candidates;  // AuthSpace ID
-  std::uint64_t layout_id = linear_id / authblock_candidates;       // IntraLineSpace ID
-
-  // Decode AuthSpace factor choices using layout_auth_id
-  std::vector<uint32_t> authblock_choices(variable_authblock_factors_.size());
-  std::uint64_t remaining_auth_id = layout_auth_id;
-
-  for (size_t i = 0; i < variable_authblock_factors_.size(); i++)
-  {
-    const auto& divisors = authblock_factor_ranges_[i];
-    uint32_t divisor_index = remaining_auth_id % divisors.size();
-    authblock_choices[i] = divisors[divisor_index];
-    remaining_auth_id /= divisors.size();
-  }
-
-  // Decode IntraLineSpace conversion choices using layout_id
-  std::vector<uint32_t> intraline_choices(variable_intraline_factors_.size());
-  std::uint64_t remaining_intraline_id = layout_id;
-
-  for (size_t i = 0; i < variable_intraline_factors_.size(); i++)
-  {
-    const auto& conversions = intraline_conversion_ranges_[i];
-    uint32_t conversion_index = remaining_intraline_id % conversions.size();
-    intraline_choices[i] = conversions[conversion_index];
-    remaining_intraline_id /= conversions.size();
-  }
-
-#ifdef DEBUG_CONSTRUCTION_LAYOUT
-  std::cout << "Constructing combined layout ID " << linear_id << std::endl;
-  std::cout << "  AuthSpace (layout_auth_id): " << layout_auth_id << ", choices: [";
-  for (size_t i = 0; i < authblock_choices.size(); i++)
-  {
-    std::cout << authblock_choices[i];
-    if (i < authblock_choices.size() - 1) std::cout << ", ";
-  }
-  std::cout << "]" << std::endl;
-  std::cout << "  IntraLineSpace (layout_id): " << layout_id << ", choices: [";
-  for (size_t i = 0; i < intraline_choices.size(); i++)
-  {
-    std::cout << intraline_choices[i];
-    if (i < intraline_choices.size() - 1) std::cout << ", ";
-  }
-  std::cout << "]" << std::endl;
-#endif
-
-  // Create a copy of the current layout to modify
-  layout::Layouts modified_layout = layout_;
-
-  // Apply AuthSpace factor choices (using layout_auth_id)
-  for (size_t i = 0; i < variable_authblock_factors_.size(); i++)
-  {
-    auto& var_factor = variable_authblock_factors_[i];
-    unsigned lvl = std::get<0>(var_factor);
-    unsigned ds_idx = std::get<1>(var_factor);
-    std::string rank = std::get<2>(var_factor);
-    uint32_t chosen_factor = authblock_choices[i];
-
-    // Validate indices
-    if (lvl >= modified_layout.size())
-    {
-      Status error_status;
-      error_status.success = false;
-      error_status.fail_reason = "Invalid storage level " + std::to_string(lvl) + " in authblock variable factor";
-      return {error_status};
-    }
-
-    if (ds_idx >= modified_layout[lvl].authblock_lines.size())
-    {
-      Status error_status;
-      error_status.success = false;
-      error_status.fail_reason = "Invalid data space index " + std::to_string(ds_idx) + " in authblock variable factor";
-      return {error_status};
-    }
-
-    // Apply the chosen factor to the authblock_lines nest
-    auto& authblock_nest = modified_layout[lvl].authblock_lines[ds_idx];
-
-    // Check if rank exists in the authblock nest
-    auto rank_it = std::find(authblock_nest.ranks.begin(), authblock_nest.ranks.end(), rank);
-    if (rank_it == authblock_nest.ranks.end())
-    {
-      Status error_status;
-      error_status.success = false;
-      error_status.fail_reason = "Rank " + rank + " not found in authblock_lines nest for level " + std::to_string(lvl) + ", dataspace " + std::to_string(ds_idx);
-      return {error_status};
-    }
-
-    // Set the chosen factor value
-    authblock_nest.factors[rank] = chosen_factor;
-
-#ifdef DEBUG_CONSTRUCTION_LAYOUT
-    std::cout << "  Applied authblock factor " << chosen_factor << " to level " << lvl
-              << ", dataspace " << ds_idx << ", rank " << rank << std::endl;
-#endif
-  }
-
-  // Apply IntraLineSpace conversion choices (using layout_id)
-  for (size_t i = 0; i < variable_intraline_factors_.size(); i++)
-  {
-    auto& var_factor = variable_intraline_factors_[i];
-    unsigned lvl = std::get<0>(var_factor);
-    unsigned ds_idx = std::get<1>(var_factor);
-    std::string rank = std::get<2>(var_factor);
-    uint32_t original_factor = std::get<3>(var_factor);
-    uint32_t conversion_factor = intraline_choices[i];
-
-    // Validate indices
-    if (lvl >= modified_layout.size())
-    {
-      Status error_status;
-      error_status.success = false;
-      error_status.fail_reason = "Invalid storage level " + std::to_string(lvl) + " in intraline variable factor";
-      return {error_status};
-    }
-
-    if (ds_idx >= modified_layout[lvl].intraline.size())
-    {
-      Status error_status;
-      error_status.success = false;
-      error_status.fail_reason = "Invalid data space index " + std::to_string(ds_idx) + " in intraline variable factor";
-      return {error_status};
-    }
-
-    // Apply the intraline-to-interline conversion
-    auto& intraline_nest = modified_layout[lvl].intraline[ds_idx];
-    auto& interline_nest = modified_layout[lvl].interline[ds_idx];
-
-    // Check if rank exists in both nests
-    auto intra_rank_it = std::find(intraline_nest.ranks.begin(), intraline_nest.ranks.end(), rank);
-    auto inter_rank_it = std::find(interline_nest.ranks.begin(), interline_nest.ranks.end(), rank);
+    // This function delegates to the three-parameter version with default values
+    // Convert ID to uint64_t
+    uint128_t layout_int = layout_id_in.Integer();
     
-    if (intra_rank_it == intraline_nest.ranks.end() || inter_rank_it == interline_nest.ranks.end())
+    // Check if the layout ID fits in 64-bit range
+    if (layout_int > std::numeric_limits<std::uint64_t>::max())
     {
       Status error_status;
       error_status.success = false;
-      error_status.fail_reason = "Rank " + rank + " not found in intraline or interline nest for level " + std::to_string(lvl) + ", dataspace " + std::to_string(ds_idx);
+      error_status.fail_reason = "Layout ID exceeds 64-bit range";
       return {error_status};
     }
-
-    // Move the conversion factor from intraline to interline
-    uint32_t new_intraline_factor = original_factor / conversion_factor;
-    uint32_t current_interline_factor = (interline_nest.factors.find(rank) != interline_nest.factors.end() 
-                                        ? interline_nest.factors.at(rank) : 1);
-    uint32_t new_interline_factor = current_interline_factor * conversion_factor;
-
-    intraline_nest.factors[rank] = new_intraline_factor;
-    interline_nest.factors[rank] = new_interline_factor;
-
-#ifdef DEBUG_CONSTRUCTION_LAYOUT
-    std::cout << "  Applied intraline conversion: level " << lvl 
-              << ", dataspace " << ds_idx << ", rank " << rank
-              << " - moved factor " << conversion_factor 
-              << " from intraline (new: " << new_intraline_factor 
-              << ") to interline (new: " << new_interline_factor << ")" << std::endl;
-#endif
-  }
-
-  // Copy the modified layout to the output parameter
-  if (layouts != nullptr)
-  {
-    *layouts = modified_layout;
-  }
-
-  // Return success status
-  Status success_status;
-  success_status.success = true;
-  success_status.fail_reason = "";
-
-  return {success_status};
-}
-
-//
-// ConstructLayout() - Overloaded version with separate layout_id and layout_auth_id
-//
-std::vector<Status> Legal::ConstructLayout(uint64_t layout_id, uint64_t layout_auth_id, layout::Layouts* layouts, bool break_on_failure)
-{
-  (void)break_on_failure; // Suppress unused parameter warning
-
-  // This function takes separate IDs for IntraLineSpace and AuthSpace design spaces:
-  // - layout_id: for IntraLineSpace (intraline-to-interline conversions)  
-  // - layout_auth_id: for AuthSpace (authblock factor variations)
-
-  // If no variable factors, just return the original layout
-  if (variable_authblock_factors_.empty() && variable_intraline_factors_.empty())
-  {
-    // Copy the current layout to the output parameter
-    if (layouts != nullptr)
-    {
-      *layouts = layout_;
-    }
-
-    Status success_status;
-    success_status.success = true;
-    success_status.fail_reason = "";
-    return {success_status};
-  }
-
-  // Validate individual design space IDs
-  uint64_t authblock_candidates = 1;
-  for (const auto& range : authblock_factor_ranges_)
-  {
-    authblock_candidates *= range.size();
-  }
-  
-  uint64_t intraline_candidates = 1;
-  for (const auto& range : intraline_conversion_ranges_)
-  {
-    intraline_candidates *= range.size();
-  }
-
-  // Validate layout_auth_id range
-  if (!variable_authblock_factors_.empty() && layout_auth_id >= authblock_candidates)
-  {
-    Status error_status;
-    error_status.success = false;
-    error_status.fail_reason = "layout_auth_id " + std::to_string(layout_auth_id) + " exceeds AuthSpace size " + std::to_string(authblock_candidates);
-    return {error_status};
-  }
-
-  // Validate layout_id range  
-  if (!variable_intraline_factors_.empty() && layout_id >= intraline_candidates)
-  {
-    Status error_status;
-    error_status.success = false;
-    error_status.fail_reason = "layout_id " + std::to_string(layout_id) + " exceeds IntraLineSpace size " + std::to_string(intraline_candidates);
-    return {error_status};
-  }
-
-  // Decode AuthSpace factor choices using layout_auth_id
-  std::vector<uint32_t> authblock_choices(variable_authblock_factors_.size());
-  std::uint64_t remaining_auth_id = layout_auth_id;
-
-  for (size_t i = 0; i < variable_authblock_factors_.size(); i++)
-  {
-    const auto& divisors = authblock_factor_ranges_[i];
-    uint32_t divisor_index = remaining_auth_id % divisors.size();
-    authblock_choices[i] = divisors[divisor_index];
-    remaining_auth_id /= divisors.size();
-  }
-
-  // Decode IntraLineSpace conversion choices using layout_id
-  std::vector<uint32_t> intraline_choices(variable_intraline_factors_.size());
-  std::uint64_t remaining_intraline_id = layout_id;
-
-  for (size_t i = 0; i < variable_intraline_factors_.size(); i++)
-  {
-    const auto& conversions = intraline_conversion_ranges_[i];
-    uint32_t conversion_index = remaining_intraline_id % conversions.size();
-    intraline_choices[i] = conversions[conversion_index];
-    remaining_intraline_id /= conversions.size();
-  }
-
-#ifdef DEBUG_CONSTRUCTION_LAYOUT
-  std::cout << "Constructing layout with separate IDs:" << std::endl;
-  std::cout << "  AuthSpace (layout_auth_id): " << layout_auth_id << ", choices: [";
-  for (size_t i = 0; i < authblock_choices.size(); i++)
-  {
-    std::cout << authblock_choices[i];
-    if (i < authblock_choices.size() - 1) std::cout << ", ";
-  }
-  std::cout << "]" << std::endl;
-  std::cout << "  IntraLineSpace (layout_id): " << layout_id << ", choices: [";
-  for (size_t i = 0; i < intraline_choices.size(); i++)
-  {
-    std::cout << intraline_choices[i];
-    if (i < intraline_choices.size() - 1) std::cout << ", ";
-  }
-  std::cout << "]" << std::endl;
-#endif
-
-  // Create a copy of the current layout to modify
-  layout::Layouts modified_layout = layout_;
-
-  // Apply AuthSpace factor choices (using layout_auth_id)
-  for (size_t i = 0; i < variable_authblock_factors_.size(); i++)
-  {
-    auto& var_factor = variable_authblock_factors_[i];
-    unsigned lvl = std::get<0>(var_factor);
-    unsigned ds_idx = std::get<1>(var_factor);
-    std::string rank = std::get<2>(var_factor);
-    uint32_t chosen_factor = authblock_choices[i];
-
-    // Validate indices
-    if (lvl >= modified_layout.size())
-    {
-      Status error_status;
-      error_status.success = false;
-      error_status.fail_reason = "Invalid storage level " + std::to_string(lvl) + " in authblock variable factor";
-      return {error_status};
-    }
-
-    if (ds_idx >= modified_layout[lvl].authblock_lines.size())
-    {
-      Status error_status;
-      error_status.success = false;
-      error_status.fail_reason = "Invalid data space index " + std::to_string(ds_idx) + " in authblock variable factor";
-      return {error_status};
-    }
-
-    // Apply the chosen factor to the authblock_lines nest
-    auto& authblock_nest = modified_layout[lvl].authblock_lines[ds_idx];
-
-    // Check if rank exists in the authblock nest
-    auto rank_it = std::find(authblock_nest.ranks.begin(), authblock_nest.ranks.end(), rank);
-    if (rank_it == authblock_nest.ranks.end())
-    {
-      Status error_status;
-      error_status.success = false;
-      error_status.fail_reason = "Rank " + rank + " not found in authblock_lines nest for level " + std::to_string(lvl) + ", dataspace " + std::to_string(ds_idx);
-      return {error_status};
-    }
-
-    // Set the chosen factor value
-    authblock_nest.factors[rank] = chosen_factor;
-
-#ifdef DEBUG_CONSTRUCTION_LAYOUT
-    std::cout << "  Applied authblock factor " << chosen_factor << " to level " << lvl
-              << ", dataspace " << ds_idx << ", rank " << rank << std::endl;
-#endif
-  }
-
-  // Apply IntraLineSpace conversion choices (using layout_id)
-  for (size_t i = 0; i < variable_intraline_factors_.size(); i++)
-  {
-    auto& var_factor = variable_intraline_factors_[i];
-    unsigned lvl = std::get<0>(var_factor);
-    unsigned ds_idx = std::get<1>(var_factor);
-    std::string rank = std::get<2>(var_factor);
-    uint32_t original_factor = std::get<3>(var_factor);
-    uint32_t conversion_factor = intraline_choices[i];
-
-    // Validate indices
-    if (lvl >= modified_layout.size())
-    {
-      Status error_status;
-      error_status.success = false;
-      error_status.fail_reason = "Invalid storage level " + std::to_string(lvl) + " in intraline variable factor";
-      return {error_status};
-    }
-
-    if (ds_idx >= modified_layout[lvl].intraline.size())
-    {
-      Status error_status;
-      error_status.success = false;
-      error_status.fail_reason = "Invalid data space index " + std::to_string(ds_idx) + " in intraline variable factor";
-      return {error_status};
-    }
-
-    // Apply the intraline-to-interline conversion
-    auto& intraline_nest = modified_layout[lvl].intraline[ds_idx];
-    auto& interline_nest = modified_layout[lvl].interline[ds_idx];
-
-    // Check if rank exists in both nests
-    auto intra_rank_it = std::find(intraline_nest.ranks.begin(), intraline_nest.ranks.end(), rank);
-    auto inter_rank_it = std::find(interline_nest.ranks.begin(), interline_nest.ranks.end(), rank);
     
-    if (intra_rank_it == intraline_nest.ranks.end() || inter_rank_it == interline_nest.ranks.end())
-    {
-      Status error_status;
-      error_status.success = false;
-      error_status.fail_reason = "Rank " + rank + " not found in intraline or interline nest for level " + std::to_string(lvl) + ", dataspace " + std::to_string(ds_idx);
-      return {error_status};
-    }
-
-    // Move the conversion factor from intraline to interline
-    uint32_t new_intraline_factor = original_factor / conversion_factor;
-    uint32_t current_interline_factor = (interline_nest.factors.find(rank) != interline_nest.factors.end() 
-                                        ? interline_nest.factors.at(rank) : 1);
-    uint32_t new_interline_factor = current_interline_factor * conversion_factor;
-
-    intraline_nest.factors[rank] = new_intraline_factor;
-    interline_nest.factors[rank] = new_interline_factor;
-
-#ifdef DEBUG_CONSTRUCTION_LAYOUT
-    std::cout << "  Applied intraline conversion: level " << lvl 
-              << ", dataspace " << ds_idx << ", rank " << rank
-              << " - moved factor " << conversion_factor 
-              << " from intraline (new: " << new_intraline_factor 
-              << ") to interline (new: " << new_interline_factor << ")" << std::endl;
-#endif
+    // Safe cast to 64-bit
+    std::uint64_t linear_id = static_cast<std::uint64_t>(layout_int);
+    
+    // Delegate to the three-parameter version with default auth_id=0 and packing_id=0
+    return ConstructLayout(linear_id, 0, 0, layouts, mapping, break_on_failure);
   }
 
-  // Copy the modified layout to the output parameter
-  if (layouts != nullptr)
+  //
+  // ConstructLayout() - Three-parameter version with separate layout_id, layout_auth_id, and layout_packing_id
+  //
+  std::vector<Status> Legal::ConstructLayout(uint64_t layout_id, uint64_t layout_auth_id, uint64_t layout_packing_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure)
   {
-    *layouts = modified_layout;
-  }
-
-  // Return success status
-  Status success_status;
-  success_status.success = true;
-  success_status.fail_reason = "";
-
-  return {success_status};
-}
-
-//
-// ConstructLayout() - Three-parameter version with separate layout_id, layout_auth_id, and layout_packing_id
-//
-std::vector<Status> Legal::ConstructLayout(uint64_t layout_id, uint64_t layout_auth_id, uint64_t layout_packing_id, layout::Layouts* layouts, bool break_on_failure)
-{
   (void)break_on_failure; // Suppress unused parameter warning
 
   // This function takes separate IDs for all three design spaces:
-  // - layout_id: for IntraLineSpace (intraline-to-interline conversions)  
+  // - layout_id: for IntraLineSpace (intraline-to-interline conversions)
   // - layout_auth_id: for AuthSpace (authblock factor variations)
   // - layout_packing_id: for PackingSpace (interline-to-intraline packing)
 
+  // Create a deep copy of the layout to ensure modifications don't affect the original
+  CreateConcordantLayout(mapping);
+  
+#define LAYOUT_CONSTRUCTION_DEBUG
+  std::cout << "\n=== LAYOUT CONSTRUCTION START ===" << std::endl;
+  std::cout << "Layout IDs: IntraLine=" << layout_id << ", Auth=" << layout_auth_id 
+            << ", Packing=" << layout_packing_id << std::endl;
+  std::cout << "Initial original layout:" << std::endl;
+  layout::PrintOverallLayoutConcise(layout_);
+#endif 
+
+  layout::Layouts modified_layout = layout_;
+
   // If no variable factors, just return the original layout
-  if (variable_authblock_factors_.empty() && variable_intraline_factors_.empty() && variable_packing_factors_.empty())
+  if (variable_authblock_factors_.empty() && variable_intraline_factors_.empty() && packing_options_per_level_.empty())
   {
     // Copy the current layout to the output parameter
     if (layouts != nullptr)
     {
-      *layouts = layout_;
+      *layouts = modified_layout;
     }
 
     Status success_status;
@@ -745,17 +326,17 @@ std::vector<Status> Legal::ConstructLayout(uint64_t layout_id, uint64_t layout_a
   {
     authblock_candidates *= range.size();
   }
-  
+
   uint64_t intraline_candidates = 1;
   for (const auto& range : intraline_conversion_ranges_)
   {
     intraline_candidates *= range.size();
   }
-  
+
   uint64_t packing_candidates = 1;
-  for (const auto& range : packing_factor_ranges_)
+  for (const auto& choices : packing_choices_per_level_)
   {
-    packing_candidates *= range.size();
+    packing_candidates *= choices;
   }
 
   // Validate layout_auth_id range
@@ -767,7 +348,7 @@ std::vector<Status> Legal::ConstructLayout(uint64_t layout_id, uint64_t layout_a
     return {error_status};
   }
 
-  // Validate layout_id range  
+  // Validate layout_id range
   if (!variable_intraline_factors_.empty() && layout_id >= intraline_candidates)
   {
     Status error_status;
@@ -776,8 +357,14 @@ std::vector<Status> Legal::ConstructLayout(uint64_t layout_id, uint64_t layout_a
     return {error_status};
   }
 
+  // Calculate PackingSpace design space size
+  for (const auto& choices : packing_choices_per_level_)
+  {
+    packing_candidates *= choices;
+  }
+
   // Validate layout_packing_id range
-  if (!variable_packing_factors_.empty() && layout_packing_id >= packing_candidates)
+  if (!packing_options_per_level_.empty() && layout_packing_id >= packing_candidates)
   {
     Status error_status;
     error_status.success = false;
@@ -809,16 +396,15 @@ std::vector<Status> Legal::ConstructLayout(uint64_t layout_id, uint64_t layout_a
     remaining_intraline_id /= conversions.size();
   }
 
-  // Decode PackingSpace choices using layout_packing_id
-  std::vector<uint32_t> packing_choices(variable_packing_factors_.size());
+  // Decode PackingSpace choices using layout_packing_id (per-level approach)
+  std::vector<uint32_t> packing_choice_per_level(packing_options_per_level_.size());
   std::uint64_t remaining_packing_id = layout_packing_id;
 
-  for (size_t i = 0; i < variable_packing_factors_.size(); i++)
+  for (size_t level = 0; level < packing_options_per_level_.size(); level++)
   {
-    const auto& packing_options = packing_factor_ranges_[i];
-    uint32_t packing_index = remaining_packing_id % packing_options.size();
-    packing_choices[i] = packing_options[packing_index];
-    remaining_packing_id /= packing_options.size();
+    uint32_t choice_index = remaining_packing_id % packing_choices_per_level_[level];
+    packing_choice_per_level[level] = choice_index;
+    remaining_packing_id /= packing_choices_per_level_[level];
   }
 
 #ifdef DEBUG_CONSTRUCTION_LAYOUT
@@ -837,17 +423,14 @@ std::vector<Status> Legal::ConstructLayout(uint64_t layout_id, uint64_t layout_a
     if (i < intraline_choices.size() - 1) std::cout << ", ";
   }
   std::cout << "]" << std::endl;
-  std::cout << "  PackingSpace (layout_packing_id): " << layout_packing_id << ", choices: [";
-  for (size_t i = 0; i < packing_choices.size(); i++)
+  std::cout << "  PackingSpace (layout_packing_id): " << layout_packing_id << ", per-level choices: [";
+  for (size_t level = 0; level < packing_choice_per_level.size(); level++)
   {
-    std::cout << packing_choices[i];
-    if (i < packing_choices.size() - 1) std::cout << ", ";
+    std::cout << "L" << level << ":" << packing_choice_per_level[level];
+    if (level < packing_choice_per_level.size() - 1) std::cout << ", ";
   }
   std::cout << "]" << std::endl;
 #endif
-
-  // Create a copy of the current layout to modify
-  layout::Layouts modified_layout = layout_;
 
   // Apply AuthSpace factor choices (using layout_auth_id)
   for (size_t i = 0; i < variable_authblock_factors_.size(); i++)
@@ -857,23 +440,6 @@ std::vector<Status> Legal::ConstructLayout(uint64_t layout_id, uint64_t layout_a
     unsigned ds_idx = std::get<1>(var_factor);
     std::string rank = std::get<2>(var_factor);
     uint32_t chosen_factor = authblock_choices[i];
-
-    // Validate indices
-    if (lvl >= modified_layout.size())
-    {
-      Status error_status;
-      error_status.success = false;
-      error_status.fail_reason = "Invalid storage level " + std::to_string(lvl) + " in authblock variable factor";
-      return {error_status};
-    }
-
-    if (ds_idx >= modified_layout[lvl].authblock_lines.size())
-    {
-      Status error_status;
-      error_status.success = false;
-      error_status.fail_reason = "Invalid data space index " + std::to_string(ds_idx) + " in authblock variable factor";
-      return {error_status};
-    }
 
     // Apply the chosen factor to the authblock_lines nest
     auto& authblock_nest = modified_layout[lvl].authblock_lines[ds_idx];
@@ -888,12 +454,17 @@ std::vector<Status> Legal::ConstructLayout(uint64_t layout_id, uint64_t layout_a
       return {error_status};
     }
 
+    // Get the old factor for comparison
+    uint32_t old_authblock_factor = (authblock_nest.factors.find(rank) != authblock_nest.factors.end()
+                                    ? authblock_nest.factors.at(rank) : 1);
+    
     // Set the chosen factor value
     authblock_nest.factors[rank] = chosen_factor;
 
-#ifdef DEBUG_CONSTRUCTION_LAYOUT
-    std::cout << "  Applied authblock factor " << chosen_factor << " to level " << lvl
-              << ", dataspace " << ds_idx << ", rank " << rank << std::endl;
+#ifdef LAYOUT_CONSTRUCTION_DEBUG
+    std::cout << "[AuthSpace] Storage Level " << lvl << ", DataSpace " << ds_idx 
+              << ", Rank '" << rank << "': authblock_lines factor " 
+              << old_authblock_factor << " -> " << chosen_factor << std::endl;
 #endif
   }
 
@@ -931,7 +502,7 @@ std::vector<Status> Legal::ConstructLayout(uint64_t layout_id, uint64_t layout_a
     // Check if rank exists in both nests
     auto intra_rank_it = std::find(intraline_nest.ranks.begin(), intraline_nest.ranks.end(), rank);
     auto inter_rank_it = std::find(interline_nest.ranks.begin(), interline_nest.ranks.end(), rank);
-    
+
     if (intra_rank_it == intraline_nest.ranks.end() || inter_rank_it == interline_nest.ranks.end())
     {
       Status error_status;
@@ -942,87 +513,144 @@ std::vector<Status> Legal::ConstructLayout(uint64_t layout_id, uint64_t layout_a
 
     // Move the conversion factor from intraline to interline
     uint32_t new_intraline_factor = original_factor / conversion_factor;
-    uint32_t current_interline_factor = (interline_nest.factors.find(rank) != interline_nest.factors.end() 
+    uint32_t current_interline_factor = (interline_nest.factors.find(rank) != interline_nest.factors.end()
                                         ? interline_nest.factors.at(rank) : 1);
     uint32_t new_interline_factor = current_interline_factor * conversion_factor;
 
+#ifdef LAYOUT_CONSTRUCTION_DEBUG
+    std::cout << "[IntraLineSpace] Storage Level " << lvl << ", DataSpace " << ds_idx 
+              << ", Rank '" << rank << "': Converting factor " << conversion_factor 
+              << " from intraline to interline" << std::endl;
+    std::cout << "  - intraline factor: " << original_factor << " -> " << new_intraline_factor 
+              << " (divided by " << conversion_factor << ")" << std::endl;
+    std::cout << "  - interline factor: " << current_interline_factor << " -> " << new_interline_factor 
+              << " (multiplied by " << conversion_factor << ")" << std::endl;
+#endif
+
     intraline_nest.factors[rank] = new_intraline_factor;
     interline_nest.factors[rank] = new_interline_factor;
-
-#ifdef DEBUG_CONSTRUCTION_LAYOUT
-    std::cout << "  Applied intraline conversion: level " << lvl 
-              << ", dataspace " << ds_idx << ", rank " << rank
-              << " - moved factor " << conversion_factor 
-              << " from intraline (new: " << new_intraline_factor 
-              << ") to interline (new: " << new_interline_factor << ")" << std::endl;
-#endif
   }
 
-  // Apply PackingSpace choices (using layout_packing_id)
-  for (size_t i = 0; i < variable_packing_factors_.size(); i++)
+  // Apply PackingSpace choices (one rank per storage level)
+  std::cout << "[PackingSpace] Applying single-rank-per-level packing..." << std::endl;
+  
+  for (size_t level = 0; level < packing_choice_per_level.size(); level++)
   {
-    auto& var_factor = variable_packing_factors_[i];
-    unsigned lvl = std::get<0>(var_factor);
-    unsigned ds_idx = std::get<1>(var_factor);
-    std::string rank = std::get<2>(var_factor);
-    uint32_t original_interline_factor = std::get<3>(var_factor);
-    uint32_t packing_factor = packing_choices[i];
-
-    // Validate indices
-    if (lvl >= modified_layout.size())
+    uint32_t choice_index = packing_choice_per_level[level];
+    
+    // Choice 0 means "no packing" for this level
+    if (choice_index == 0)
+    {
+      std::cout << "[PackingSpace] Storage Level " << level << ": No packing applied" << std::endl;
+      continue;
+    }
+    
+    // Choice > 0 means apply the corresponding packing option
+    if (choice_index > packing_options_per_level_[level].size())
     {
       Status error_status;
       error_status.success = false;
-      error_status.fail_reason = "Invalid storage level " + std::to_string(lvl) + " in packing variable factor";
+      error_status.fail_reason = "Invalid packing choice " + std::to_string(choice_index) + " for level " + std::to_string(level);
+      return {error_status};
+    }
+    
+    // Get the selected packing option (subtract 1 since choice 0 is "no packing")
+    const auto& packing_option = packing_options_per_level_[level][choice_index - 1];
+    
+    unsigned ds_idx = packing_option.dataspace;
+    std::string rank = packing_option.rank;
+    uint32_t original_interline_factor = packing_option.original_interline_factor;
+    uint32_t packing_factor = packing_option.packing_factor;
+
+    // Validate indices
+    if (level >= modified_layout.size())
+    {
+      Status error_status;
+      error_status.success = false;
+      error_status.fail_reason = "Invalid storage level " + std::to_string(level) + " in packing option";
       return {error_status};
     }
 
-    if (ds_idx >= modified_layout[lvl].intraline.size())
+    if (ds_idx >= modified_layout[level].intraline.size())
     {
       Status error_status;
       error_status.success = false;
-      error_status.fail_reason = "Invalid data space index " + std::to_string(ds_idx) + " in packing variable factor";
+      error_status.fail_reason = "Invalid data space index " + std::to_string(ds_idx) + " in packing option";
       return {error_status};
     }
 
     // Apply the interline-to-intraline packing
-    auto& intraline_nest = modified_layout[lvl].intraline[ds_idx];
-    auto& interline_nest = modified_layout[lvl].interline[ds_idx];
+    auto& intraline_nest = modified_layout[level].intraline[ds_idx];
+    auto& interline_nest = modified_layout[level].interline[ds_idx];
 
     // Check if rank exists in both nests
     auto intra_rank_it = std::find(intraline_nest.ranks.begin(), intraline_nest.ranks.end(), rank);
     auto inter_rank_it = std::find(interline_nest.ranks.begin(), interline_nest.ranks.end(), rank);
-    
+
     if (intra_rank_it == intraline_nest.ranks.end() || inter_rank_it == interline_nest.ranks.end())
     {
       Status error_status;
       error_status.success = false;
-      error_status.fail_reason = "Rank " + rank + " not found in intraline or interline nest for level " + std::to_string(lvl) + ", dataspace " + std::to_string(ds_idx);
+      error_status.fail_reason = "Rank " + rank + " not found in intraline or interline nest for level " + std::to_string(level) + ", dataspace " + std::to_string(ds_idx);
       return {error_status};
     }
 
     // Move the packing factor from interline to intraline
-    uint32_t current_intraline_factor = (intraline_nest.factors.find(rank) != intraline_nest.factors.end() 
+    uint32_t current_intraline_factor = (intraline_nest.factors.find(rank) != intraline_nest.factors.end()
                                         ? intraline_nest.factors.at(rank) : 1);
+    uint32_t current_interline_factor = (interline_nest.factors.find(rank) != interline_nest.factors.end()
+                                        ? interline_nest.factors.at(rank) : 1);
     uint32_t new_intraline_factor = current_intraline_factor * packing_factor;
     uint32_t new_interline_factor = original_interline_factor / packing_factor;
 
+#ifdef LAYOUT_CONSTRUCTION_DEBUG
+    std::cout << "[PackingSpace] Storage Level " << level << ", DataSpace " << ds_idx 
+              << ", Rank '" << rank << "': Packing factor " << packing_factor 
+              << " from interline to intraline (choice " << choice_index << ")" << std::endl;
+    std::cout << "  - interline factor: " << current_interline_factor << " -> " << new_interline_factor 
+              << " (divided by " << packing_factor << ")" << std::endl;
+    std::cout << "  - intraline factor: " << current_intraline_factor << " -> " << new_intraline_factor 
+              << " (multiplied by " << packing_factor << ")" << std::endl;
+#endif
+
     intraline_nest.factors[rank] = new_intraline_factor;
     interline_nest.factors[rank] = new_interline_factor;
-
-#ifdef DEBUG_CONSTRUCTION_LAYOUT
-    std::cout << "  Applied packing: level " << lvl 
-              << ", dataspace " << ds_idx << ", rank " << rank
-              << " - moved factor " << packing_factor 
-              << " from interline to intraline (new intraline: " << new_intraline_factor 
-              << ", new interline: " << new_interline_factor << ")" << std::endl;
-#endif
   }
 
   // Copy the modified layout to the output parameter
   if (layouts != nullptr)
   {
     *layouts = modified_layout;
+  }
+
+  std::cout << "\n=== LAYOUT CONSTRUCTION COMPLETE ===" << std::endl;
+  std::cout << "Final modified layout:" << std::endl;
+  layout::PrintOverallLayoutConcise(modified_layout);
+
+  std::vector<std::uint64_t> intraline_size(num_storage_levels, 0);
+
+  for (unsigned lvl = 0; lvl < num_storage_levels; lvl++)
+  {
+    for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++)
+    {
+      // Check if this dataspace is bypassed at this storage level
+      bool is_kept = mapping.datatype_bypass_nest.at(ds_idx).test(lvl);
+
+      if (is_kept)
+      {
+        uint64_t intraline_per_ds = 1;
+        auto intra_nest = layout_.at(lvl).intraline.at(ds_idx);
+        for (const auto &r : intra_nest.ranks) // Analyze slowdown per rank
+        {
+        int factor = (intra_nest.factors.find(r) != intra_nest.factors.end() ? intra_nest.factors.at(r) : 1);
+          intraline_per_ds *= factor;
+        }
+        intraline_size[lvl] += intraline_per_ds;
+      }
+    }
+    if (intraline_size[lvl] > storage_level_line_capacity[lvl]){
+      throw std::runtime_error("Intraline size " + std::to_string(intraline_size[lvl]) + " exceeds storage level line capacity " + std::to_string(storage_level_line_capacity[lvl]) + " at level " + std::to_string(lvl));
+    }
   }
 
   // Return success status
@@ -1228,76 +856,61 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
     for (unsigned i = 0; i < num_data_spaces; i++){ // iterate over all data spaces
       for(auto & rank: layout_.at(lvl).intraline.at(i).ranks){ // iterate over all ranks of the data space
         const auto& dim_ids = layout_.at(lvl).rankToFactorizedDimensionID.at(rank);
-        uint32_t total = 0;
-        if (dim_ids.size() > 1){
-          const auto& coefficient = layout_.at(lvl).rankToCoefficientValue[rank];
-          for (unsigned idx=0; idx < dim_ids.size(); idx++){
-            auto dim_value = cumulatively_intraline_dimval[lvl][dim_ids[idx]];
-            if (idx == dim_ids.size()-1){
-              if (dim_value == 1){
-                total +=  dim_value - 1;
-              }else{
-                total +=  dim_value*coefficient[idx] - 1;
+        uint32_t total_intraline = 0;
+        uint32_t total_rank_size = 0;
+        const auto& coefficient = layout_.at(lvl).rankToCoefficientValue[rank];
+        for (unsigned idx=0; idx < dim_ids.size(); idx++){
+          auto dim_intraline_value = cumulatively_intraline_dimval[lvl][dim_ids[idx]];
+          auto dim_total_value = cumulatively_product_dimval[lvl][dim_ids[idx]];
+          if (dim_ids.size() > 1){
+            if (dim_intraline_value == 1){
+              if (idx < dim_ids.size()-1){
+                total_intraline += dim_intraline_value;
               }
             }
             else{
-              if (dim_value == 1){
-                total +=  dim_value;
-              }else{
-                total +=  dim_value*coefficient[idx];
+              if (idx < dim_ids.size()-1){
+                total_intraline += dim_intraline_value*coefficient[idx];
+              }
+              else{
+                total_intraline += dim_intraline_value*coefficient[idx] - 1;
               }
             }
-#ifdef DEBUG_CONCORDANT_LAYOUT
-            std::cout << "dim_value=" << dim_value << "--coef[" << idx << "]=" << coefficient[idx] << "; ";
-#endif
-          }
-        }
-        else{
-          auto dim_value = cumulatively_intraline_dimval[lvl][dim_ids[0]];
-          total = dim_value;
-        }
 
-        layout_.at(lvl).intraline.at(i).factors.at(rank) = total;
-#ifdef DEBUG_CONCORDANT_LAYOUT
-        std::cout << "level=" << lvl << " i=" << i << " rank=" << rank << " intraline = " << total << std::endl;
-#endif
-
-        total = 0;
-        if (dim_ids.size() > 1){
-          const auto& coefficient = layout_.at(lvl).rankToCoefficientValue[rank];
-          for (unsigned idx=0; idx < dim_ids.size(); idx++){
-            auto dim_value = (cumulatively_product_dimval[lvl][dim_ids[idx]] + cumulatively_intraline_dimval[lvl][dim_ids[idx]] - 1) / cumulatively_intraline_dimval[lvl][dim_ids[idx]];
-            if (idx == dim_ids.size()-1){
-              if (dim_value == 1){
-                total +=  dim_value - 1;
-              }else{
-                total +=  dim_value*coefficient[idx] - 1;
+            if (dim_total_value == 1){
+              if (idx < dim_ids.size()-1){
+                total_rank_size += dim_total_value;
               }
             }
             else{
-              if (dim_value == 1){
-                total +=  dim_value;
-              }else{
-                total +=  dim_value*coefficient[idx];
+              if (idx < dim_ids.size()-1){
+                total_rank_size += dim_total_value*coefficient[idx];
+              }
+              else{
+                total_rank_size += dim_total_value*coefficient[idx] - 1;
               }
             }
           }
+          else{
+            total_intraline += dim_intraline_value;
+            total_rank_size += dim_total_value;
+          }
         }
-        else{
-          auto dim_value = (cumulatively_product_dimval[lvl][dim_ids[0]] + cumulatively_intraline_dimval[lvl][dim_ids[0]] - 1) / cumulatively_intraline_dimval[lvl][dim_ids[0]];
-          total = dim_value;
-        }
+        auto total_interline = (total_rank_size + total_intraline - 1) / total_intraline;
 
-        layout_.at(lvl).interline.at(i).factors.at(rank) = total;
+        layout_.at(lvl).intraline.at(i).factors.at(rank) = total_intraline;
+        layout_.at(lvl).interline.at(i).factors.at(rank) = total_interline;
 #ifdef DEBUG_CONCORDANT_LAYOUT
-        std::cout << "level=" << lvl << " i=" << i << " rank=" << rank << " interline = " << total << std::endl;
+        std::cout << "level=" << lvl << " dataspace=" << i << " rank=" << rank << " intraline = " << total_intraline << " interline = " << total_interline << std::endl;
 #endif
       }
     }
   }
-
+  
 #ifdef DEBUG_CONCORDANT_LAYOUT
+  std::cout << "layout_after_concordant_layout:" << std::endl;
   layout::PrintOverallLayout(layout_);
+#endif
 
   std::vector<std::vector<uint32_t>> tensor_size;
   tensor_size.resize(num_storage_levels, std::vector<uint32_t>(num_data_spaces, 0));
@@ -1311,45 +924,34 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
       for (auto & rank: layout_.at(lvl).intraline.at(ds_idx).ranks){
         // Get dimension IDs for this rank
         const auto& dim_ids = layout_.at(lvl).rankToFactorizedDimensionID.at(rank);
-        
+
         // Calculate rank size using cumulative dimension values with coefficients
         uint32_t rank_size = 0;
-        if (dim_ids.size() > 1){
-          const auto& coefficient = layout_.at(lvl).rankToCoefficientValue[rank];
-          for (unsigned idx=0; idx < dim_ids.size(); idx++){
-            auto cumulative_it = cumulatively_product_dimval[lvl].find(dim_ids[idx]);
-            if (cumulative_it != cumulatively_product_dimval[lvl].end())
-            {
-              auto dim_value = cumulative_it->second;
-              if (idx == dim_ids.size()-1){
-                if (dim_value == 1){
-                  rank_size += dim_value - 1;
-                }else{
-                  rank_size += dim_value*coefficient[idx] - 1;
+        const auto& coefficient = layout_.at(lvl).rankToCoefficientValue[rank];
+        for (unsigned idx=0; idx < dim_ids.size(); idx++){
+          auto cumulative_it = cumulatively_product_dimval[lvl].find(dim_ids[idx]);
+          if (cumulative_it != cumulatively_product_dimval[lvl].end())
+          {
+            auto dim_value = cumulative_it->second;
+            if (dim_ids.size() > 1){
+              if (dim_value == 1){
+                if (idx < dim_ids.size()-1){
+                  rank_size += dim_value;
                 }
               }
               else{
-                if (dim_value == 1){
-                  rank_size += dim_value;
-                }else{
+                if (idx < dim_ids.size()-1){
                   rank_size += dim_value*coefficient[idx];
                 }
+                else{
+                  rank_size += dim_value*coefficient[idx] - 1;
+                }
               }
+            }else{
+              rank_size += dim_value;
             }
           }
         }
-        else{
-          auto cumulative_it = cumulatively_product_dimval[lvl].find(dim_ids[0]);
-          if (cumulative_it != cumulatively_product_dimval[lvl].end())
-          {
-            rank_size = cumulative_it->second;
-          }
-          else
-          {
-            rank_size = 1;
-          }
-        }
-        
         dataspace_size_cur_lvl *= rank_size;
       }
       tensor_size[lvl][ds_idx] = dataspace_size_cur_lvl;
@@ -1368,157 +970,9 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
 }
 
 //
-// CheckBufferCapacityConstraint() - Check if data fits in buffer
-//
-bool Legal::CheckBufferCapacityConstraint(model::Engine::Specs arch_specs, const Mapping& mapping)
-{
-
-#ifdef DEBUG_BUFFER_CAPACITY_CONSTRAINT
-  std::cout << "  Checking buffer capacity constraints..." << std::endl;
-#endif
-  num_storage_levels = arch_specs.topology.NumStorageLevels();
-  num_data_spaces = layout_.at(0).intraline.size();
-
-  for (unsigned storage_level = 0; storage_level < num_storage_levels; storage_level++)
-  {
-  // Get cumulative dimension values for this storage level
-    std::uint64_t total_capacity = storage_level_total_capacity[storage_level];
-    std::uint64_t line_capacity = storage_level_line_capacity[storage_level];
-    const auto& level_dimval = cumulatively_product_dimval[storage_level];
-
-    // Calculate total data requirements at this storage level
-    std::uint64_t total_data_size = 0;
-    std::uint64_t total_parallel_accesses = 0;
-
-    for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++)
-    {
-      // Check if this dataspace is bypassed at this storage level
-      bool is_kept = mapping.datatype_bypass_nest.at(ds_idx).test(storage_level);
-
-      std::uint64_t dataspace_total_size = 1;    // Total data size for this dataspace
-      std::uint64_t dataspace_parallel_size = 1; // Parallel access requirement for this dataspace
-
-      if (is_kept)
-      {
-        // Calculate data size using layout factors and cumulative dimension values
-        const auto& ranks = layout_.at(storage_level).intraline.at(ds_idx).ranks;
-
-        for (auto& rank : ranks)
-        {
-          auto intraline_factor = layout_.at(storage_level).intraline.at(ds_idx).factors[rank];
-          auto interline_factor = layout_.at(storage_level).interline.at(ds_idx).factors[rank];
-
-          // Get dimension IDs for this rank
-          const auto& dim_ids = layout_.at(storage_level).rankToFactorizedDimensionID.at(rank);
-
-          // Calculate rank size using cumulative dimension values with coefficients
-          std::uint64_t rank_dimension_product = 0;
-          if (dim_ids.size() > 1){
-            const auto& coefficient = layout_.at(storage_level).rankToCoefficientValue[rank];
-            for (unsigned idx=0; idx < dim_ids.size(); idx++){
-              if (level_dimval.find(dim_ids[idx]) != level_dimval.end())
-              {
-                auto dim_value = level_dimval.at(dim_ids[idx]);
-                if (idx == dim_ids.size()-1){
-                  if (dim_value == 1){
-                    rank_dimension_product += dim_value - 1;
-                  }else{
-                    rank_dimension_product += dim_value*coefficient[idx] - 1;
-                  }
-                }
-                else{
-                  if (dim_value == 1){
-                    rank_dimension_product += dim_value;
-                  }else{
-                    rank_dimension_product += dim_value*coefficient[idx];
-                  }
-                }
-              }
-            }
-          }
-          else{
-            if (level_dimval.find(dim_ids[0]) != level_dimval.end())
-            {
-              rank_dimension_product = level_dimval.at(dim_ids[0]);
-            }
-            else
-            {
-              rank_dimension_product = 1;
-            }
-          }
-
-          // The actual rank size is constrained by the layout factors and dimension values
-          std::uint64_t rank_total_size = std::min(rank_dimension_product,
-                                                  static_cast<std::uint64_t>(intraline_factor * interline_factor));
-          std::uint64_t rank_parallel_size = std::min(rank_dimension_product,
-                                                     static_cast<std::uint64_t>(intraline_factor));
-
-          // Accumulate across ranks (multiplicative since ranks are dimensions)
-          dataspace_total_size *= rank_total_size;
-          dataspace_parallel_size *= rank_parallel_size;
-        }
-
-        // Handle case with no ranks (scalar data)
-        if (ranks.empty())
-        {
-          dataspace_total_size = 1;
-          dataspace_parallel_size = 1;
-        }
-
-        // Add to total requirements across all data spaces (only if not bypassed)
-        total_data_size += dataspace_total_size;
-        total_parallel_accesses += dataspace_parallel_size;
-      }
-      else
-      {
-        // Bypassed data spaces don't contribute to capacity requirements
-        dataspace_total_size = 0;
-        dataspace_parallel_size = 0;
-      }
-#ifdef DEBUG_BUFFER_CAPACITY_CONSTRAINT
-      std::cout << "      Data space " << ds_idx;
-      if (ds_idx < layout_.at(storage_level).data_space.size())
-      {
-        std::cout << " (" << layout_.at(storage_level).data_space[ds_idx] << ")";
-      }
-      std::cout << (is_kept ? " [KEPT]" : " [BYPASSED]") << ":" << std::endl;
-      std::cout << "        Total data size: " << dataspace_total_size << " elements" << std::endl;
-      std::cout << "        Parallel accesses: " << dataspace_parallel_size << " elements" << std::endl;
-#endif
-    }
-
-#ifdef DEBUG_BUFFER_CAPACITY_CONSTRAINT
-    std::cout << "      TOTAL data size across all spaces: " << total_data_size << " elements" << std::endl;
-    std::cout << "      TOTAL parallel accesses: " << total_parallel_accesses << " elements" << std::endl;
-#endif
-
-    // Check capacity constraint: total data size should not exceed buffer capacity
-    if (total_data_size > total_capacity)
-      throw std::runtime_error("Buffer capacity constraint violation: Total data size (" + std::to_string(total_data_size) + ") exceeds memory capacity (" + std::to_string(total_capacity) + ")");
-
-    // Check bandwidth constraint: parallel accesses must fit in line capacity
-    if (total_parallel_accesses > line_capacity)
-      throw std::runtime_error(" Buffer bandwidth constraint violation: Total parallel accesses (" + std::to_string(total_parallel_accesses) + ") exceed line capacity (" + std::to_string(line_capacity) + ")");
-
-    std::cout << "    ✓ Storage level " << storage_level << " has sufficient (1) space and (2) bandwidth" << std::endl;
-  }
-
-  std::cout << "  ✓ All buffer capacity constraints satisfied" << std::endl;
-
-  // Print storage level capacities
-  std::cout << "Storage level capacities:" << std::endl;
-  for (uint32_t i = 0; i < storage_level_total_capacity.size(); i++) {
-    std::cout << "  Level " << i << ":" << std::endl;
-    std::cout << "    Total capacity: " << storage_level_total_capacity[i] << std::endl;
-    std::cout << "    Line capacity: " << storage_level_line_capacity[i] << std::endl;
-  }
-  return true;
-}
-
-//
 // CreateIntraLineSpace() - Step 3: Generate all possible intraline factor combinations
 //
-void Legal::CreateIntraLineSpace(model::Engine::Specs arch_specs)
+void Legal::CreateIntraLineSpace(model::Engine::Specs arch_specs, const Mapping& mapping)
 {
   (void) arch_specs; // Suppress unused parameter warning
 
@@ -1527,73 +981,87 @@ void Legal::CreateIntraLineSpace(model::Engine::Specs arch_specs)
   // Clear previous design spaces
   variable_intraline_factors_.clear();
   intraline_conversion_ranges_.clear();
-  variable_packing_factors_.clear();
-  packing_factor_ranges_.clear();
+  packing_options_per_level_.clear();
+  packing_choices_per_level_.clear();
 
   // Phase 1: Get Memory Line size for all storage levels (What Layout Provide Per Cycle)
-  std::vector<std::uint64_t> intraline_size(num_storage_levels, 1);
+  std::vector<std::vector<std::uint64_t>> intraline_size_per_ds(num_storage_levels, std::vector<std::uint64_t>(num_data_spaces, 0));
+  std::vector<std::uint64_t> intraline_size_per_lvl(num_storage_levels, 0);
 
   for (unsigned lvl = 0; lvl < num_storage_levels; lvl++)
   {
     for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++)
     {
-      auto intra_nest = layout_.at(lvl).intraline.at(ds_idx);
-      for (const auto &r : intra_nest.ranks) // Analyze slowdown per rank
+      // Check if this dataspace is bypassed at this storage level
+      bool is_kept = mapping.datatype_bypass_nest.at(ds_idx).test(lvl);
+
+      if (is_kept)
       {
-      int factor = (intra_nest.factors.find(r) != intra_nest.factors.end() ? intra_nest.factors.at(r) : 1);
-        intraline_size[lvl] *= factor;
+        uint64_t intraline_per_ds = 1;
+        auto intra_nest = layout_.at(lvl).intraline.at(ds_idx);
+        for (const auto &r : intra_nest.ranks) // Analyze slowdown per rank
+        {
+        int factor = (intra_nest.factors.find(r) != intra_nest.factors.end() ? intra_nest.factors.at(r) : 1);
+          intraline_per_ds *= factor;
+        }
+        intraline_size_per_ds[lvl][ds_idx] = intraline_per_ds;
+        intraline_size_per_lvl[lvl] += intraline_per_ds;
       }
     }
   }
 
+
   // Phase 2: Check if the line capacity is sufficient for the intraline size
   for (unsigned lvl = 0; lvl < num_storage_levels; lvl++){
-    if(storage_level_line_capacity[lvl] < intraline_size[lvl]){
-      // The product of all factors of intraline for a dataspace is too big to fit in the line capacity, 
+    if(storage_level_line_capacity[lvl] < intraline_size_per_lvl[lvl]){
+      // The product of all factors of intraline for a dataspace is too big to fit in the line capacity,
       // so need to reduce the factors of intraline by converting some factors into interline.
-      
-      std::cout << "  Level " << lvl << ": intraline_size (" << intraline_size[lvl] 
-                << ") exceeds line capacity (" << storage_level_line_capacity[lvl] 
+
+      std::cout << "  Level " << lvl << ": intraline_size (" << intraline_size_per_lvl[lvl]
+                << ") exceeds line capacity (" << storage_level_line_capacity[lvl]
                 << "). Generating design space for factor conversions..." << std::endl;
-      
+
       // For each dataspace, analyze conversion possibilities and store in member variables
       for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++){
         auto& intra_nest = layout_.at(lvl).intraline.at(ds_idx);
-        
         std::cout << "    DataSpace " << ds_idx << ":" << std::endl;
-        
+
         // Single-rank conversions: find minimal factors that can solve the overflow
         for (const auto& rank : intra_nest.ranks) {
-          uint32_t current_factor = (intra_nest.factors.find(rank) != intra_nest.factors.end() 
+          uint32_t current_factor = (intra_nest.factors.find(rank) != intra_nest.factors.end()
                                     ? intra_nest.factors.at(rank) : 1);
-          
+
           if (current_factor > 1) {
             std::vector<uint32_t> divisors = FindDivisors(current_factor);
             std::vector<uint32_t> valid_conversions;
-            
+
             // Test each divisor (excluding 1) to see if it solves the overflow
             for (uint32_t divisor : divisors) {
               if (divisor > 1) { // Skip 1 as it means no conversion
                 // Calculate new intraline_size if this divisor is moved to interline
-                uint64_t new_intraline_size = intraline_size[lvl] / divisor;
-                
+                std::vector<uint64_t> new_intraline_size_per_ds(num_data_spaces, 0);
+                for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++){
+                  new_intraline_size_per_ds[ds_idx] = intraline_size_per_ds[lvl][ds_idx] / divisor;
+                }
+                uint64_t new_intraline_size = std::accumulate(new_intraline_size_per_ds.begin(), new_intraline_size_per_ds.end(), 0);
+
                 if (new_intraline_size <= storage_level_line_capacity[lvl]) {
                   // This divisor solves the overflow - add to design space
                   valid_conversions.push_back(divisor);
-                  std::cout << "      Rank " << rank << ": moving factor " << divisor 
-                            << " to interline gives intraline_size=" << new_intraline_size 
+                  std::cout << "      Rank " << rank << ": moving factor " << divisor
+                            << " to interline gives intraline_size=" << new_intraline_size
                             << " (fits in capacity)" << std::endl;
-                  
+
                   // For minimal conversion, we prefer the smallest factor that works
                   break;
                 } else {
-                  std::cout << "      Rank " << rank << ": moving factor " << divisor 
-                            << " to interline gives intraline_size=" << new_intraline_size 
+                  std::cout << "      Rank " << rank << ": moving factor " << divisor
+                            << " to interline gives intraline_size=" << new_intraline_size
                             << " (still exceeds capacity)" << std::endl;
                 }
               }
             }
-            
+
             // If no single divisor works, add all divisors for potential multi-rank combinations
             if (valid_conversions.empty()) {
               std::cout << "      Rank " << rank << ": no single factor conversion works, "
@@ -1604,15 +1072,15 @@ void Legal::CreateIntraLineSpace(model::Engine::Specs arch_specs)
                 }
               }
             }
-            
+
             // Store in member variables for later use by ConstructLayout
             if (!valid_conversions.empty()) {
               variable_intraline_factors_.push_back(std::make_tuple(lvl, ds_idx, rank, current_factor));
               intraline_conversion_ranges_.push_back(valid_conversions);
-              
+
               std::cout << "      Stored variable factor: Level " << lvl
                        << ", DataSpace " << ds_idx << ", Rank " << rank
-                       << ", original_factor: " << current_factor 
+                       << ", original_factor: " << current_factor
                        << ", conversion_options: [";
               for (size_t i = 0; i < valid_conversions.size(); i++) {
                 std::cout << valid_conversions[i];
@@ -1624,140 +1092,96 @@ void Legal::CreateIntraLineSpace(model::Engine::Specs arch_specs)
         }
       }
     }
-    else if (storage_level_line_capacity[lvl] > intraline_size[lvl]){
-      // Intraline has free space to hold more data, could convert some factors of interline into intraline, 
+    else if (storage_level_line_capacity[lvl] > intraline_size_per_lvl[lvl]){
+      // Intraline has free space to hold more data, could convert some factors of interline into intraline,
       // this creates the overall design spaces
-      
-      std::cout << "  Level " << lvl << ": intraline_size (" << intraline_size[lvl] 
-                << ") has " << (storage_level_line_capacity[lvl] - intraline_size[lvl])
+
+      std::cout << "  Level " << lvl << ": intraline_size (" << intraline_size_per_lvl[lvl]
+                << ") has " << (storage_level_line_capacity[lvl] - intraline_size_per_lvl[lvl])
                 << " free capacity. Generating design space for data packing..." << std::endl;
-      
+
       // Calculate maximum packing factor that can be applied
-      uint64_t max_packing_factor = storage_level_line_capacity[lvl] / intraline_size[lvl];
-      
-      std::cout << "    Maximum packing factor: " << max_packing_factor << std::endl;
-      
-      // For each dataspace, analyze packing possibilities
-      for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++){
-        auto& inter_nest = layout_.at(lvl).interline.at(ds_idx);
-        
-        std::cout << "    DataSpace " << ds_idx << ":" << std::endl;
-        
-        // Single-rank packing: find factors that can be moved from interline to intraline
-        for (const auto& rank : inter_nest.ranks) {
-          uint32_t current_interline_factor = (inter_nest.factors.find(rank) != inter_nest.factors.end() 
-                                              ? inter_nest.factors.at(rank) : 1);
-          
-          if (current_interline_factor > 1) {
-            std::vector<uint32_t> divisors = FindDivisors(current_interline_factor);
-            std::vector<uint32_t> valid_packing_factors;
-            
-            // Test each divisor (excluding 1) to see if it can be packed
-            for (uint32_t divisor : divisors) {
-              if (divisor > 1) { // Skip 1 as it means no packing
-                // Calculate new intraline_size if this divisor is moved to intraline
-                uint64_t new_intraline_size = intraline_size[lvl] * divisor;
-                
-                if (new_intraline_size <= storage_level_line_capacity[lvl]) {
-                  // This divisor fits - add to design space
-                  valid_packing_factors.push_back(divisor);
-                  std::cout << "      Rank " << rank << ": packing factor " << divisor 
-                            << " gives intraline_size=" << new_intraline_size 
-                            << " (fits in capacity)" << std::endl;
-                } else {
-                  std::cout << "      Rank " << rank << ": packing factor " << divisor 
-                            << " gives intraline_size=" << new_intraline_size 
-                            << " (exceeds capacity)" << std::endl;
-                  break; // No need to test larger factors for this rank
+      uint32_t max_packing_factor = static_cast<uint32_t>(static_cast<float>(storage_level_line_capacity[lvl]) / static_cast<float>(intraline_size_per_lvl[lvl]));
+      if (max_packing_factor > 1){
+        std::cout << "    Maximum packing factor: " << max_packing_factor << std::endl;
+
+        // For each dataspace, analyze packing possibilities
+        for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++){
+          auto& inter_nest = layout_.at(lvl).interline.at(ds_idx);
+
+          std::cout << "    DataSpace " << ds_idx << ":" << std::endl;
+
+          // Single-rank packing: find factors that can be moved from interline to intraline
+          for (const auto& rank : inter_nest.ranks) {
+            uint32_t current_interline_factor = (inter_nest.factors.find(rank) != inter_nest.factors.end()
+                                                ? inter_nest.factors.at(rank) : 1);
+
+            if (current_interline_factor > 1) {
+              std::vector<uint32_t> divisors = FindDivisors(current_interline_factor);
+              std::vector<uint32_t> valid_packing_factors;
+
+              // Test each divisor (excluding 1) to see if it can be packed
+              for (uint32_t divisor : divisors) {
+                if (divisor > 1) { // Skip 1 as it means no packing
+                  // Calculate new intraline_size if this divisor is moved to intraline
+                  std::vector<uint64_t> new_intraline_size_per_ds(num_data_spaces, 0);
+                  for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++){
+                    new_intraline_size_per_ds[ds_idx] = intraline_size_per_ds[lvl][ds_idx] * divisor;
+                  }
+                  uint64_t new_intraline_size = std::accumulate(new_intraline_size_per_ds.begin(), new_intraline_size_per_ds.end(), 0);
+
+                  if (new_intraline_size <= storage_level_line_capacity[lvl]) {
+                    // This divisor fits - add to design space
+                    valid_packing_factors.push_back(divisor);
+                    std::cout << "      Rank " << rank << ": packing factor " << divisor
+                              << " gives intraline_size=" << new_intraline_size
+                              << " (fits in capacity)" << std::endl;
+                  } else {
+                    std::cout << "      Rank " << rank << ": packing factor " << divisor
+                              << " gives intraline_size=" << new_intraline_size
+                              << " (exceeds capacity)" << std::endl;
+                    break; // No need to test larger factors for this rank
+                  }
                 }
               }
-            }
-            
-            // Store in member variables for later use by ConstructLayout
-            if (!valid_packing_factors.empty()) {
-              variable_packing_factors_.push_back(std::make_tuple(lvl, ds_idx, rank, current_interline_factor));
-              packing_factor_ranges_.push_back(valid_packing_factors);
-              
-              std::cout << "      Stored packing variable: Level " << lvl
-                       << ", DataSpace " << ds_idx << ", Rank " << rank
-                       << ", interline_factor: " << current_interline_factor 
-                       << ", packing_options: [";
-              for (size_t i = 0; i < valid_packing_factors.size(); i++) {
-                std::cout << valid_packing_factors[i];
-                if (i < valid_packing_factors.size() - 1) std::cout << ", ";
+
+              // Store in member variables for later use by ConstructLayout (new per-level structure)
+              if (!valid_packing_factors.empty()) {
+                // Ensure we have space for this storage level
+                while (packing_options_per_level_.size() <= lvl) {
+                  packing_options_per_level_.push_back(std::vector<PackingOption>());
+                }
+
+                // Add each packing factor as a separate option for this level
+                for (uint32_t packing_factor : valid_packing_factors) {
+                  PackingOption option;
+                  option.dataspace = ds_idx;
+                  option.rank = rank;
+                  option.original_interline_factor = current_interline_factor;
+                  option.packing_factor = packing_factor;
+                  packing_options_per_level_[lvl].push_back(option);
+                }
+
+                std::cout << "      Stored packing options for Level " << lvl
+                        << ", DataSpace " << ds_idx << ", Rank " << rank
+                        << ", interline_factor: " << current_interline_factor
+                        << ", packing_factors: [";
+                for (size_t i = 0; i < valid_packing_factors.size(); i++) {
+                  std::cout << valid_packing_factors[i];
+                  if (i < valid_packing_factors.size() - 1) std::cout << ", ";
+                }
+                std::cout << "]" << std::endl;
               }
-              std::cout << "]" << std::endl;
             }
           }
         }
       }
-      
-      // Multi-rank packing combinations: if there's still unused capacity
-      if (!variable_packing_factors_.empty()) {
-        std::cout << "    Exploring multi-rank packing combinations..." << std::endl;
-        
-        // Generate combinations of factors from different ranks that fit together
-        std::vector<std::tuple<std::string, uint32_t, size_t>> all_packing_factors; // (rank, factor, variable_index)
-        for (size_t var_idx = 0; var_idx < variable_packing_factors_.size(); var_idx++) {
-          const auto& var_factor = variable_packing_factors_[var_idx];
-          std::string rank = std::get<2>(var_factor);
-          for (uint32_t factor : packing_factor_ranges_[var_idx]) {
-            all_packing_factors.push_back({rank, factor, var_idx});
-          }
-        }
-        
-        // Try combinations of 2 factors, then 3, etc.
-        for (size_t combo_size = 2; combo_size <= std::min(all_packing_factors.size(), size_t(4)); combo_size++) {
-          std::cout << "      Trying combinations of " << combo_size << " packing factors..." << std::endl;
-          
-          // Generate combinations of the specified size
-          std::vector<bool> selector(all_packing_factors.size(), false);
-          std::fill(selector.begin(), selector.begin() + combo_size, true);
-          
-          int valid_combinations = 0;
-          do {
-            uint64_t combined_factor = 1;
-            std::vector<std::string> combo_ranks;
-            std::set<size_t> used_variables; // Ensure we don't use the same variable twice
-            
-            bool valid_combination = true;
-            for (size_t i = 0; i < all_packing_factors.size(); i++) {
-              if (selector[i]) {
-                size_t var_idx = std::get<2>(all_packing_factors[i]);
-                if (used_variables.count(var_idx)) {
-                  valid_combination = false; // Can't use same variable twice
-                  break;
-                }
-                used_variables.insert(var_idx);
-                combined_factor *= std::get<1>(all_packing_factors[i]);
-                combo_ranks.push_back(std::get<0>(all_packing_factors[i]) + ":" + std::to_string(std::get<1>(all_packing_factors[i])));
-              }
-            }
-            
-            if (valid_combination) {
-              uint64_t new_intraline_size = intraline_size[lvl] * combined_factor;
-              if (new_intraline_size <= storage_level_line_capacity[lvl]) {
-                std::cout << "        Valid combination: factors [";
-                for (size_t i = 0; i < combo_ranks.size(); i++) {
-                  std::cout << combo_ranks[i];
-                  if (i < combo_ranks.size() - 1) std::cout << ", ";
-                }
-                std::cout << "] gives intraline_size=" << new_intraline_size << std::endl;
-                valid_combinations++;
-                
-                if (valid_combinations >= 5) { // Limit output to avoid too much logging
-                  std::cout << "        ... (showing first 5 valid combinations)" << std::endl;
-                  break;
-                }
-              }
-            }
-          } while (std::prev_permutation(selector.begin(), selector.end()));
-          
-          if (valid_combinations == 0) {
-            std::cout << "        No valid combinations found for size " << combo_size << std::endl;
-          }
-        }
+      else{
+        std::cout << "  Level " << lvl << ": packing factor = 1, no packing is needed." << std::endl;
       }
+
+      // Setup choices per level (including "no packing" option)
+      // This is done after all packing options for this level have been collected
     }
     // Do nothing if the line capacity is equal to the intraline size
   }
@@ -1765,7 +1189,7 @@ void Legal::CreateIntraLineSpace(model::Engine::Specs arch_specs)
   // Print summary of intraline design space
   if (!variable_intraline_factors_.empty()) {
     std::cout << "  Total intraline conversion variables: " << variable_intraline_factors_.size() << std::endl;
-    
+
     // Calculate number of intraline conversion candidates
     uint64_t intraline_candidates = 1;
     for (const auto& range : intraline_conversion_ranges_) {
@@ -1773,16 +1197,28 @@ void Legal::CreateIntraLineSpace(model::Engine::Specs arch_specs)
     }
     std::cout << "  Intraline conversion layout candidates: " << intraline_candidates << std::endl;
   }
-  
-  // Print summary of packing design space
-  if (!variable_packing_factors_.empty()) {
-    std::cout << "  Total packing variables: " << variable_packing_factors_.size() << std::endl;
-    
-    // Calculate number of packing candidates
-    uint64_t packing_candidates = 1;
-    for (const auto& range : packing_factor_ranges_) {
-      packing_candidates *= range.size();
+
+  // Setup choices per level and print summary of packing design space
+  if (!packing_options_per_level_.empty()) {
+    // Set up the number of choices for each level (including "no packing" option)
+    packing_choices_per_level_.resize(packing_options_per_level_.size());
+    for (size_t level = 0; level < packing_options_per_level_.size(); level++) {
+      // +1 for "no packing" option (choice 0)
+      packing_choices_per_level_[level] = packing_options_per_level_[level].size() + 1;
     }
+
+    // Calculate total number of packing candidates
+    uint64_t packing_candidates = 1;
+    for (const auto& choices : packing_choices_per_level_) {
+      packing_candidates *= choices;
+    }
+
+    std::cout << "  Total packing options across all levels: ";
+    uint64_t total_options = 0;
+    for (const auto& level_options : packing_options_per_level_) {
+      total_options += level_options.size();
+    }
+    std::cout << total_options << std::endl;
     std::cout << "  Packing layout candidates: " << packing_candidates << std::endl;
   }
 }
@@ -1846,8 +1282,8 @@ void Legal::CreateAuthSpace(model::Engine::Specs arch_specs)
             {
               auto cumulative_it_lvl = cumulatively_product_dimval[lvl-1].find(dim_id);
               auto cumulative_it_lvl_minus_1 = cumulatively_product_dimval[lvl-2].find(dim_id);
-              
-              if (cumulative_it_lvl != cumulatively_product_dimval[lvl-1].end() && 
+
+              if (cumulative_it_lvl != cumulatively_product_dimval[lvl-1].end() &&
                   cumulative_it_lvl_minus_1 != cumulatively_product_dimval[lvl-2].end())
               {
                 uint32_t ratio = cumulative_it_lvl->second / cumulative_it_lvl_minus_1->second;
@@ -1937,11 +1373,11 @@ void Legal::CreateAuthSpace(model::Engine::Specs arch_specs)
 
   // Calculate total number of combinations from packing factors
   uint64_t packing_candidates = 1;
-  if (!variable_packing_factors_.empty())
+  if (!packing_options_per_level_.empty())
   {
-    for (const auto& range : packing_factor_ranges_)
+    for (const auto& choices : packing_choices_per_level_)
     {
-      packing_candidates *= range.size();
+      packing_candidates *= choices;
     }
     std::cout << "  Packing layout candidates: " << packing_candidates << std::endl;
   }

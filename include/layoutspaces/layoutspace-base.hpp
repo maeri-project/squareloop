@@ -103,16 +103,12 @@ class LayoutSpace
 
   virtual ~LayoutSpace() {}
 
-  virtual std::vector<Status> ConstructLayout(ID layout_id, layout::Layouts* layouts, bool break_on_failure = true) = 0;
+  virtual std::vector<Status> ConstructLayout(ID layout_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure = true);
+
+  // Construct a specific layout using separate IDs for all three design spaces.
+  virtual std::vector<Status> ConstructLayout(uint64_t layout_id, uint64_t layout_auth_id, uint64_t layout_packing_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure = true);
 
   virtual void CreateConcordantLayout(const Mapping& mapping) = 0;
-
-  std::vector<Status> ConstructLayout(const uint128_t layout_id, layout::Layouts* layouts, bool break_on_failure = true)
-  {
-    ID clayout_id(size_);
-    clayout_id.Set(layout_id);
-    return ConstructLayout(clayout_id, layouts, break_on_failure); 
-  }
 
   uint128_t Size(Dimension dim)
   {

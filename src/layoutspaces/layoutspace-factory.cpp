@@ -32,6 +32,7 @@
 #include <iostream>
 #include <cassert>
 #include <string>
+#include <stdexcept>
 #include "mapping/loop.hpp"
 
 #define DEBUG 
@@ -382,17 +383,15 @@ layout::Layouts CreateConcordantLayoutStandalone(const Mapping& mapping, layout:
           const auto& coefficient = layout_local.at(lvl).rankToCoefficientValue[rank];
           for (unsigned idx=0; idx < dim_ids.size(); idx++){
             auto dim_value = cumulatively_intraline_dimval[lvl][dim_ids[idx]];
-            if (idx == dim_ids.size()-1){
-              if (dim_value == 1){
-                total +=  dim_value - 1;
-              }else{
-                total +=  dim_value*coefficient[idx] - 1;
-              }
+            if (idx == dim_ids.size()-1  && dim_ids.size() > 1 && dim_value > 1){
+              assert(coefficient[idx] >= 1);
+              total +=  dim_value*coefficient[idx] - 1;
             }
             else{
               if (dim_value == 1){
                 total +=  dim_value;
               }else{
+                assert(coefficient[idx] >= 1);
                 total +=  dim_value*coefficient[idx];
               }
             }
@@ -416,12 +415,9 @@ layout::Layouts CreateConcordantLayoutStandalone(const Mapping& mapping, layout:
           const auto& coefficient = layout_local.at(lvl).rankToCoefficientValue[rank];
           for (unsigned idx=0; idx < dim_ids.size(); idx++){
             auto dim_value =  (cumulatively_product_dimval[lvl][dim_ids[idx]] + cumulatively_intraline_dimval[lvl][dim_ids[idx]] - 1) / cumulatively_intraline_dimval[lvl][dim_ids[idx]];
-            if (idx == dim_ids.size()-1){
-              if (dim_value == 1){
-                total +=  dim_value - 1;
-              }else{
-                total +=  dim_value*coefficient[idx] - 1;
-              }
+            if (idx == dim_ids.size()-1 && dim_ids.size() > 1 && dim_value > 1){
+              assert(coefficient[idx] >= 1);
+              total +=  dim_value*coefficient[idx] - 1;
             }
             else{
               if (dim_value == 1){
@@ -441,6 +437,35 @@ layout::Layouts CreateConcordantLayoutStandalone(const Mapping& mapping, layout:
       }
     }
   }
+  
+  // Final validation: Check for excessively large intraline factors (>1000)
+  for (unsigned lvl = 0; lvl < layout_local.size(); lvl++)
+  {
+    for (unsigned ds_idx = 0; ds_idx < layout_local[lvl].intraline.size(); ds_idx++)
+    {
+      auto& intra_nest = layout_local.at(lvl).intraline.at(ds_idx);
+      for (const auto& rank : intra_nest.ranks)
+      {
+        uint32_t factor = (intra_nest.factors.find(rank) != intra_nest.factors.end() 
+                          ? intra_nest.factors.at(rank) : 1);
+        
+        if (factor > 10000)
+        {
+          std::cout << "ERROR: Intraline factor validation failed in layout factory!" << std::endl;
+          std::cout << "  Factor for rank '" << rank << "' at storage level " << lvl 
+                    << " (dataspace " << ds_idx << ") is " << factor << " (exceeds limit of 1000)" << std::endl;
+          std::cout << "  This indicates a potential overflow or incorrect factor calculation." << std::endl;
+          
+          throw std::runtime_error("Intraline factor validation failed in layout factory: Factor " + std::to_string(factor) + 
+                                  " for rank '" + rank + "' at storage level " + std::to_string(lvl) + 
+                                  " exceeds maximum allowed value of 1000");
+        }
+      }
+    }
+  }
+  
+  std::cout << "✓ All intraline factors are within acceptable range (≤1000) in layout factory" << std::endl;
+  
   return layout_local;
 }
 

@@ -401,6 +401,10 @@ Mapper::Mapper(config::CompoundConfig* config,
   
   // layout modeling
   std::cout << "Start Parsering Layout" << std::endl;
+  std::cout << "print out arch_specs_.topology.StorageLevelNames()" << std::endl;
+  for (auto i: arch_specs_.topology.StorageLevelNames()){
+    std::cout << i << std::endl;
+  }
   config::CompoundConfigNode compound_config_node_layout;
   bool existing_layout = rootNode.lookup("layout", compound_config_node_layout);
 

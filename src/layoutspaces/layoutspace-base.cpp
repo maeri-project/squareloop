@@ -51,4 +51,38 @@ std::ostream& operator << (std::ostream& out, Dimension d)
   return out;
 }
 
+//--------------------------------------------//
+//            LayoutSpace Base Class          //
+//--------------------------------------------//
+
+std::vector<Status> LayoutSpace::ConstructLayout(ID layout_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure)
+{
+  // Default implementation - should be overridden by derived classes
+  (void)layout_id;
+  (void)layouts; 
+  (void)mapping;
+  (void)break_on_failure;
+  
+  Status error_status;
+  error_status.success = false;
+  error_status.fail_reason = "ConstructLayout not implemented in base class";
+  return {error_status};
+}
+
+std::vector<Status> LayoutSpace::ConstructLayout(uint64_t layout_id, uint64_t layout_auth_id, uint64_t layout_packing_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure)
+{
+  // Default implementation - should be overridden by derived classes
+  (void)layout_id;
+  (void)layout_auth_id;
+  (void)layout_packing_id;
+  (void)layouts;
+  (void)mapping;
+  (void)break_on_failure;
+  
+  Status error_status;
+  error_status.success = false;
+  error_status.fail_reason = "ConstructLayout not implemented in base class";
+  return {error_status};
+}
+
 } // namespace layoutspace 
