@@ -50,7 +50,7 @@ namespace crypto {
     if (!cryptoNode.lookupValue("shared", cryptoCfg->shared))
       std::cerr << "Warning: 'shared' not found. Using default value.\n";
 
-    if (!cryptoNode.lookupValue("number_engines", cryptoCfg->number_engines))
+    if (!cryptoNode.lookupValue("number-engines", cryptoCfg->number_engines))
       std::cerr << "Warning: 'number_engines' not found. Using default value.\n";
 
     return cryptoCfg;
