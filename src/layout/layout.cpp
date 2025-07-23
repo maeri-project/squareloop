@@ -51,7 +51,7 @@ namespace layout
   Layouts
   ParseAndConstruct(
       config::CompoundConfigNode layoutArray, problem::Workload &workload,
-      std::unordered_map<std::string, std::pair<uint32_t, uint32_t>> &targetToPortValue)
+      std::vector<std::pair<std::string, std::pair<uint32_t, uint32_t>>> &targetToPortValue)
   {
     // ToDo: Current memory logic only supports 3 levels, need to directly support more levels defined by architecture file.
     std::map<std::string, std::vector<std::uint32_t>>
@@ -128,20 +128,9 @@ namespace layout
 
     // load targets
     std::vector<std::string> targets;
-    std::unordered_set<std::string> targets_unique;
-    for (int i = layoutCount-1; i >= 0; i--)
+    for (unsigned i =  0; i < targetToPortValue.size(); i++)
     {
-      config::CompoundConfigNode entry = layoutArray[i];
-      if (entry.exists("target"))
-      {
-        std::string cur_target;
-        entry.lookupValue("target", cur_target);
-        if (targets_unique.find(cur_target) == targets_unique.end())
-        {
-          targets.push_back(cur_target);
-          targets_unique.insert(cur_target);
-        }
-      }
+      targets.push_back(targetToPortValue[i].first);
     }
 
     // Convert the sample permutation string into a vector of single-character
@@ -211,8 +200,19 @@ namespace layout
     {
       Layout layout;
       layout.target = t;
-      layout.num_read_ports = targetToPortValue[t].first;
-      layout.num_write_ports = targetToPortValue[t].second;
+      
+      // Find the target in the vector
+      auto it = std::find_if(targetToPortValue.begin(), targetToPortValue.end(),
+                            [&t](const auto& pair) { return pair.first == t; });
+      if (it != targetToPortValue.end()) {
+        layout.num_read_ports = it->second.first;
+        layout.num_write_ports = it->second.second;
+      } else {
+        // Default values if target not found
+        layout.num_read_ports = 1;
+        layout.num_write_ports = 1;
+      }
+      
       layout.data_space = data_space_vec;
       layout.dataSpaceToRank = dataSpaceToRank;
       layout.rankToCoefficient = rankToCoefficient;
@@ -341,7 +341,7 @@ namespace layout
   Layouts
   InitializeDummyLayout(
       problem::Workload &workload,
-      std::unordered_map<std::string, std::pair<uint32_t, uint32_t>> &targetToPortValue)
+      std::vector<std::pair<std::string, std::pair<uint32_t, uint32_t>>> &targetToPortValue)
   {
     // ToDo: Current memory logic only supports 3 levels, need to directly support more levels defined by architecture file.
     std::map<std::string, std::vector<std::uint32_t>>
@@ -417,16 +417,11 @@ namespace layout
     }
 
     // Use targets from targetToPortValue
+    // load targets
     std::vector<std::string> targets;
-    std::stack<std::string> target_stack;
-    for (const auto &targetPair : targetToPortValue)
+    for (unsigned i =  0; i < targetToPortValue.size(); i++)
     {
-      target_stack.push(targetPair.first);
-    }
-    while (!target_stack.empty())
-    {
-      targets.push_back(target_stack.top());
-      target_stack.pop();
+      targets.push_back(targetToPortValue[i].first);
     }
 
     // Convert the sample permutation string into a vector of single-character
@@ -451,8 +446,19 @@ namespace layout
     {
       Layout layout;
       layout.target = t;
-      layout.num_read_ports = targetToPortValue[t].first;
-      layout.num_write_ports = targetToPortValue[t].second;
+      
+      // Find the target in the vector
+      auto it = std::find_if(targetToPortValue.begin(), targetToPortValue.end(),
+                            [&t](const auto& pair) { return pair.first == t; });
+      if (it != targetToPortValue.end()) {
+        layout.num_read_ports = it->second.first;
+        layout.num_write_ports = it->second.second;
+      } else {
+        // Default values if target not found
+        layout.num_read_ports = 1;
+        layout.num_write_ports = 1;
+      }
+      
       layout.data_space = data_space_vec;
       layout.dataSpaceToRank = dataSpaceToRank;
       layout.rankToCoefficient = rankToCoefficient;

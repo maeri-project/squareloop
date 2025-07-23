@@ -263,7 +263,7 @@ void Legal::Init(model::Engine::Specs arch_specs,
     // This function delegates to the three-parameter version with default values
     // Convert ID to uint64_t
     uint128_t layout_int = layout_id_in.Integer();
-    
+
     // Check if the layout ID fits in 64-bit range
     if (layout_int > std::numeric_limits<std::uint64_t>::max())
     {
@@ -272,10 +272,10 @@ void Legal::Init(model::Engine::Specs arch_specs,
       error_status.fail_reason = "Layout ID exceeds 64-bit range";
       return {error_status};
     }
-    
+
     // Safe cast to 64-bit
     std::uint64_t linear_id = static_cast<std::uint64_t>(layout_int);
-    
+
     // Delegate to the three-parameter version with default auth_id=0 and packing_id=0
     return ConstructLayout(linear_id, 0, 0, layouts, mapping, break_on_failure);
   }
@@ -283,7 +283,7 @@ void Legal::Init(model::Engine::Specs arch_specs,
   //
   // ConstructLayout() - Three-parameter version with separate layout_id, layout_auth_id, and layout_packing_id
   //
-  std::vector<Status> Legal::ConstructLayout(uint64_t layout_id, uint64_t layout_auth_id, uint64_t layout_packing_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure)
+  std::vector<Status> Legal::ConstructLayout(uint64_t layout_id, uint64_t layout_packing_id, uint64_t layout_auth_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure)
   {
   (void)break_on_failure; // Suppress unused parameter warning
 
@@ -294,58 +294,31 @@ void Legal::Init(model::Engine::Specs arch_specs,
 
   // Create a deep copy of the layout to ensure modifications don't affect the original
   CreateConcordantLayout(mapping);
-  
+
 #ifdef LAYOUT_CONSTRUCTION_DEBUG
   std::cout << "\n=== LAYOUT CONSTRUCTION START ===" << std::endl;
-  std::cout << "Layout IDs: IntraLine=" << layout_id << ", Auth=" << layout_auth_id 
+  std::cout << "Layout IDs: IntraLine=" << layout_id << ", Auth=" << layout_auth_id
             << ", Packing=" << layout_packing_id << std::endl;
   std::cout << "Initial original layout:" << std::endl;
   layout::PrintOverallLayoutConcise(layout_);
-#endif 
+#endif
 
-  layout::Layouts modified_layout = layout_;
-
+  /*
+    Step 0: Sanity Checking
+  */
   // If no variable factors, just return the original layout
   if (variable_authblock_factors_.empty() && variable_intraline_factors_.empty() && packing_options_per_level_.empty())
   {
     // Copy the current layout to the output parameter
     if (layouts != nullptr)
     {
-      *layouts = modified_layout;
+      *layouts = layout_;
     }
 
     Status success_status;
     success_status.success = true;
     success_status.fail_reason = "";
     return {success_status};
-  }
-
-  // Validate individual design space IDs
-  uint64_t authblock_candidates = 1;
-  for (const auto& range : authblock_factor_ranges_)
-  {
-    authblock_candidates *= range.size();
-  }
-
-  uint64_t intraline_candidates = 1;
-  for (const auto& range : intraline_conversion_ranges_)
-  {
-    intraline_candidates *= range.size();
-  }
-
-  uint64_t packing_candidates = 1;
-  for (const auto& choices : packing_choices_per_level_)
-  {
-    packing_candidates *= choices;
-  }
-
-  // Validate layout_auth_id range
-  if (!variable_authblock_factors_.empty() && layout_auth_id >= authblock_candidates)
-  {
-    Status error_status;
-    error_status.success = false;
-    error_status.fail_reason = "layout_auth_id " + std::to_string(layout_auth_id) + " exceeds AuthSpace size " + std::to_string(authblock_candidates);
-    return {error_status};
   }
 
   // Validate layout_id range
@@ -357,12 +330,6 @@ void Legal::Init(model::Engine::Specs arch_specs,
     return {error_status};
   }
 
-  // Calculate PackingSpace design space size
-  for (const auto& choices : packing_choices_per_level_)
-  {
-    packing_candidates *= choices;
-  }
-
   // Validate layout_packing_id range
   if (!packing_options_per_level_.empty() && layout_packing_id >= packing_candidates)
   {
@@ -371,19 +338,19 @@ void Legal::Init(model::Engine::Specs arch_specs,
     error_status.fail_reason = "layout_packing_id " + std::to_string(layout_packing_id) + " exceeds PackingSpace size " + std::to_string(packing_candidates);
     return {error_status};
   }
-
-  // Decode AuthSpace factor choices using layout_auth_id
-  std::vector<uint32_t> authblock_choices(variable_authblock_factors_.size());
-  std::uint64_t remaining_auth_id = layout_auth_id;
-
-  for (size_t i = 0; i < variable_authblock_factors_.size(); i++)
+    
+  // Validate layout_auth_id range
+  if (!variable_authblock_factors_.empty() && layout_auth_id >= authblock_candidates)
   {
-    const auto& divisors = authblock_factor_ranges_[i];
-    uint32_t divisor_index = remaining_auth_id % divisors.size();
-    authblock_choices[i] = divisors[divisor_index];
-    remaining_auth_id /= divisors.size();
+    Status error_status;
+    error_status.success = false;
+    error_status.fail_reason = "layout_auth_id " + std::to_string(layout_auth_id) + " exceeds AuthSpace size " + std::to_string(authblock_candidates);
+    return {error_status};
   }
 
+  /*
+    Step 1: Decode the design space choices
+  */
   // Decode IntraLineSpace conversion choices using layout_id
   std::vector<uint32_t> intraline_choices(variable_intraline_factors_.size());
   std::uint64_t remaining_intraline_id = layout_id;
@@ -407,15 +374,19 @@ void Legal::Init(model::Engine::Specs arch_specs,
     remaining_packing_id /= packing_choices_per_level_[level];
   }
 
+  std::vector<uint32_t> authblock_choices(variable_authblock_factors_.size());
+  std::uint64_t remaining_auth_id = layout_auth_id;
+
+  for (size_t i = 0; i < variable_authblock_factors_.size(); i++)
+  {
+    const auto& divisors = authblock_factor_ranges_[i];
+    uint32_t divisor_index = remaining_auth_id % divisors.size();
+    authblock_choices[i] = divisors[divisor_index];
+    remaining_auth_id /= divisors.size();
+  }
+
 #ifdef DEBUG_CONSTRUCTION_LAYOUT
   std::cout << "Constructing layout with three separate IDs:" << std::endl;
-  std::cout << "  AuthSpace (layout_auth_id): " << layout_auth_id << ", choices: [";
-  for (size_t i = 0; i < authblock_choices.size(); i++)
-  {
-    std::cout << authblock_choices[i];
-    if (i < authblock_choices.size() - 1) std::cout << ", ";
-  }
-  std::cout << "]" << std::endl;
   std::cout << "  IntraLineSpace (layout_id): " << layout_id << ", choices: [";
   for (size_t i = 0; i < intraline_choices.size(); i++)
   {
@@ -430,43 +401,14 @@ void Legal::Init(model::Engine::Specs arch_specs,
     if (level < packing_choice_per_level.size() - 1) std::cout << ", ";
   }
   std::cout << "]" << std::endl;
-#endif
-
-  // Apply AuthSpace factor choices (using layout_auth_id)
-  for (size_t i = 0; i < variable_authblock_factors_.size(); i++)
+  std::cout << "  AuthSpace (layout_auth_id): " << layout_auth_id << ", choices: [";
+  for (size_t i = 0; i < authblock_choices.size(); i++)
   {
-    auto& var_factor = variable_authblock_factors_[i];
-    unsigned lvl = std::get<0>(var_factor);
-    unsigned ds_idx = std::get<1>(var_factor);
-    std::string rank = std::get<2>(var_factor);
-    uint32_t chosen_factor = authblock_choices[i];
-
-    // Apply the chosen factor to the authblock_lines nest
-    auto& authblock_nest = modified_layout[lvl].authblock_lines[ds_idx];
-
-    // Check if rank exists in the authblock nest
-    auto rank_it = std::find(authblock_nest.ranks.begin(), authblock_nest.ranks.end(), rank);
-    if (rank_it == authblock_nest.ranks.end())
-    {
-      Status error_status;
-      error_status.success = false;
-      error_status.fail_reason = "Rank " + rank + " not found in authblock_lines nest for level " + std::to_string(lvl) + ", dataspace " + std::to_string(ds_idx);
-      return {error_status};
-    }
-
-    // Set the chosen factor value
-    authblock_nest.factors[rank] = chosen_factor;
-    
-#ifdef LAYOUT_CONSTRUCTION_DEBUG
-    // Get the old factor for comparison
-    uint32_t old_authblock_factor = (authblock_nest.factors.find(rank) != authblock_nest.factors.end()
-                                    ? authblock_nest.factors.at(rank) : 1);
-    
-    std::cout << "[AuthSpace] Storage Level " << lvl << ", DataSpace " << ds_idx 
-              << ", Rank '" << rank << "': authblock_lines factor " 
-              << old_authblock_factor << " -> " << chosen_factor << std::endl;
-#endif
+    std::cout << authblock_choices[i];
+    if (i < authblock_choices.size() - 1) std::cout << ", ";
   }
+  std::cout << "]" << std::endl;
+#endif
 
   // Apply IntraLineSpace conversion choices (using layout_id)
   for (size_t i = 0; i < variable_intraline_factors_.size(); i++)
@@ -479,7 +421,7 @@ void Legal::Init(model::Engine::Specs arch_specs,
     uint32_t conversion_factor = intraline_choices[i];
 
     // Validate indices
-    if (lvl >= modified_layout.size())
+    if (lvl >= layout_.size())
     {
       Status error_status;
       error_status.success = false;
@@ -487,7 +429,7 @@ void Legal::Init(model::Engine::Specs arch_specs,
       return {error_status};
     }
 
-    if (ds_idx >= modified_layout[lvl].intraline.size())
+    if (ds_idx >= layout_[lvl].intraline.size())
     {
       Status error_status;
       error_status.success = false;
@@ -496,8 +438,8 @@ void Legal::Init(model::Engine::Specs arch_specs,
     }
 
     // Apply the intraline-to-interline conversion
-    auto& intraline_nest = modified_layout[lvl].intraline[ds_idx];
-    auto& interline_nest = modified_layout[lvl].interline[ds_idx];
+    auto& intraline_nest = layout_[lvl].intraline[ds_idx];
+    auto& interline_nest = layout_[lvl].interline[ds_idx];
 
     // Check if rank exists in both nests
     auto intra_rank_it = std::find(intraline_nest.ranks.begin(), intraline_nest.ranks.end(), rank);
@@ -518,12 +460,12 @@ void Legal::Init(model::Engine::Specs arch_specs,
     uint32_t new_interline_factor = current_interline_factor * conversion_factor;
 
 #ifdef LAYOUT_CONSTRUCTION_DEBUG
-    std::cout << "[IntraLineSpace] Storage Level " << lvl << ", DataSpace " << ds_idx 
-              << ", Rank '" << rank << "': Converting factor " << conversion_factor 
+    std::cout << "[IntraLineSpace] Storage Level " << lvl << ", DataSpace " << ds_idx
+              << ", Rank '" << rank << "': Converting factor " << conversion_factor
               << " from intraline to interline" << std::endl;
-    std::cout << "  - intraline factor: " << original_factor << " -> " << new_intraline_factor 
+    std::cout << "  - intraline factor: " << original_factor << " -> " << new_intraline_factor
               << " (divided by " << conversion_factor << ")" << std::endl;
-    std::cout << "  - interline factor: " << current_interline_factor << " -> " << new_interline_factor 
+    std::cout << "  - interline factor: " << current_interline_factor << " -> " << new_interline_factor
               << " (multiplied by " << conversion_factor << ")" << std::endl;
 #endif
 
@@ -532,19 +474,23 @@ void Legal::Init(model::Engine::Specs arch_specs,
   }
 
   // Apply PackingSpace choices (one rank per storage level)
+#ifdef LAYOUT_CONSTRUCTION_DEBUG
   std::cout << "[PackingSpace] Applying single-rank-per-level packing..." << std::endl;
-  
+#endif
+
   for (size_t level = 0; level < packing_choice_per_level.size(); level++)
   {
     uint32_t choice_index = packing_choice_per_level[level];
-    
+
     // Choice 0 means "no packing" for this level
     if (choice_index == 0)
     {
+#ifdef LAYOUT_CONSTRUCTION_DEBUG
       std::cout << "[PackingSpace] Storage Level " << level << ": No packing applied" << std::endl;
+#endif
       continue;
     }
-    
+
     // Choice > 0 means apply the corresponding packing option
     if (choice_index > packing_options_per_level_[level].size())
     {
@@ -553,17 +499,17 @@ void Legal::Init(model::Engine::Specs arch_specs,
       error_status.fail_reason = "Invalid packing choice " + std::to_string(choice_index) + " for level " + std::to_string(level);
       return {error_status};
     }
-    
+
     // Get the selected packing option (subtract 1 since choice 0 is "no packing")
     const auto& packing_option = packing_options_per_level_[level][choice_index - 1];
-    
+
     unsigned ds_idx = packing_option.dataspace;
     std::string rank = packing_option.rank;
     uint32_t original_interline_factor = packing_option.original_interline_factor;
     uint32_t packing_factor = packing_option.packing_factor;
 
     // Validate indices
-    if (level >= modified_layout.size())
+    if (level >= layout_.size())
     {
       Status error_status;
       error_status.success = false;
@@ -571,7 +517,7 @@ void Legal::Init(model::Engine::Specs arch_specs,
       return {error_status};
     }
 
-    if (ds_idx >= modified_layout[level].intraline.size())
+    if (ds_idx >= layout_[level].intraline.size())
     {
       Status error_status;
       error_status.success = false;
@@ -580,8 +526,8 @@ void Legal::Init(model::Engine::Specs arch_specs,
     }
 
     // Apply the interline-to-intraline packing
-    auto& intraline_nest = modified_layout[level].intraline[ds_idx];
-    auto& interline_nest = modified_layout[level].interline[ds_idx];
+    auto& intraline_nest = layout_[level].intraline[ds_idx];
+    auto& interline_nest = layout_[level].interline[ds_idx];
 
     // Check if rank exists in both nests
     auto intra_rank_it = std::find(intraline_nest.ranks.begin(), intraline_nest.ranks.end(), rank);
@@ -601,15 +547,15 @@ void Legal::Init(model::Engine::Specs arch_specs,
     uint32_t new_interline_factor = original_interline_factor / packing_factor;
     uint32_t new_intraline_factor = current_intraline_factor * packing_factor;
 
-  #ifdef LAYOUT_CONSTRUCTION_DEBUG
+#ifdef LAYOUT_CONSTRUCTION_DEBUG
     uint32_t current_interline_factor = (interline_nest.factors.find(rank) != interline_nest.factors.end()
     ? interline_nest.factors.at(rank) : 1);
-    std::cout << "[PackingSpace] Storage Level " << level << ", DataSpace " << ds_idx 
-              << ", Rank '" << rank << "': Packing factor " << packing_factor 
+    std::cout << "[PackingSpace] Storage Level " << level << ", DataSpace " << ds_idx
+              << ", Rank '" << rank << "': Packing factor " << packing_factor
               << " from interline to intraline (choice " << choice_index << ")" << std::endl;
-    std::cout << "  - interline factor: " << current_interline_factor << " -> " << new_interline_factor 
+    std::cout << "  - interline factor: " << current_interline_factor << " -> " << new_interline_factor
               << " (divided by " << packing_factor << ")" << std::endl;
-    std::cout << "  - intraline factor: " << current_intraline_factor << " -> " << new_intraline_factor 
+    std::cout << "  - intraline factor: " << current_intraline_factor << " -> " << new_intraline_factor
               << " (multiplied by " << packing_factor << ")" << std::endl;
 #endif
 
@@ -617,15 +563,54 @@ void Legal::Init(model::Engine::Specs arch_specs,
     interline_nest.factors[rank] = new_interline_factor;
   }
 
+
+  // Apply AuthSpace factor choices (using layout_auth_id)
+  for (size_t i = 0; i < variable_authblock_factors_.size(); i++)
+  {
+    auto& var_factor = variable_authblock_factors_[i];
+    unsigned lvl = std::get<0>(var_factor);
+    unsigned ds_idx = std::get<1>(var_factor);
+    std::string rank = std::get<2>(var_factor);
+    uint32_t chosen_factor = authblock_choices[i];
+
+    // Apply the chosen factor to the authblock_lines nest
+    auto& authblock_nest = layout_[lvl].authblock_lines[ds_idx];
+
+    // Check if rank exists in the authblock nest
+    auto rank_it = std::find(authblock_nest.ranks.begin(), authblock_nest.ranks.end(), rank);
+    if (rank_it == authblock_nest.ranks.end())
+    {
+      Status error_status;
+      error_status.success = false;
+      error_status.fail_reason = "Rank " + rank + " not found in authblock_lines nest for level " + std::to_string(lvl) + ", dataspace " + std::to_string(ds_idx);
+      return {error_status};
+    }
+
+    // Set the chosen factor value
+    authblock_nest.factors[rank] = chosen_factor;
+
+#ifdef LAYOUT_CONSTRUCTION_DEBUG
+    // Get the old factor for comparison
+    uint32_t old_authblock_factor = (authblock_nest.factors.find(rank) != authblock_nest.factors.end()
+                                    ? authblock_nest.factors.at(rank) : 1);
+
+    std::cout << "[AuthSpace] Storage Level " << lvl << ", DataSpace " << ds_idx
+              << ", Rank '" << rank << "': authblock_lines factor "
+              << old_authblock_factor << " -> " << chosen_factor << std::endl;
+#endif
+  }
+
   // Copy the modified layout to the output parameter
   if (layouts != nullptr)
   {
-    *layouts = modified_layout;
+    *layouts = layout_;
   }
 
+#ifdef LAYOUT_CONSTRUCTION_DEBUG
   std::cout << "\n=== LAYOUT CONSTRUCTION COMPLETE ===" << std::endl;
   std::cout << "Final modified layout:" << std::endl;
-  layout::PrintOverallLayoutConcise(modified_layout);
+  layout::PrintOverallLayoutConcise(layout_);
+#endif
 
   std::vector<std::uint64_t> intraline_size(num_storage_levels, 0);
 
@@ -667,11 +652,13 @@ void Legal::Init(model::Engine::Specs arch_specs,
 //
 void Legal::CreateConcordantLayout(const Mapping& mapping)
 {
+#ifdef LAYOUT_CONSTRUCTION_DEBUG
   std::cout << "Step 1: Create Concordant Layout..." << std::endl;
   std::cout << "Total number of storage levels: " << mapping.loop_nest.storage_tiling_boundaries.size() << std::endl;
   std::cout << "Total number of layout levels: " << layout_.size() << std::endl;
   assert(mapping.loop_nest.storage_tiling_boundaries.size() == layout_.size());
   std::cout << "Total number of data spaces: " << layout_.at(0).intraline.size() << std::endl;
+#endif
 
   // Build a initialized map that assigns 1 to every dimension ID present in dim_order.
   std::map<std::uint32_t, std::uint32_t> initial_dimid_to_loopend;
@@ -906,7 +893,7 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
       }
     }
   }
-  
+
 #ifdef DEBUG_CONCORDANT_LAYOUT
   std::cout << "layout_after_concordant_layout:" << std::endl;
   layout::PrintOverallLayout(layout_);
@@ -1192,7 +1179,7 @@ void Legal::CreateIntraLineSpace(model::Engine::Specs arch_specs, const Mapping&
     std::cout << "  Total intraline conversion variables: " << variable_intraline_factors_.size() << std::endl;
 
     // Calculate number of intraline conversion candidates
-    uint64_t intraline_candidates = 1;
+    intraline_candidates = 1;
     for (const auto& range : intraline_conversion_ranges_) {
       intraline_candidates *= range.size();
     }
@@ -1209,7 +1196,7 @@ void Legal::CreateIntraLineSpace(model::Engine::Specs arch_specs, const Mapping&
     }
 
     // Calculate total number of packing candidates
-    uint64_t packing_candidates = 1;
+    packing_candidates = 1;
     for (const auto& choices : packing_choices_per_level_) {
       packing_candidates *= choices;
     }
@@ -1264,8 +1251,6 @@ void Legal::CreateAuthSpace(model::Engine::Specs arch_specs)
       for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++)
       {
         const auto& authblock_nest = layout_.at(lvl).authblock_lines.at(ds_idx);
-        // const auto& interline_nest = layout_.at(lvl).interline.at(ds_idx);
-        // const auto& intraline_nest = layout_.at(lvl).intraline.at(ds_idx);
 
         // Check if this nest has non-empty factors
         if (!authblock_nest.factors.empty())
@@ -1339,7 +1324,7 @@ void Legal::CreateAuthSpace(model::Engine::Specs arch_specs)
   }
 
   // Calculate total number of combinations from authblock factors
-  uint64_t authblock_candidates = 1;
+  authblock_candidates = 1;
   if (!variable_authblock_factors_.empty())
   {
     authblock_factor_ranges_.clear();
@@ -1358,7 +1343,7 @@ void Legal::CreateAuthSpace(model::Engine::Specs arch_specs)
   }
 
   // Calculate total number of combinations from intraline conversions
-  uint64_t intraline_candidates = 1;
+  intraline_candidates = 1;
   if (!variable_intraline_factors_.empty())
   {
     for (const auto& range : intraline_conversion_ranges_)
@@ -1373,7 +1358,7 @@ void Legal::CreateAuthSpace(model::Engine::Specs arch_specs)
   }
 
   // Calculate total number of combinations from packing factors
-  uint64_t packing_candidates = 1;
+  packing_candidates = 1;
   if (!packing_options_per_level_.empty())
   {
     for (const auto& choices : packing_choices_per_level_)
@@ -1388,7 +1373,7 @@ void Legal::CreateAuthSpace(model::Engine::Specs arch_specs)
   }
 
   // Total layout candidates is the product of all three design spaces
-  num_layout_candidates = authblock_candidates * intraline_candidates * packing_candidates;
+  num_layout_candidates = authblock_candidates + intraline_candidates + packing_candidates;
   std::cout << "  Total combined layout candidates: " << num_layout_candidates << std::endl;
   std::cout << "  Variable factors count: " << variable_authblock_factors_.size() << std::endl;
   std::cout << "  Note: Only using divisors of max_factor for each variable factor" << std::endl;

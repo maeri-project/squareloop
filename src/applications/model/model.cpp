@@ -271,9 +271,9 @@ Model::Model(config::CompoundConfig* config,
   bool existing_layout = rootNode.lookup("layout", compound_config_node_layout);
   
   if (existing_layout){
-    std::unordered_map<std::string, std::pair<uint32_t, uint32_t>> externalPortMapping;
+    std::vector<std::pair<std::string, std::pair<uint32_t, uint32_t>>> externalPortMapping;
     for (auto i: arch_specs_.topology.LevelNames())
-        externalPortMapping[i] = {arch_specs_.topology.GetStorageLevel(i)->num_ports.Get(), arch_specs_.topology.GetStorageLevel(i)->num_ports.Get()};
+        externalPortMapping.push_back({i, {arch_specs_.topology.GetStorageLevel(i)->num_ports.Get(), arch_specs_.topology.GetStorageLevel(i)->num_ports.Get()}});
 
     layout_ = layout::ParseAndConstruct(compound_config_node_layout, workload_, externalPortMapping);
     

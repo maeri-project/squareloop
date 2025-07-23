@@ -92,6 +92,10 @@ class LayoutSpace
   std::vector<std::uint32_t> storage_level_line_capacity;
   std::vector<std::string> kept_data_spaces, bypassed_data_spaces;
   
+  uint64_t intraline_candidates;
+  uint64_t packing_candidates;
+  uint64_t authblock_candidates;
+
   LayoutSpace(model::Engine::Specs arch_specs,
               const Mapping& mapping,
               layout::Layouts& layout) :

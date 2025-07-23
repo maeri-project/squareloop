@@ -377,7 +377,7 @@ Mapper::Mapper(config::CompoundConfig* config,
 
   if (existing_crypto){
     crypto_ = crypto::ParseAndConstruct(compound_config_node_crypto);
-    
+
     crypto_->crypto_initialized_ = true;
 
     std::cout << "Crypto Configuration:\n";
@@ -398,25 +398,21 @@ Mapper::Mapper(config::CompoundConfig* config,
   else{
     std::cout << "No Crypto specified" << std::endl;
   }
-  
+
   // layout modeling
   std::cout << "Start Parsering Layout" << std::endl;
-  std::cout << "print out arch_specs_.topology.StorageLevelNames()" << std::endl;
-  for (auto i: arch_specs_.topology.StorageLevelNames()){
-    std::cout << i << std::endl;
-  }
   config::CompoundConfigNode compound_config_node_layout;
   bool existing_layout = rootNode.lookup("layout", compound_config_node_layout);
 
-  std::unordered_map<std::string, std::pair<uint32_t, uint32_t>> externalPortMapping;
+  std::vector<std::pair<std::string, std::pair<uint32_t, uint32_t>>> externalPortMapping;
   for (auto i: arch_specs_.topology.StorageLevelNames()){
-      externalPortMapping[i] = {arch_specs_.topology.GetStorageLevel(i)->num_ports.Get(), arch_specs_.topology.GetStorageLevel(i)->num_ports.Get()};
+      externalPortMapping.push_back({i, {arch_specs_.topology.GetStorageLevel(i)->num_ports.Get(), arch_specs_.topology.GetStorageLevel(i)->num_ports.Get()}});
     std::cout << "Storage Level " << i << " has " << arch_specs_.topology.GetStorageLevel(i)->num_ports.Get() << " ports" << std::endl;
   }
 
   if (existing_layout){
     layout_ = layout::ParseAndConstruct(compound_config_node_layout, workload_, externalPortMapping);
-    
+
     layout_initialized_ = true;
     layout::PrintOverallLayout(layout_);
   }
@@ -426,7 +422,6 @@ Mapper::Mapper(config::CompoundConfig* config,
     layout_ = layout::InitializeDummyLayout(workload_, externalPortMapping);
     layout::PrintOverallLayout(layout_);
   }
-
 }
 
 Mapper::~Mapper()
@@ -440,7 +435,7 @@ Mapper::~Mapper()
   {
     delete sparse_optimizations_;
   }
-  
+
   for (auto& search: search_)
   {
     if (search)
@@ -654,8 +649,11 @@ Mapper::Result Mapper::Run()
   // Select the best mapping from each thread.
   for (unsigned t = 0; t < num_threads_; t++)
   {
+    // Each thread tracks its own best result
     auto& thread_best = threads_.at(t)->GetStats().thread_best;
     global_best_.UpdateIfBetter(thread_best, optimization_metrics_);
+    // std::cout << "Thread " << t << " best layout:" << std::endl;
+    // layout::PrintOverallLayoutConcise(global_best_.layout);
   }
 
   std::cout << std::endl;
@@ -686,11 +684,11 @@ Mapper::Result Mapper::Run()
     // that can be printed out hierarchically.
     model::Engine engine;
     engine.Spec(arch_specs_);
-    
+
     if (layout_initialized_){
       engine.Evaluate(global_best_.mapping, workload_, layout_, sparse_optimizations_, crypto_);
     }else
-      engine.Evaluate(global_best_.mapping, workload_, sparse_optimizations_, crypto_);
+      engine.Evaluate(global_best_.mapping, workload_, global_best_.layout, sparse_optimizations_, crypto_);
 
     stats_str << engine << std::endl;
 
@@ -711,7 +709,7 @@ Mapper::Result Mapper::Run()
         global_best_.stats.algorithmic_computes
                 << " | pJ/Compute = " << std::setw(8)
                 << OUT_FLOAT_FORMAT << PRINTFLOAT_PRECISION << global_best_.stats.energy /
-        global_best_.stats.actual_computes 
+        global_best_.stats.actual_computes
                 << " | Cycles = " << global_best_.stats.cycles << std::endl;
     }
     else
@@ -734,6 +732,7 @@ Mapper::Result Mapper::Run()
 
     // Print the mapping in Tenssella input format.
     global_best_.mapping.PrintTenssella(tensella_str);
+    layout::PrintOverallLayoutConcise(global_best_.layout);
   }
   else
   {
@@ -824,7 +823,7 @@ Mapper::Result Mapper::Run()
     global_best_.mapping.FormatAsYaml(yaml_out, arch_specs_.topology.StorageLevelNames());
     yaml_out << YAML::EndSeq;
     yaml_out << YAML::EndMap;
-    
+
     // Dump the global best layout to YAML file
     std::string layout_filename = out_prefix_ + ".layout.yaml";
     layout::DumpLayoutToYAML(global_best_.layout, layout_filename);

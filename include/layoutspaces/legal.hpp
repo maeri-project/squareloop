@@ -108,7 +108,7 @@ class Legal : public LayoutSpace
   std::vector<Status> ConstructLayout(ID layout_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure = true) override;
 
   // Construct a specific layout using separate IDs for all three design spaces.
-  std::vector<Status> ConstructLayout(uint64_t layout_id, uint64_t layout_auth_id, uint64_t layout_packing_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure = true);
+  std::vector<Status> ConstructLayout(uint64_t layout_id, uint64_t layout_packing_id, uint64_t layout_auth_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure = true);
 
  protected:
 
