@@ -680,30 +680,23 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
   /*
     Step 1: Decode the design space choices (Updated for both single and multi-rank splitting)
   */
-  // Calculate total number of splitting choices per level (single-rank + multi-rank + conditional "no splitting")
-  std::vector<uint64_t> total_splitting_choices_per_level;
+  // Use the pre-computed splitting choices per level from CreateIntralineFactorSpace
+  // This avoids division by zero and handles impossible levels correctly
   std::vector<bool> level_allows_no_splitting;
   
-  size_t max_levels = std::max({splitting_options_per_level_.size(), multi_rank_splitting_options_per_level_.size(), cross_dataspace_multi_rank_splitting_options_per_level_.size()});
-  for (size_t lvl = 0; lvl < max_levels; lvl++)
+  for (size_t lvl = 0; lvl < splitting_choices_per_level_.size(); lvl++)
   {
     uint64_t single_rank_options = (lvl < splitting_options_per_level_.size()) ? splitting_options_per_level_[lvl].size() : 0;
     uint64_t multi_rank_options = (lvl < multi_rank_splitting_options_per_level_.size()) ? multi_rank_splitting_options_per_level_[lvl].size() : 0;
     uint64_t cross_dataspace_multi_rank_options = (lvl < cross_dataspace_multi_rank_splitting_options_per_level_.size()) ? cross_dataspace_multi_rank_splitting_options_per_level_[lvl].size() : 0;
     
-    // Only add +1 for "no splitting" option if splitting is optional for this level
-    uint64_t no_splitting_options = 0;
     bool allows_no_splitting = false;
     if (lvl < level_requires_splitting_.size() && !level_requires_splitting_[lvl]) {
-      no_splitting_options = 1; // "no splitting" is allowed
       allows_no_splitting = true;
     }
     level_allows_no_splitting.push_back(allows_no_splitting);
     
-    uint64_t total_options = no_splitting_options + single_rank_options + multi_rank_options + cross_dataspace_multi_rank_options;
-    total_splitting_choices_per_level.push_back(total_options);
-    
-    // Validate that levels requiring splitting have at least one splitting option
+    // Check for impossible levels (require splitting but have no actual options)
     if (lvl < level_requires_splitting_.size() && level_requires_splitting_[lvl] && (single_rank_options + multi_rank_options + cross_dataspace_multi_rank_options) == 0)
     {
       Status error_status;
@@ -714,23 +707,23 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
   }
 
   // Decode SplittingSpace choices using layout_splitting_id
-  std::vector<int> splitting_choice_type_per_level(total_splitting_choices_per_level.size(), -1); // -1: no splitting, 0: single-rank, 1: multi-rank, 2: cross-dataspace
-  std::vector<uint32_t> splitting_option_index_per_level(total_splitting_choices_per_level.size(), 0);
+  std::vector<int> splitting_choice_type_per_level(splitting_choices_per_level_.size(), -1); // -1: no splitting, 0: single-rank, 1: multi-rank, 2: cross-dataspace
+  std::vector<uint32_t> splitting_option_index_per_level(splitting_choices_per_level_.size(), 0);
   std::uint64_t remaining_splitting_id = layout_splitting_id;
 
 #ifdef DEBUG_CONSTRUCTION_LAYOUT
   std::cout << "Decoding splitting choices:" << std::endl;
-  std::cout << "  total_splitting_choices_per_level.size(): " << total_splitting_choices_per_level.size() << std::endl;
-  for (size_t i = 0; i < total_splitting_choices_per_level.size(); i++) {
-    std::cout << "  Level " << i << ": " << total_splitting_choices_per_level[i] << " choices available" << std::endl;
+  std::cout << "  splitting_choices_per_level_.size(): " << splitting_choices_per_level_.size() << std::endl;
+  for (size_t i = 0; i < splitting_choices_per_level_.size(); i++) {
+    std::cout << "  Level " << i << ": " << splitting_choices_per_level_[i] << " choices available" << std::endl;
   }
   std::cout << "  layout_splitting_id: " << layout_splitting_id << std::endl;
 #endif
 
-  for (size_t lvl = 0; lvl < total_splitting_choices_per_level.size(); lvl++)
+  for (size_t lvl = 0; lvl < splitting_choices_per_level_.size(); lvl++)
   {
-    uint32_t choice_index = remaining_splitting_id % total_splitting_choices_per_level[lvl];
-    remaining_splitting_id /= total_splitting_choices_per_level[lvl];
+    uint32_t choice_index = remaining_splitting_id % splitting_choices_per_level_[lvl];
+    remaining_splitting_id /= splitting_choices_per_level_[lvl];
 
 #ifdef DEBUG_CONSTRUCTION_LAYOUT
     std::cout << "  Level " << lvl << ": raw choice_index=" << choice_index 
@@ -757,6 +750,15 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
       uint64_t single_rank_options = (lvl < splitting_options_per_level_.size()) ? splitting_options_per_level_[lvl].size() : 0;
       uint64_t multi_rank_options = (lvl < multi_rank_splitting_options_per_level_.size()) ? multi_rank_splitting_options_per_level_[lvl].size() : 0;
       uint64_t cross_dataspace_multi_rank_options = (lvl < cross_dataspace_multi_rank_splitting_options_per_level_.size()) ? cross_dataspace_multi_rank_splitting_options_per_level_[lvl].size() : 0;
+
+      // Check for impossible level: requires splitting but has no actual options
+      if (!level_allows_no_splitting[lvl] && (single_rank_options + multi_rank_options + cross_dataspace_multi_rank_options) == 0)
+      {
+        Status error_status;
+        error_status.success = false;
+        error_status.fail_reason = "Level " + std::to_string(lvl) + " requires splitting but no splitting options are available (impossible configuration reached during layout construction)";
+        return {error_status};
+      }
 
 #ifdef DEBUG_CONSTRUCTION_LAYOUT
       std::cout << "    adjusted_choice_index=" << adjusted_choice_index 
@@ -928,7 +930,7 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
   std::cout << "[SplittingSpace] Applying single-rank and multi-rank splitting..." << std::endl;
 #endif
 
-  for (size_t level = 0; level < total_splitting_choices_per_level.size(); level++)
+  for (size_t level = 0; level < splitting_choices_per_level_.size(); level++)
   {
     int choice_type = splitting_choice_type_per_level[level];
     uint32_t choice_index = splitting_option_index_per_level[level];
@@ -2344,11 +2346,23 @@ void Legal::CreateIntralineFactorSpace(model::Engine::Specs arch_specs, const Ma
         std::cout << "    Level " << level << ": 'no splitting' option removed (splitting required)" << std::endl;
       }
       
-      splitting_choices_per_level_[level] = no_splitting_options + single_rank_options + multi_rank_options + cross_dataspace_multi_rank_options;
-      std::cout << "    Level " << level << ": total choices = " << no_splitting_options << " (no-split) + " 
-                << single_rank_options << " (single-rank) + " << multi_rank_options << " (multi-rank) + "
-                << cross_dataspace_multi_rank_options << " (cross-dataspace) = " 
-                << splitting_choices_per_level_[level] << std::endl;
+      uint64_t total_choices = no_splitting_options + single_rank_options + multi_rank_options + cross_dataspace_multi_rank_options;
+      
+      // For impossible levels (require splitting but have no options), store 1 to avoid division by zero in ConstructLayout
+      // The actual impossibility will be caught during layout construction
+      if (total_choices == 0) {
+        splitting_choices_per_level_[level] = 1;
+        std::cout << "    Level " << level << ": total choices = " << no_splitting_options << " (no-split) + " 
+                  << single_rank_options << " (single-rank) + " << multi_rank_options << " (multi-rank) + "
+                  << cross_dataspace_multi_rank_options << " (cross-dataspace) = " 
+                  << total_choices << " → adjusted to 1 (impossible level)" << std::endl;
+      } else {
+        splitting_choices_per_level_[level] = total_choices;
+        std::cout << "    Level " << level << ": total choices = " << no_splitting_options << " (no-split) + " 
+                  << single_rank_options << " (single-rank) + " << multi_rank_options << " (multi-rank) + "
+                  << cross_dataspace_multi_rank_options << " (cross-dataspace) = " 
+                  << splitting_choices_per_level_[level] << std::endl;
+      }
     }
 
     std::cout << "  Total splitting options across all levels: ";
@@ -2366,21 +2380,9 @@ void Legal::CreateIntralineFactorSpace(model::Engine::Specs arch_specs, const Ma
     }
     
     // Calculate total number of splitting candidates correctly (product across levels)
-    // Treat levels with 0 choices as having 1 choice to avoid making the entire product 0
     uint64_t level_based_splitting_candidates = 1;
-    bool has_impossible_level = false;
-    for (size_t lvl = 0; lvl < splitting_choices_per_level_.size(); lvl++) {
-      uint64_t choices = splitting_choices_per_level_[lvl];
-      if (choices == 0) {
-        has_impossible_level = true;
-        std::cout << "  Warning: Level " << lvl << " has 0 splitting choices (impossible configuration)" << std::endl;
-      }
-      // Use max(1, choices) to avoid multiplying by 0
-      level_based_splitting_candidates *= std::max(1UL, choices);
-    }
-    
-    if (has_impossible_level) {
-      std::cout << "  Note: Some levels have impossible configurations, but design space includes feasible combinations from other levels" << std::endl;
+    for (const auto& choices : splitting_choices_per_level_) {
+      level_based_splitting_candidates *= choices;
     }
 
     splitting_candidates = level_based_splitting_candidates;
