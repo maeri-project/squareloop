@@ -279,6 +279,201 @@ bool Legal::TestCrossDataspaceMultiRankSplittingWithCandidates(unsigned lvl, con
   return try_combinations(0, current_factors, accumulated_reductions_per_dataspace);
 }
 
+// Helper function to test multi-rank packing using pre-computed candidate factors
+bool Legal::TestMultiRankPackingWithCandidates(unsigned lvl, unsigned ds_idx, const std::vector<std::string>& rank_combination,
+                                               const std::map<std::string, std::vector<uint32_t>>& candidate_factors_per_rank,
+                                               const std::vector<std::vector<std::uint64_t>>& intraline_size_per_ds,
+                                               uint64_t line_capacity, MultiRankPackingOption& option)
+{
+  auto& interline_nest = layout_.at(lvl).interline.at(ds_idx);
+  
+  // Initialize the option
+  option.dataspace = ds_idx;
+  option.ranks = rank_combination;
+  option.original_interline_factors.clear();
+  option.packing_factors.clear();
+  option.total_packing = 1;
+  
+  // Get original factors and candidate packing factors for each rank in the combination
+  std::vector<std::vector<uint32_t>> candidate_factors_list;
+  for (const auto& rank : rank_combination) {
+    uint32_t original_factor = (interline_nest.factors.find(rank) != interline_nest.factors.end()
+                               ? interline_nest.factors.at(rank) : 1);
+    option.original_interline_factors[rank] = original_factor;
+    
+    // Get candidate factors for this rank
+    auto candidates_it = candidate_factors_per_rank.find(rank);
+    if (candidates_it == candidate_factors_per_rank.end()) {
+      return false; // No candidate factors for this rank
+    }
+    candidate_factors_list.push_back(candidates_it->second);
+  }
+  
+  // Calculate current total intraline size across all dataspaces
+  uint64_t current_total_intraline_size = 0;
+  for (const auto& dataspace_size : intraline_size_per_ds[lvl]) {
+    current_total_intraline_size += dataspace_size;
+  }
+  
+  // Generate all combinations of candidate factors using nested loops
+  std::function<bool(size_t, std::vector<uint32_t>&, uint64_t)> try_combinations = 
+    [&](size_t rank_idx, std::vector<uint32_t>& current_factors, uint64_t accumulated_packing) -> bool {
+    
+    if (rank_idx == rank_combination.size()) {
+      // All ranks have been assigned factors, test if this combination works
+      // Calculate the new total intraline size after applying packing to this dataspace
+      uint64_t new_total_intraline_size = 0;
+      
+      for (unsigned ds_idx_check = 0; ds_idx_check < intraline_size_per_ds[lvl].size(); ds_idx_check++) {
+        if (ds_idx_check == ds_idx) {
+          new_total_intraline_size += intraline_size_per_ds[lvl][ds_idx_check] * accumulated_packing;
+        } else {
+          new_total_intraline_size += intraline_size_per_ds[lvl][ds_idx_check];
+        }
+      }
+      
+      if (new_total_intraline_size <= line_capacity) {
+        // This combination works - store it in the option
+        option.total_packing = accumulated_packing;
+        for (size_t i = 0; i < rank_combination.size(); i++) {
+          option.packing_factors[rank_combination[i]] = current_factors[i];
+        }
+        return true;
+      }
+      return false;
+    }
+    
+    // Try each candidate factor for the current rank
+    const auto& rank = rank_combination[rank_idx];
+    const auto& factors = candidate_factors_list[rank_idx];
+    uint32_t original_factor = option.original_interline_factors.at(rank);
+    
+    for (uint32_t factor : factors) {
+      // Check if this factor is valid (i.e., divides the original factor)
+      if (original_factor % factor == 0) {
+        current_factors[rank_idx] = factor;
+        uint64_t new_accumulated_packing = accumulated_packing * factor;
+        
+        // Recursive call for next rank
+        if (try_combinations(rank_idx + 1, current_factors, new_accumulated_packing)) {
+          return true; // Found a valid combination
+        }
+      }
+    }
+    
+    return false; // No valid combination found with current prefix
+  };
+  
+  // Start the recursive combination testing
+  std::vector<uint32_t> current_factors(rank_combination.size());
+  return try_combinations(0, current_factors, 1);
+}
+
+// Helper function to test cross-dataspace multi-rank packing using pre-computed candidate factors
+bool Legal::TestCrossDataspaceMultiRankPackingWithCandidates(unsigned lvl, const std::vector<std::string>& rank_combination,
+                                                             const std::map<std::string, std::vector<uint32_t>>& candidate_factors_per_rank,
+                                                             const std::map<std::string, std::pair<unsigned, uint32_t>>& rank_to_dataspace_and_original_factor,
+                                                             const std::vector<std::vector<std::uint64_t>>& intraline_size_per_ds,
+                                                             uint64_t line_capacity, CrossDataspaceMultiRankPackingOption& option)
+{
+  // Initialize the option
+  option.ranks = rank_combination;
+  option.original_interline_factors.clear();
+  option.packing_factors.clear();
+  option.rank_to_dataspace.clear();
+  option.total_packing = 1;
+  
+  // Get original factors and candidate packing factors for each rank in the combination
+  std::vector<std::vector<uint32_t>> candidate_factors_list;
+  for (const auto& unique_rank : rank_combination) {
+    auto dataspace_and_factor_it = rank_to_dataspace_and_original_factor.find(unique_rank);
+    if (dataspace_and_factor_it == rank_to_dataspace_and_original_factor.end()) {
+      return false; // Rank not found
+    }
+    
+    unsigned dataspace_idx = dataspace_and_factor_it->second.first;
+    uint32_t original_factor = dataspace_and_factor_it->second.second;
+    
+    option.original_interline_factors[unique_rank] = original_factor;
+    option.rank_to_dataspace[unique_rank] = dataspace_idx;
+    
+    // Get candidate factors for this rank
+    auto candidates_it = candidate_factors_per_rank.find(unique_rank);
+    if (candidates_it == candidate_factors_per_rank.end()) {
+      return false; // No candidate factors for this rank
+    }
+    candidate_factors_list.push_back(candidates_it->second);
+  }
+  
+  // Calculate current total intraline size across all dataspaces
+  uint64_t current_total_intraline_size = 0;
+  for (const auto& dataspace_size : intraline_size_per_ds[lvl]) {
+    current_total_intraline_size += dataspace_size;
+  }
+  
+  // Generate all combinations of candidate factors using nested loops
+  std::function<bool(size_t, std::vector<uint32_t>&, std::map<unsigned, uint64_t>&)> try_combinations = 
+    [&](size_t rank_idx, std::vector<uint32_t>& current_factors, std::map<unsigned, uint64_t>& accumulated_packing_per_dataspace) -> bool {
+    
+    if (rank_idx == rank_combination.size()) {
+      // All ranks have been assigned factors, test if this combination works
+      // Calculate the new total intraline size after applying packing to all affected dataspaces
+      uint64_t new_total_intraline_size = 0;
+      
+      for (unsigned ds_idx = 0; ds_idx < intraline_size_per_ds[lvl].size(); ds_idx++) {
+        uint64_t dataspace_packing = accumulated_packing_per_dataspace.find(ds_idx) != accumulated_packing_per_dataspace.end() 
+                                    ? accumulated_packing_per_dataspace[ds_idx] : 1;
+        new_total_intraline_size += intraline_size_per_ds[lvl][ds_idx] * dataspace_packing;
+      }
+      
+      if (new_total_intraline_size <= line_capacity) {
+        // This combination works - store it in the option
+        uint64_t total_packing = 1;
+        for (size_t i = 0; i < rank_combination.size(); i++) {
+          option.packing_factors[rank_combination[i]] = current_factors[i];
+          total_packing *= current_factors[i];
+        }
+        option.total_packing = total_packing;
+        return true;
+      }
+      return false;
+    }
+    
+    // Try each candidate factor for the current rank
+    const auto& unique_rank = rank_combination[rank_idx];
+    const auto& factors = candidate_factors_list[rank_idx];
+    uint32_t original_factor = option.original_interline_factors.at(unique_rank);
+    unsigned dataspace_idx = option.rank_to_dataspace.at(unique_rank);
+    
+    for (uint32_t factor : factors) {
+      // Check if this factor is valid (i.e., divides the original factor)
+      if (original_factor % factor == 0) {
+        current_factors[rank_idx] = factor;
+        
+        // Update accumulated packing for this dataspace
+        std::map<unsigned, uint64_t> new_accumulated_packing = accumulated_packing_per_dataspace;
+        if (new_accumulated_packing.find(dataspace_idx) == new_accumulated_packing.end()) {
+          new_accumulated_packing[dataspace_idx] = factor;
+        } else {
+          new_accumulated_packing[dataspace_idx] *= factor;
+        }
+        
+        // Recursive call for next rank
+        if (try_combinations(rank_idx + 1, current_factors, new_accumulated_packing)) {
+          return true; // Found a valid combination
+        }
+      }
+    }
+    
+    return false; // No valid combination found with current prefix
+  };
+  
+  // Start the recursive combination testing
+  std::vector<uint32_t> current_factors(rank_combination.size());
+  std::map<unsigned, uint64_t> accumulated_packing_per_dataspace;
+  return try_combinations(0, current_factors, accumulated_packing_per_dataspace);
+}
+
 //------------------------------------------//
 //        Legal LayoutSpace                 //
 //------------------------------------------//
@@ -616,14 +811,60 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
   }
 
   // Decode PackingSpace choices using layout_packing_id (interline-to-intraline packing)
-  std::vector<uint32_t> packing_choice_per_level(packing_options_per_level_.size());
+  std::vector<int> packing_choice_type_per_level(packing_choices_per_level_.size(), -1); // -1: no packing, 0: single-rank, 1: multi-rank, 2: cross-dataspace
+  std::vector<uint32_t> packing_option_index_per_level(packing_choices_per_level_.size(), 0);
   std::uint64_t remaining_packing_id = layout_packing_id;
 
-  for (size_t level = 0; level < packing_options_per_level_.size(); level++)
+  for (size_t level = 0; level < packing_choices_per_level_.size(); level++)
   {
     uint32_t choice_index = remaining_packing_id % packing_choices_per_level_[level];
-    packing_choice_per_level[level] = choice_index;
     remaining_packing_id /= packing_choices_per_level_[level];
+
+    // Choice 0 means "no packing" for this level
+    if (choice_index == 0)
+    {
+      packing_choice_type_per_level[level] = -1;
+    }
+    else
+    {
+      // Adjust choice_index (subtract 1 for "no packing" option)
+      uint32_t adjusted_choice_index = choice_index - 1;
+      
+      uint64_t single_rank_options = (level < packing_options_per_level_.size()) ? packing_options_per_level_[level].size() : 0;
+      uint64_t multi_rank_options = (level < multi_rank_packing_options_per_level_.size()) ? multi_rank_packing_options_per_level_[level].size() : 0;
+      uint64_t cross_dataspace_multi_rank_options = (level < cross_dataspace_multi_rank_packing_options_per_level_.size()) ? cross_dataspace_multi_rank_packing_options_per_level_[level].size() : 0;
+
+      if (adjusted_choice_index < single_rank_options)
+      {
+        // Single-rank packing
+        packing_choice_type_per_level[level] = 0;
+        packing_option_index_per_level[level] = adjusted_choice_index;
+      }
+      else if (adjusted_choice_index < single_rank_options + multi_rank_options)
+      {
+        // Multi-rank packing
+        packing_choice_type_per_level[level] = 1;
+        packing_option_index_per_level[level] = adjusted_choice_index - single_rank_options;
+      }
+      else if (adjusted_choice_index < single_rank_options + multi_rank_options + cross_dataspace_multi_rank_options)
+      {
+        // Cross-dataspace multi-rank packing
+        packing_choice_type_per_level[level] = 2;
+        packing_option_index_per_level[level] = adjusted_choice_index - single_rank_options - multi_rank_options;
+      }
+      else
+      {
+        // Invalid choice index
+        Status error_status;
+        error_status.success = false;
+        error_status.fail_reason = "Invalid packing choice index " + std::to_string(adjusted_choice_index) + 
+                                  " for level " + std::to_string(level) + 
+                                  ". Available options: single=" + std::to_string(single_rank_options) + 
+                                  ", multi=" + std::to_string(multi_rank_options) + 
+                                  ", cross=" + std::to_string(cross_dataspace_multi_rank_options);
+        return {error_status};
+      }
+    }
   }
 
   std::vector<uint32_t> authblock_choices(variable_authblock_factors_.size());
@@ -658,10 +899,19 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
   }
   std::cout << "]" << std::endl;
   std::cout << "  PackingSpace (layout_packing_id): " << layout_packing_id << ", per-level choices: [";
-  for (size_t level = 0; level < packing_choice_per_level.size(); level++)
+  for (size_t level = 0; level < packing_choice_type_per_level.size(); level++)
   {
-    std::cout << "L" << level << ":" << packing_choice_per_level[level];
-    if (level < packing_choice_per_level.size() - 1) std::cout << ", ";
+    int choice_type = packing_choice_type_per_level[level];
+    if (choice_type == -1) {
+      std::cout << "no-pack";
+    } else if (choice_type == 0) {
+      std::cout << "single-rank:" << packing_option_index_per_level[level];
+    } else if (choice_type == 1) {
+      std::cout << "multi-rank:" << packing_option_index_per_level[level];
+    } else if (choice_type == 2) {
+      std::cout << "cross-dataspace:" << packing_option_index_per_level[level];
+    }
+    if (level < packing_choice_type_per_level.size() - 1) std::cout << ", ";
   }
   std::cout << "]" << std::endl;
   std::cout << "  AuthSpace (layout_auth_id): " << layout_auth_id << ", choices: [";
@@ -922,17 +1172,18 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
     }
   }
 
-  // Apply PackingSpace choices (one rank per storage level)
+  // Apply PackingSpace choices (single-rank, multi-rank, and cross-dataspace packing)
 #ifdef DEBUG_CONSTRUCTION_LAYOUT
-  std::cout << "[PackingSpace] Applying single-rank-per-level packing..." << std::endl;
+  std::cout << "[PackingSpace] Applying single-rank, multi-rank, and cross-dataspace packing..." << std::endl;
 #endif
 
-  for (size_t level = 0; level < packing_choice_per_level.size(); level++)
+  for (size_t level = 0; level < packing_choice_type_per_level.size(); level++)
   {
-    uint32_t choice_index = packing_choice_per_level[level];
+    int choice_type = packing_choice_type_per_level[level];
+    uint32_t choice_index = packing_option_index_per_level[level];
 
-    // Choice 0 means "no packing" for this level
-    if (choice_index == 0)
+    // Choice type -1 means "no packing" for this level
+    if (choice_type == -1)
     {
 #ifdef DEBUG_CONSTRUCTION_LAYOUT
       std::cout << "[PackingSpace] Storage Level " << level << ": No packing applied" << std::endl;
@@ -940,17 +1191,19 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
       continue;
     }
 
-    // Choice > 0 means apply the corresponding packing option
-    if (choice_index > packing_options_per_level_[level].size())
+    // Apply the corresponding packing option based on choice type
+    if (choice_type == 0) // Single-rank packing
     {
-      Status error_status;
-      error_status.success = false;
-      error_status.fail_reason = "Invalid packing choice " + std::to_string(choice_index) + " for level " + std::to_string(level);
-      return {error_status};
-    }
+      if (level >= packing_options_per_level_.size() || choice_index >= packing_options_per_level_[level].size())
+      {
+        Status error_status;
+        error_status.success = false;
+        error_status.fail_reason = "Invalid single-rank packing choice " + std::to_string(choice_index) + " for level " + std::to_string(level);
+        return {error_status};
+      }
 
-    // Get the selected packing option (subtract 1 since choice 0 is "no packing")
-    const auto& packing_option = packing_options_per_level_[level][choice_index - 1];
+      // Get the selected packing option
+      const auto& packing_option = packing_options_per_level_[level][choice_index];
 
     unsigned ds_idx = packing_option.dataspace;
     std::string rank = packing_option.rank;
@@ -1008,8 +1261,164 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
               << " (multiplied by " << packing_factor << ")" << std::endl;
 #endif
 
-    intraline_nest.factors[rank] = new_intraline_factor;
-    interline_nest.factors[rank] = new_interline_factor;
+      intraline_nest.factors[rank] = new_intraline_factor;
+      interline_nest.factors[rank] = new_interline_factor;
+    }
+    else if (choice_type == 1) // Multi-rank packing
+    {
+      if (level >= multi_rank_packing_options_per_level_.size() || choice_index >= multi_rank_packing_options_per_level_[level].size())
+      {
+        Status error_status;
+        error_status.success = false;
+        error_status.fail_reason = "Invalid multi-rank packing choice " + std::to_string(choice_index) + " for level " + std::to_string(level);
+        return {error_status};
+      }
+
+      // Get the selected multi-rank packing option
+      const auto& multi_option = multi_rank_packing_options_per_level_[level][choice_index];
+
+      // Apply the multi-rank packing
+      for (const auto& rank : multi_option.ranks)
+      {
+        uint32_t packing_factor = multi_option.packing_factors.at(rank);
+        unsigned dataspace_idx = multi_option.dataspace;
+
+        // Get references to both nests for the specific dataspace
+        auto& intraline_nest = layout_[level].intraline[dataspace_idx];
+        auto& interline_nest = layout_[level].interline[dataspace_idx];
+
+        // Check if rank exists in both nests
+        auto intra_rank_it = std::find(intraline_nest.ranks.begin(), intraline_nest.ranks.end(), rank);
+        auto inter_rank_it = std::find(interline_nest.ranks.begin(), interline_nest.ranks.end(), rank);
+
+        if (intra_rank_it == intraline_nest.ranks.end() || inter_rank_it == interline_nest.ranks.end())
+        {
+          Status error_status;
+          error_status.success = false;
+          error_status.fail_reason = "Rank " + rank + " not found in intraline or interline nest for level " + std::to_string(level) + ", dataspace " + std::to_string(dataspace_idx);
+          return {error_status};
+        }
+
+        // Get current factors from the layout
+        uint32_t current_intraline_factor = (intraline_nest.factors.find(rank) != intraline_nest.factors.end()
+                                            ? intraline_nest.factors.at(rank) : 1);
+        uint32_t current_interline_factor = (interline_nest.factors.find(rank) != interline_nest.factors.end()
+                                            ? interline_nest.factors.at(rank) : 1);
+
+        // Validate that the packing factor divides the current interline factor
+        if (current_interline_factor % packing_factor != 0)
+        {
+          Status error_status;
+          error_status.success = false;
+          error_status.fail_reason = "Multi-rank packing factor " + std::to_string(packing_factor) + 
+                                    " does not divide current interline factor " + std::to_string(current_interline_factor) + 
+                                    " for rank " + rank + " at level " + std::to_string(level) + ", dataspace " + std::to_string(dataspace_idx);
+          return {error_status};
+        }
+
+        // Pack the factor: move packing_factor from interline to intraline
+        uint32_t new_interline_factor = current_interline_factor / packing_factor;
+        uint32_t new_intraline_factor = current_intraline_factor * packing_factor;
+
+#ifdef DEBUG_CONSTRUCTION_LAYOUT
+        std::cout << "[PackingSpace] Storage Level " << level << ", DataSpace " << dataspace_idx
+                  << ", Rank '" << rank << "': Multi-rank packing factor " << packing_factor
+                  << " from interline to intraline" << std::endl;
+        std::cout << "  - interline factor: " << current_interline_factor << " -> " << new_interline_factor
+                  << " (divided by " << packing_factor << ")" << std::endl;
+        std::cout << "  - intraline factor: " << current_intraline_factor << " -> " << new_intraline_factor
+                  << " (multiplied by " << packing_factor << ")" << std::endl;
+#endif
+
+        // Apply the changes
+        intraline_nest.factors[rank] = new_intraline_factor;
+        interline_nest.factors[rank] = new_interline_factor;
+      }
+    }
+    else if (choice_type == 2) // Cross-dataspace multi-rank packing
+    {
+      if (level >= cross_dataspace_multi_rank_packing_options_per_level_.size() || choice_index >= cross_dataspace_multi_rank_packing_options_per_level_[level].size())
+      {
+        Status error_status;
+        error_status.success = false;
+        error_status.fail_reason = "Invalid cross-dataspace multi-rank packing choice " + std::to_string(choice_index) + " for level " + std::to_string(level);
+        return {error_status};
+      }
+
+      // Get the selected cross-dataspace multi-rank packing option
+      const auto& cross_multi_option = cross_dataspace_multi_rank_packing_options_per_level_[level][choice_index];
+
+      // Apply the cross-dataspace multi-rank packing
+      for (const auto& unique_rank : cross_multi_option.ranks)
+      {
+        uint32_t packing_factor = cross_multi_option.packing_factors.at(unique_rank);
+        unsigned dataspace_idx = cross_multi_option.rank_to_dataspace.at(unique_rank);
+        
+        // Extract the actual rank name (remove dataspace prefix)
+        std::string actual_rank = unique_rank.substr(unique_rank.find('_') + 1);
+
+#ifdef DEBUG_CONSTRUCTION_LAYOUT
+        std::cout << "[PackingSpace] Processing cross-dataspace rank: " << unique_rank 
+                  << " -> actual_rank: " << actual_rank << ", dataspace: " << dataspace_idx 
+                  << ", packing_factor: " << packing_factor << std::endl;
+#endif
+
+        // Get references to both nests for the specific dataspace
+        auto& intraline_nest = layout_[level].intraline[dataspace_idx];
+        auto& interline_nest = layout_[level].interline[dataspace_idx];
+
+        // Check if rank exists in both nests
+        auto intra_rank_it = std::find(intraline_nest.ranks.begin(), intraline_nest.ranks.end(), actual_rank);
+        auto inter_rank_it = std::find(interline_nest.ranks.begin(), interline_nest.ranks.end(), actual_rank);
+
+        if (intra_rank_it == intraline_nest.ranks.end() || inter_rank_it == interline_nest.ranks.end())
+        {
+          Status error_status;
+          error_status.success = false;
+          error_status.fail_reason = "Rank " + actual_rank + " not found in intraline or interline nest for level " + std::to_string(level) + ", dataspace " + std::to_string(dataspace_idx) + ". Available intraline ranks: " + [&](){
+            std::string ranks_str = "";
+            for (const auto& r : intraline_nest.ranks) ranks_str += r + " ";
+            return ranks_str;
+          }();
+          return {error_status};
+        }
+
+        // Get current factors from the layout
+        uint32_t current_intraline_factor = (intraline_nest.factors.find(actual_rank) != intraline_nest.factors.end()
+                                            ? intraline_nest.factors.at(actual_rank) : 1);
+        uint32_t current_interline_factor = (interline_nest.factors.find(actual_rank) != interline_nest.factors.end()
+                                            ? interline_nest.factors.at(actual_rank) : 1);
+
+        // Validate that the packing factor divides the current interline factor
+        if (current_interline_factor % packing_factor != 0)
+        {
+          Status error_status;
+          error_status.success = false;
+          error_status.fail_reason = "Cross-dataspace packing factor " + std::to_string(packing_factor) + 
+                                    " does not divide current interline factor " + std::to_string(current_interline_factor) + 
+                                    " for rank " + actual_rank + " at level " + std::to_string(level) + ", dataspace " + std::to_string(dataspace_idx);
+          return {error_status};
+        }
+
+        // Pack the factor: move packing_factor from interline to intraline
+        uint32_t new_interline_factor = current_interline_factor / packing_factor;
+        uint32_t new_intraline_factor = current_intraline_factor * packing_factor;
+
+#ifdef DEBUG_CONSTRUCTION_LAYOUT
+        std::cout << "[PackingSpace] Storage Level " << level << ", DataSpace " << dataspace_idx
+                  << ", Rank '" << actual_rank << "': Cross-dataspace multi-rank packing factor " << packing_factor
+                  << " from interline to intraline" << std::endl;
+        std::cout << "  - interline factor: " << current_interline_factor << " -> " << new_interline_factor
+                  << " (divided by " << packing_factor << ")" << std::endl;
+        std::cout << "  - intraline factor: " << current_intraline_factor << " -> " << new_intraline_factor
+                  << " (multiplied by " << packing_factor << ")" << std::endl;
+#endif
+
+        // Apply the changes
+        intraline_nest.factors[actual_rank] = new_intraline_factor;
+        interline_nest.factors[actual_rank] = new_interline_factor;
+      }
+    }
   }
 
 
@@ -1758,6 +2167,152 @@ void Legal::CreateIntralineFactorSpace(model::Engine::Specs arch_specs, const Ma
               }
             }
           }
+
+          // Multi-rank packing analysis within each dataspace
+          std::cout << "    DataSpace " << ds_idx << " Multi-rank packing analysis:" << std::endl;
+          
+          // Collect all ranks and their candidate factors from this dataspace
+          std::map<std::string, std::vector<uint32_t>> all_candidate_factors_per_rank;
+          for (const auto& rank : inter_nest.ranks) {
+            uint32_t current_interline_factor = (inter_nest.factors.find(rank) != inter_nest.factors.end()
+                                                ? inter_nest.factors.at(rank) : 1);
+            
+            if (current_interline_factor > 1) {
+              std::vector<uint32_t> divisors = FindDivisors(current_interline_factor);
+              std::vector<uint32_t> valid_factors;
+              
+              for (uint32_t divisor : divisors) {
+                if (divisor > 1) {
+                  valid_factors.push_back(divisor);
+                }
+              }
+              
+              if (!valid_factors.empty()) {
+                all_candidate_factors_per_rank[rank] = valid_factors;
+              }
+            }
+          }
+          
+          if (all_candidate_factors_per_rank.size() >= 2) {
+            std::vector<std::string> all_ranks;
+            for (const auto& entry : all_candidate_factors_per_rank) {
+              all_ranks.push_back(entry.first);
+            }
+            
+            std::vector<std::vector<std::string>> rank_combinations = GenerateRankCombinations(all_ranks, 4); // Limit to max 4 ranks
+            
+            // Ensure we have space for multi-rank options at this storage level
+            while (multi_rank_packing_options_per_level_.size() <= lvl) {
+              multi_rank_packing_options_per_level_.push_back(std::vector<MultiRankPackingOption>());
+            }
+            
+            for (const auto& rank_combo : rank_combinations) {
+              MultiRankPackingOption multi_option;
+              if (TestMultiRankPackingWithCandidates(lvl, ds_idx, rank_combo, all_candidate_factors_per_rank, 
+                                                   intraline_size_per_ds, storage_level_line_capacity[lvl], multi_option)) {
+                multi_rank_packing_options_per_level_[lvl].push_back(multi_option);
+                
+                std::cout << "      Valid multi-rank packing option: Ranks [";
+                for (size_t i = 0; i < rank_combo.size(); i++) {
+                  std::cout << rank_combo[i];
+                  if (i < rank_combo.size() - 1) std::cout << ", ";
+                }
+                std::cout << "], total_packing=" << multi_option.total_packing << std::endl;
+                
+                // Print individual packing factors
+                for (const auto& rank : rank_combo) {
+                  std::cout << "        " << rank << ": " << multi_option.original_interline_factors.at(rank)
+                            << " -> " << (multi_option.original_interline_factors.at(rank) / multi_option.packing_factors.at(rank))
+                            << " (pack by " << multi_option.packing_factors.at(rank) << ")" << std::endl;
+                }
+              }
+            }
+          } else {
+            std::cout << "      Insufficient ranks for multi-rank combinations in this dataspace" << std::endl;
+          }
+        }
+
+        // Cross-dataspace multi-rank packing analysis
+        // Generate combinations of ranks across ALL dataspaces at this level
+        std::cout << "    Cross-dataspace multi-rank packing analysis:" << std::endl;
+        
+        // First, collect all ranks and their candidate factors from all dataspaces
+        std::map<std::string, std::vector<uint32_t>> all_cross_dataspace_candidate_factors;
+        std::map<std::string, std::pair<unsigned, uint32_t>> rank_to_dataspace_and_original_factor; // rank -> {dataspace_idx, original_factor}
+        
+        for (unsigned ds_idx_cross = 0; ds_idx_cross < num_data_spaces; ds_idx_cross++) {
+          auto& interline_nest_cross = layout_.at(lvl).interline.at(ds_idx_cross);
+          
+          for (const auto& rank : interline_nest_cross.ranks) {
+            uint32_t current_interline_factor = (interline_nest_cross.factors.find(rank) != interline_nest_cross.factors.end()
+                                                ? interline_nest_cross.factors.at(rank) : 1);
+            
+            if (current_interline_factor > 1) {
+              std::vector<uint32_t> divisors = FindDivisors(current_interline_factor);
+              std::vector<uint32_t> valid_factors;
+              
+              for (uint32_t divisor : divisors) {
+                if (divisor > 1) {
+                  valid_factors.push_back(divisor);
+                }
+              }
+              
+              if (!valid_factors.empty()) {
+                // Create unique rank identifier with dataspace prefix
+                std::string unique_rank = "DS" + std::to_string(ds_idx_cross) + "_" + rank;
+                all_cross_dataspace_candidate_factors[unique_rank] = valid_factors;
+                rank_to_dataspace_and_original_factor[unique_rank] = {ds_idx_cross, current_interline_factor};
+              }
+            }
+          }
+        }
+        
+        // Generate combinations of ranks across dataspaces (limit to reasonable size)
+        std::vector<std::string> all_cross_dataspace_ranks;
+        for (const auto& entry : all_cross_dataspace_candidate_factors) {
+          all_cross_dataspace_ranks.push_back(entry.first);
+        }
+        
+        if (all_cross_dataspace_ranks.size() >= 2) {
+          std::vector<std::vector<std::string>> cross_dataspace_rank_combinations = GenerateRankCombinations(all_cross_dataspace_ranks, 4); // Limit to max 4 ranks
+          
+          // Ensure we have space for cross-dataspace multi-rank packing options at this storage level
+          while (cross_dataspace_multi_rank_packing_options_per_level_.size() <= lvl) {
+            cross_dataspace_multi_rank_packing_options_per_level_.push_back(std::vector<CrossDataspaceMultiRankPackingOption>());
+          }
+          
+          for (const auto& rank_combo : cross_dataspace_rank_combinations) {
+            // Skip combinations that only involve ranks from a single dataspace (already handled above)
+            std::set<unsigned> involved_dataspaces;
+            for (const auto& unique_rank : rank_combo) {
+              involved_dataspaces.insert(rank_to_dataspace_and_original_factor.at(unique_rank).first);
+            }
+            
+            if (involved_dataspaces.size() < 2) continue; // Skip single-dataspace combinations
+            
+            CrossDataspaceMultiRankPackingOption cross_multi_option;
+            if (TestCrossDataspaceMultiRankPackingWithCandidates(lvl, rank_combo, all_cross_dataspace_candidate_factors, 
+                                                               rank_to_dataspace_and_original_factor, intraline_size_per_ds, 
+                                                               storage_level_line_capacity[lvl], cross_multi_option)) {
+              cross_dataspace_multi_rank_packing_options_per_level_[lvl].push_back(cross_multi_option);
+              
+              std::cout << "      Valid cross-dataspace multi-rank packing option: Ranks [";
+              for (size_t i = 0; i < rank_combo.size(); i++) {
+                std::cout << rank_combo[i];
+                if (i < rank_combo.size() - 1) std::cout << ", ";
+              }
+              std::cout << "], total_packing=" << cross_multi_option.total_packing << std::endl;
+              
+              // Print individual packing factors with dataspace info
+              for (const auto& unique_rank : rank_combo) {
+                std::cout << "        " << unique_rank << ": " << cross_multi_option.original_interline_factors.at(unique_rank)
+                          << " -> " << (cross_multi_option.original_interline_factors.at(unique_rank) / cross_multi_option.packing_factors.at(unique_rank))
+                          << " (pack by " << cross_multi_option.packing_factors.at(unique_rank) << ")" << std::endl;
+              }
+            }
+          }
+        } else {
+          std::cout << "      Insufficient cross-dataspace ranks for combinations" << std::endl;
         }
       }
       else{
@@ -1811,9 +2366,21 @@ void Legal::CreateIntralineFactorSpace(model::Engine::Specs arch_specs, const Ma
     }
     
     // Calculate total number of splitting candidates correctly (product across levels)
+    // Treat levels with 0 choices as having 1 choice to avoid making the entire product 0
     uint64_t level_based_splitting_candidates = 1;
-    for (const auto& choices : splitting_choices_per_level_) {
-      level_based_splitting_candidates *= choices;
+    bool has_impossible_level = false;
+    for (size_t lvl = 0; lvl < splitting_choices_per_level_.size(); lvl++) {
+      uint64_t choices = splitting_choices_per_level_[lvl];
+      if (choices == 0) {
+        has_impossible_level = true;
+        std::cout << "  Warning: Level " << lvl << " has 0 splitting choices (impossible configuration)" << std::endl;
+      }
+      // Use max(1, choices) to avoid multiplying by 0
+      level_based_splitting_candidates *= std::max(1UL, choices);
+    }
+    
+    if (has_impossible_level) {
+      std::cout << "  Note: Some levels have impossible configurations, but design space includes feasible combinations from other levels" << std::endl;
     }
 
     splitting_candidates = level_based_splitting_candidates;
@@ -1826,12 +2393,23 @@ void Legal::CreateIntralineFactorSpace(model::Engine::Specs arch_specs, const Ma
 
   // Setup choices per level and print summary of packing design space
   packing_candidates = 0;
-  if (!packing_options_per_level_.empty()) {
+  if (!packing_options_per_level_.empty() || !multi_rank_packing_options_per_level_.empty() || !cross_dataspace_multi_rank_packing_options_per_level_.empty()) {
     // Set up the number of choices for each level (including "no packing" option)
-    packing_choices_per_level_.resize(packing_options_per_level_.size());
-    for (size_t level = 0; level < packing_options_per_level_.size(); level++) {
+    size_t max_levels = std::max({packing_options_per_level_.size(), multi_rank_packing_options_per_level_.size(), cross_dataspace_multi_rank_packing_options_per_level_.size()});
+    packing_choices_per_level_.resize(max_levels);
+    
+    for (size_t level = 0; level < max_levels; level++) {
+      uint64_t single_rank_options = (level < packing_options_per_level_.size()) ? packing_options_per_level_[level].size() : 0;
+      uint64_t multi_rank_options = (level < multi_rank_packing_options_per_level_.size()) ? multi_rank_packing_options_per_level_[level].size() : 0;
+      uint64_t cross_dataspace_multi_rank_options = (level < cross_dataspace_multi_rank_packing_options_per_level_.size()) ? cross_dataspace_multi_rank_packing_options_per_level_[level].size() : 0;
+      
       // +1 for "no packing" option (choice 0)
-      packing_choices_per_level_[level] = packing_options_per_level_[level].size() + 1;
+      packing_choices_per_level_[level] = 1 + single_rank_options + multi_rank_options + cross_dataspace_multi_rank_options;
+      
+      std::cout << "    Level " << level << ": total packing choices = 1 (no-pack) + " 
+                << single_rank_options << " (single-rank) + " << multi_rank_options << " (multi-rank) + "
+                << cross_dataspace_multi_rank_options << " (cross-dataspace) = " 
+                << packing_choices_per_level_[level] << std::endl;
     }
 
     // Calculate total number of packing candidates
@@ -1841,11 +2419,23 @@ void Legal::CreateIntralineFactorSpace(model::Engine::Specs arch_specs, const Ma
     }
 
     std::cout << "  Total packing options across all levels: ";
-    uint64_t total_options = 0;
+    uint64_t total_single_rank_options = 0;
+    uint64_t total_multi_rank_options = 0;
+    uint64_t total_cross_dataspace_multi_rank_options = 0;
+    
     for (const auto& level_options : packing_options_per_level_) {
-      total_options += level_options.size();
+      total_single_rank_options += level_options.size();
     }
-    std::cout << total_options << std::endl;
+    for (const auto& level_options : multi_rank_packing_options_per_level_) {
+      total_multi_rank_options += level_options.size();
+    }
+    for (const auto& level_options : cross_dataspace_multi_rank_packing_options_per_level_) {
+      total_cross_dataspace_multi_rank_options += level_options.size();
+    }
+    
+    std::cout << total_single_rank_options << " single-rank + " << total_multi_rank_options << " multi-rank + " 
+              << total_cross_dataspace_multi_rank_options << " cross-dataspace = " 
+              << (total_single_rank_options + total_multi_rank_options + total_cross_dataspace_multi_rank_options) << std::endl;
     std::cout << "  Packing layout candidates: " << packing_candidates << std::endl;
   }
 }

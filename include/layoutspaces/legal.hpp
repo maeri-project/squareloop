@@ -109,9 +109,29 @@ class Legal : public LayoutSpace
     uint32_t packing_factor;
   };
   
+  // Multi-rank packing option for combinations of ranks within a single dataspace
+  struct MultiRankPackingOption {
+    unsigned dataspace;
+    std::vector<std::string> ranks;  // Multiple ranks involved in the combination
+    std::map<std::string, uint32_t> original_interline_factors;  // Original factors for each rank
+    std::map<std::string, uint32_t> packing_factors;  // Packing factors for each rank
+    uint64_t total_packing;  // Total packing factor applied
+  };
+  
+  // Cross-dataspace multi-rank packing option for combinations of ranks across multiple dataspaces
+  struct CrossDataspaceMultiRankPackingOption {
+    std::vector<std::string> ranks;  // Multiple ranks involved (with dataspace prefixes like "DS0_K", "DS1_H")
+    std::map<std::string, uint32_t> original_interline_factors;  // Original factors for each rank
+    std::map<std::string, uint32_t> packing_factors;  // Packing factors for each rank
+    std::map<std::string, unsigned> rank_to_dataspace;  // Map rank to its dataspace index
+    uint64_t total_packing;  // Total packing factor applied
+  };
+  
   // Packing choices organized by storage level
   // Each level can choose to pack exactly one rank (or no packing)
   std::vector<std::vector<PackingOption>> packing_options_per_level_; // [level][option_index]
+  std::vector<std::vector<MultiRankPackingOption>> multi_rank_packing_options_per_level_; // [level][option_index]
+  std::vector<std::vector<CrossDataspaceMultiRankPackingOption>> cross_dataspace_multi_rank_packing_options_per_level_; // [level][option_index]
   std::vector<uint64_t> packing_choices_per_level_; // number of choices for each level (including "no packing")
   unsigned num_storage_levels;
   unsigned num_data_spaces;
@@ -167,6 +187,18 @@ class Legal : public LayoutSpace
                                                          const std::map<std::string, std::pair<unsigned, uint32_t>>& rank_to_dataspace_and_original_factor,
                                                          const std::vector<std::vector<std::uint64_t>>& intraline_size_per_ds,
                                                          uint64_t line_capacity, CrossDataspaceMultiRankSplittingOption& option);
+
+  // Helper methods for multi-rank packing
+  bool TestMultiRankPackingWithCandidates(unsigned lvl, unsigned ds_idx, const std::vector<std::string>& rank_combination,
+                                         const std::map<std::string, std::vector<uint32_t>>& candidate_factors_per_rank,
+                                         const std::vector<std::vector<std::uint64_t>>& intraline_size_per_ds,
+                                         uint64_t line_capacity, MultiRankPackingOption& option);
+
+  bool TestCrossDataspaceMultiRankPackingWithCandidates(unsigned lvl, const std::vector<std::string>& rank_combination,
+                                                       const std::map<std::string, std::vector<uint32_t>>& candidate_factors_per_rank,
+                                                       const std::map<std::string, std::pair<unsigned, uint32_t>>& rank_to_dataspace_and_original_factor,
+                                                       const std::vector<std::vector<std::uint64_t>>& intraline_size_per_ds,
+                                                       uint64_t line_capacity, CrossDataspaceMultiRankPackingOption& option);
 };
 
 } // namespace layoutspace 
