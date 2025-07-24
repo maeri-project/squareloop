@@ -1181,6 +1181,8 @@ namespace model
     double memory_latency_read = 0;
     double memory_latency_write = 0;
     uint64_t crypto_latency = 0;
+    std::vector<uint64_t> crypto_latency_remainder;
+    double remainder_lines_left = 0;
     for (auto &[data_space_id, ds] : per_dataspace)
     {
       if (!mask[data_space_id]) {
@@ -1219,7 +1221,13 @@ namespace model
       }
       else
       {
-        crypto_latency += (uint64_t)(ds.crypto_latency_per_line * lines);
+        crypto_latency += (uint64_t)(ds.crypto_latency_per_line * std::floor(lines / crypto_config->number_engines));
+        double remainder_lines = lines - std::floor(lines / crypto_config->number_engines) * (crypto_config->number_engines);
+        if (remainder_lines > 0)
+        {
+          crypto_latency_remainder.push_back((uint64_t)ds.crypto_latency_per_line);
+          remainder_lines_left += remainder_lines;
+        }
       }
       latency_stats.overall_lines += lines * cur_cnt;
 #ifdef DEBUG
@@ -1232,7 +1240,14 @@ namespace model
     }
     if (crypto_config->shared)
     {
-      crypto_latency /= crypto_config->number_engines;
+      remainder_lines_left = std::ceil(remainder_lines_left / crypto_config->number_engines);
+      std::sort(crypto_latency_remainder.begin(), crypto_latency_remainder.end());
+      while (remainder_lines_left > 0 && !crypto_latency_remainder.empty())
+      {
+        crypto_latency += crypto_latency_remainder.back();
+        crypto_latency_remainder.pop_back();
+        remainder_lines_left --;
+      }
     }
     double block_size = specs_.block_size.IsSpecified() ? specs_.block_size.Get() : 1;
     double read_ports = 1;
@@ -1639,7 +1654,7 @@ namespace model
       ds.crypto_hash_reads_per_line = 0;
       // only consider crypto if config is provided AND only for offchip memory
       // (DRAM) ToDo: can this be checked in a cleaner way?
-      bool has_authblock_factors = (data_space_id < layout.authblock_lines.size() &&
+      bool has_authblock_factors = specs_.technology.Get() == Technology::DRAM || (data_space_id < layout.authblock_lines.size() &&
                                     !layout.authblock_lines[data_space_id].factors.empty());
       if (crypto_config != nullptr && crypto_config->crypto_initialized_ && has_authblock_factors) {
         double word_size = specs_.word_bits.Get();

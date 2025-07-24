@@ -1,0 +1,62 @@
+architecture:
+  version: 0.2
+  
+  subtree:
+  - name: System
+    
+    local:
+    - name: MainMemory
+      class: DRAM
+      subclass: DummyStorage
+      attributes:
+        width: 64 #256
+        block_size: 8 #32
+        datawidth: 8
+        word_bits: 8
+        metadata_storage_width: 1048576
+        read_bandwidth: 32
+        write_bandwidth: 32
+
+    subtree:
+    - name: Chip
+      attributes:
+        technology: 45nm
+
+      local:
+      - name: GlobalBuffer
+        class: storage
+        subclass: SRAM_MD
+        attributes:
+          data_storage_depth: 240
+          data_storage_width: 8
+          #depth: 8192
+          #width: 256
+          block_size: 1 #32
+          datawidth: 8
+          word_bits: 8
+          metadata_storage_width: 1048576 #1000
+          metadata_storage_depth: 153 #8192
+          read_bandwidth: 32
+          write_bandwidth: 32
+      subtree:
+      - name: PE
+        local:
+        - name: RegisterFile[0..1023]
+          class: storage
+          subclass: SRAM_MD
+          attributes:
+            data_storage_depth: 1
+            data_storage_width: 8
+            #depth: 64
+            #width: 8
+            #block_size: 1
+            datawidth: 8
+            word_bits: 8
+            metadata_storage_depth: 1
+            metadata_storage_width: 1048576
+            read_bandwidth: 32
+            write_bandwidth: 32
+        - name: MACC[0..1023]
+          class: intmac
+          attributes:
+            datawidth: 8

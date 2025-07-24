@@ -25,14 +25,14 @@ problem:
       name: Hdilation
     data-spaces:
     - name: Weights
-      ranks: [K, M, R, S]
+      ranks: [C, K, R, S]
       projection:
       - - - C
       - - - M
       - - - R
       - - - S
     - name: Inputs
-      ranks: [N, L, W, H]
+      ranks: [N, V, H, W]
       projection:
       - - - N
       - - - C
@@ -45,7 +45,7 @@ problem:
         - - Q
           - Hstride
     - name: Outputs
-      ranks: [N, M, Q, P]
+      ranks: [N, L, Q, P]
       projection:
       - - - N
       - - - M

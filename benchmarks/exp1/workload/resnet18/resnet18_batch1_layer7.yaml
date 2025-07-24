@@ -32,7 +32,7 @@ problem:
       - - - R
       - - - S
     - name: Inputs
-      ranks: [N, C, W, H]
+      ranks: [N, V, H, W]
       projection:
       - - - N
       - - - C

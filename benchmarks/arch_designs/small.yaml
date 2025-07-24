@@ -1,0 +1,41 @@
+architecture:
+  version: 0.2
+  
+  subtree:
+  - name: System
+    
+    local:
+    - name: MainMemory
+      class: DRAM
+      subclass: DummyStorage
+      attributes:
+        width: 64 #256
+        block_size: 1
+        word_bits: 8
+        metadata_storage_width: 8
+        read_bandwidth: 2
+
+    subtree:
+    - name: Chip
+      attributes:
+        technology: 45nm
+
+      local:
+      - name: RegisterFile
+        class: storage
+        subclass: SRAM_MD
+        attributes:
+          data_storage_depth: 2
+          data_storage_width: 1
+          #depth: 8192
+          #width: 256
+          block_size: 1 #32
+          word_bits: 8
+          metadata_storage_width: 8
+          metadata_storage_depth: 2
+          read_bandwidth: 32
+          write_bandwidth: 32
+      - name: MACC[0..1]
+        class: intmac
+        attributes:
+          datawidth: 8

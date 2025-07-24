@@ -8,9 +8,11 @@ architecture:
     - name: MainMemory
       class: DRAM
       attributes:
-        width: 256
-        block_size: 32
-        word_bits: 8
+        width: 1024
+        block_size: 64
+        word_bits: 16
+        read_bandwidth: 128
+        write_bandwidth: 128
 
     subtree:
     - name: Chip
@@ -22,11 +24,11 @@ architecture:
         class: SRAM
         attributes:
           depth: 8192
-          width: 256
-          block_size: 32
-          word_bits: 8
-          read_bandwidth: 32
-          write_bandwidth: 32
+          width: 1024
+          block_size: 64
+          word_bits: 16
+          read_bandwidth: 64
+          write_bandwidth: 64
       subtree:
       - name: PE
         local:
@@ -34,10 +36,10 @@ architecture:
           class: regfile
           attributes:
             depth: 64
-            width: 8
+            width: 16
             block_size: 1
-            word_bits: 8
+            word_bits: 16
         - name: MACC[0..255]
           class: intmac
           attributes:
-            datawidth: 8
+            datawidth: 16

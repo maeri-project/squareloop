@@ -3,9 +3,9 @@ mapping:
     type: datatype
     keep:
       - Weights
+      - Outputs
     bypass:
       - Inputs
-      - Outputs
   - target: GlobalBuffer
     type: datatype
     keep:
