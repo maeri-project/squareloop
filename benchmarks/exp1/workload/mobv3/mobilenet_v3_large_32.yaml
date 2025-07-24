@@ -1,5 +1,7 @@
 problem:
   instance:
+    Hpadding: 1
+    Wpadding: 1
     C: 184
     Hdilation: 1
     Hstride: 1
