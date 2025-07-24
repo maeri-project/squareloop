@@ -247,3 +247,12 @@ systolic, mobv3, 59, 366.081, 14400, 0.874
 systolic, mobv3, 60, 365.746, 14400, 0.664
 systolic, mobv3, 61, 70.947, 127228, 2.099
 systolic, mobv3, 62, 68.516, 126616, 1.318
+eyeriss, bert_conv, 1, 7.697, 1179648, 1.915
+eyeriss, bert_conv, 2, 9.034, 4718592, 2.106
+eyeriss, bert_conv, 3, 9.463, 4718592, 2.347
+vector256, bert_conv, 1, 8.542, 1179648, 14.426
+vector256, bert_conv, 2, 9.585, 4718592, 15.320
+vector256, bert_conv, 3, 10.455, 4718592, 13.291
+systolic, bert_conv, 1, 63.866, 5016577, 2.089
+systolic, bert_conv, 2, 63.575, 20084736, 1.919
+systolic, bert_conv, 3, 63.077, 20066305, 1.959
