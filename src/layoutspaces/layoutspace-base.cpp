@@ -69,10 +69,10 @@ std::vector<Status> LayoutSpace::ConstructLayout(ID layout_id, layout::Layouts* 
   return {error_status};
 }
 
-std::vector<Status> LayoutSpace::ConstructLayout(uint64_t layout_id, uint64_t layout_auth_id, uint64_t layout_packing_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure)
+std::vector<Status> LayoutSpace::ConstructLayout(uint64_t layout_splitting_id, uint64_t layout_auth_id, uint64_t layout_packing_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure)
 {
   // Default implementation - should be overridden by derived classes
-  (void)layout_id;
+  (void)layout_splitting_id;
   (void)layout_auth_id;
   (void)layout_packing_id;
   (void)layouts;

@@ -66,9 +66,39 @@ class Legal : public LayoutSpace
   std::vector<std::tuple<unsigned, unsigned, std::string, uint32_t>> variable_authblock_factors_; // level, dataspace, rank, max_value
   std::vector<std::vector<uint32_t>> authblock_factor_ranges_; // stores divisors for each factor
 
-  // Intraline-to-interline conversion factor tracking
-  std::vector<std::tuple<unsigned, unsigned, std::string, uint32_t>> variable_intraline_factors_; // level, dataspace, rank, original_factor
-  std::vector<std::vector<uint32_t>> intraline_conversion_ranges_; // stores valid conversion divisors for each factor
+
+  // Intraline-to-interline conversion factor tracking (new level-based structure)
+  struct SplittingOption {
+    unsigned dataspace;
+    std::string rank;
+    uint32_t original_intraline_factor;
+    uint32_t splitting_factor;
+  };
+  std::vector<std::vector<SplittingOption>> splitting_options_per_level_; // [level][option_index]
+  std::vector<uint64_t> splitting_choices_per_level_; // number of choices for each level (including "no splitting")
+
+  // Multi-rank splitting option for combinations of ranks
+  struct MultiRankSplittingOption {
+    unsigned dataspace;
+    std::vector<std::string> ranks;  // Multiple ranks involved in the combination
+    std::map<std::string, uint32_t> original_intraline_factors;  // Original factors for each rank
+    std::map<std::string, uint32_t> splitting_factors;  // Splitting factors for each rank
+    uint64_t total_reduction;  // Total reduction in intraline size from this combination
+  };
+  std::vector<std::vector<MultiRankSplittingOption>> multi_rank_splitting_options_per_level_; // [level][option_index]
+
+  // Cross-dataspace multi-rank splitting option for combinations of ranks across multiple dataspaces
+  struct CrossDataspaceMultiRankSplittingOption {
+    std::vector<std::string> ranks;  // Multiple ranks involved (with dataspace prefixes like "DS0_K", "DS1_H")
+    std::map<std::string, uint32_t> original_intraline_factors;  // Original factors for each rank
+    std::map<std::string, uint32_t> splitting_factors;  // Splitting factors for each rank
+    std::map<std::string, unsigned> rank_to_dataspace;  // Map rank to its dataspace index
+    uint64_t total_reduction;  // Total reduction in intraline size from this combination
+  };
+  std::vector<std::vector<CrossDataspaceMultiRankSplittingOption>> cross_dataspace_multi_rank_splitting_options_per_level_; // [level][option_index]
+
+  // Track which levels require splitting (where intraline_size > line_capacity)
+  std::vector<bool> level_requires_splitting_; // [level] -> true if splitting is mandatory
 
   // Interline-to-intraline packing factor tracking (for unused line capacity)
   // Restructured to support single-rank-per-level packing
@@ -108,7 +138,7 @@ class Legal : public LayoutSpace
   std::vector<Status> ConstructLayout(ID layout_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure = true) override;
 
   // Construct a specific layout using separate IDs for all three design spaces.
-  std::vector<Status> ConstructLayout(uint64_t layout_id, uint64_t layout_packing_id, uint64_t layout_auth_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure = true);
+  std::vector<Status> ConstructLayout(uint64_t layout_splitting_id, uint64_t layout_packing_id, uint64_t layout_auth_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure = true);
 
  protected:
 
@@ -121,8 +151,22 @@ class Legal : public LayoutSpace
   // Layout constraint methods
   void CreateConcordantLayout(const Mapping& mapping);
   void CreateSpace(model::Engine::Specs arch_specs);
-  void CreateIntraLineSpace(model::Engine::Specs arch_specs, const Mapping& mapping);
+  void CreateSplittingSpace(model::Engine::Specs arch_specs, const Mapping& mapping);
   void CreateAuthSpace(model::Engine::Specs arch_specs);
+
+  // Helper methods for multi-rank splitting
+  std::vector<std::vector<std::string>> GenerateRankCombinations(const std::vector<std::string>& ranks, size_t max_combo_size = 3);
+  bool TestMultiRankSplittingWithCandidates(unsigned lvl, unsigned ds_idx, const std::vector<std::string>& rank_combination,
+                                           const std::map<std::string, std::vector<uint32_t>>& candidate_factors_per_rank,
+                                           const std::vector<std::vector<std::uint64_t>>& intraline_size_per_ds,
+                                           uint64_t line_capacity, MultiRankSplittingOption& option);
+
+  // Helper method for cross-dataspace multi-rank splitting
+  bool TestCrossDataspaceMultiRankSplittingWithCandidates(unsigned lvl, const std::vector<std::string>& rank_combination,
+                                                         const std::map<std::string, std::vector<uint32_t>>& candidate_factors_per_rank,
+                                                         const std::map<std::string, std::pair<unsigned, uint32_t>>& rank_to_dataspace_and_original_factor,
+                                                         const std::vector<std::vector<std::uint64_t>>& intraline_size_per_ds,
+                                                         uint64_t line_capacity, CrossDataspaceMultiRankSplittingOption& option);
 };
 
 } // namespace layoutspace 

@@ -92,7 +92,7 @@ class LayoutSpace
   std::vector<std::uint32_t> storage_level_line_capacity;
   std::vector<std::string> kept_data_spaces, bypassed_data_spaces;
   
-  uint64_t intraline_candidates;
+  uint64_t splitting_candidates;
   uint64_t packing_candidates;
   uint64_t authblock_candidates;
 
@@ -110,7 +110,7 @@ class LayoutSpace
   virtual std::vector<Status> ConstructLayout(ID layout_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure = true);
 
   // Construct a specific layout using separate IDs for all three design spaces.
-  virtual std::vector<Status> ConstructLayout(uint64_t layout_id, uint64_t layout_auth_id, uint64_t layout_packing_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure = true);
+  virtual std::vector<Status> ConstructLayout(uint64_t layout_splitting_id, uint64_t layout_auth_id, uint64_t layout_packing_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure = true);
 
   virtual void CreateConcordantLayout(const Mapping& mapping) = 0;
 

@@ -513,34 +513,34 @@ void MapperThread::Run()
         bool has_valid_layout = false;
 
         log_stream_ << "[" << thread_id_ << "] Starting independent ordered layout optimization:" << std::endl;
-        log_stream_ << "[" << thread_id_ << "] - " <<  layoutspace_->intraline_candidates << " IntraLineSpace candidates" << std::endl;
+        log_stream_ << "[" << thread_id_ << "] - " <<  layoutspace_->splitting_candidates << " SplittingSpace candidates" << std::endl;
         log_stream_ << "[" << thread_id_ << "] - " << layoutspace_->packing_candidates << " PackingSpace candidates" << std::endl;
         log_stream_ << "[" << thread_id_ << "] - " << layoutspace_->authblock_candidates << " AuthSpace candidates" << std::endl;
 
         // Track best IDs for each design space
-        uint64_t best_layout_id = 0;
+        uint64_t best_layout_splitting_id = 0;
         uint64_t best_layout_packing_id = 0;
         uint64_t best_layout_auth_id = 0;
 
-        // Phase 1: Search IntraLineSpace (with cleared authblock_lines and default PackingSpace=0)
-        log_stream_ << "[" << thread_id_ << "] Phase 1: Optimizing IntraLineSpace (clearing authblock_lines for pure evaluation)..." << std::endl;
-        for (uint64_t layout_id = 0; layout_id < layoutspace_->intraline_candidates; layout_id++)
+        // Phase 1: Search SplittingSpace (with cleared authblock_lines and default PackingSpace=0)
+        log_stream_ << "[" << thread_id_ << "] Phase 1: Optimizing SplittingSpace (clearing authblock_lines for pure evaluation)..." << std::endl;
+        for (uint64_t layout_splitting_id = 0; layout_splitting_id < layoutspace_->splitting_candidates; layout_splitting_id++)
         {
 #ifdef DEBUG_SHOW_LAYOUT_SEARCHING
-          log_stream_ << "[" << thread_id_ << "] Testing IntraLineSpace " << layout_id << "/" << layoutspace_->intraline_candidates << std::endl;
+          log_stream_ << "[" << thread_id_ << "] Testing SplittingSpace " << layout_splitting_id << "/" << layoutspace_->splitting_candidates << std::endl;
 #endif 
-          auto construction_status = layoutspace_->ConstructLayout(layout_id, 0, 0, &layout_, stats_.thread_best.mapping, false);
+          auto construction_status = layoutspace_->ConstructLayout(layout_splitting_id, 0, 0, &layout_, stats_.thread_best.mapping, false);
           bool layout_success = std::accumulate(construction_status.begin(), construction_status.end(), true,
                                       [](bool cur, const layoutspace::Status& status)
                                       { return cur && status.success; });
           if(!layout_success) {
-            log_stream_ << "[" << thread_id_ << "] IntraLineSpace " << layout_id << " construction failed" << std::endl;
+            log_stream_ << "[" << thread_id_ << "] SplittingSpace " << layout_splitting_id << " construction failed -- reason:" << construction_status[0].fail_reason << std::endl;
             continue;
           }
 
-          // Clear authblock_lines for pure IntraLineSpace evaluation
+          // Clear authblock_lines for pure SplittingSpace evaluation
 #ifdef DEBUG_SHOW_LAYOUT_SEARCHING
-                    log_stream_ << "[" << thread_id_ << "] Cleared authblock_lines for IntraLineSpace " << layout_id << " evaluation" << std::endl;
+                    log_stream_ << "[" << thread_id_ << "] Cleared authblock_lines for SplittingSpace " << layout_splitting_id << " evaluation" << std::endl;
 #endif 
           layout::Layouts intraline_only_layout = layout_;
           for (unsigned lvl = 0; lvl < intraline_only_layout.size(); lvl++) {
@@ -565,38 +565,38 @@ void MapperThread::Run()
           if (!has_valid_layout) {
             // First valid layout
             is_better = true;
-            improvement_reason = "IntraLineSpace: first valid layout";
+            improvement_reason = "SplittingSpace: first valid layout";
           }
           else if (runtime_latency < mapping_specific_best_latency) {
             // Better latency
             is_better = true;
-            improvement_reason = "IntraLineSpace: better latency";
+            improvement_reason = "SplittingSpace: better latency";
           }
           else if (runtime_latency == mapping_specific_best_latency && energy_per_compute < mapping_specific_best_energy_per_compute) {
             // Same latency but better energy efficiency
             is_better = true;
-            improvement_reason = "IntraLineSpace: same latency, better energy efficiency";
+            improvement_reason = "SplittingSpace: same latency, better energy efficiency";
           }
 
           if (is_better) {
             mapping_specific_best_latency = runtime_latency;
             mapping_specific_best_energy_per_compute = energy_per_compute;
             mapping_specific_best_layout = intraline_only_layout; // Store the layout with cleared authblock_lines
-            best_layout_id = layout_id;
+            best_layout_splitting_id = layout_splitting_id;
             has_valid_layout = true;
 
-            log_stream_ << "[" << thread_id_ << "] NEW INTRALINE OPTIMAL: ID=" << best_layout_id
+            log_stream_ << "[" << thread_id_ << "] NEW INTRALINE OPTIMAL: ID=" << best_layout_splitting_id
                         << ", Latency=" << mapping_specific_best_latency << " cycles"
                         << ", Energy/Compute=" << mapping_specific_best_energy_per_compute << " pJ/compute"
                         << " (" << improvement_reason << ") [authblock_lines cleared]" << std::endl;
           }
         }
 
-        // Phase 2: Search PackingSpace (with best IntraLineSpace and default AuthSpace=0)
+        // Phase 2: Search PackingSpace (with best SplittingSpace and default AuthSpace=0)
         // Note: authblock_lines clearing from Phase 1 does not affect this phase as layout is reconstructed
         if (has_valid_layout && layoutspace_->packing_candidates > 1) {
 #ifdef DEBUG_SHOW_LAYOUT_SEARCHING
-          log_stream_ << "[" << thread_id_ << "] Phase 2: Optimizing PackingSpace with best IntraLineSpace=" << best_layout_id << " (authblock_lines restored)..." << std::endl;
+          log_stream_ << "[" << thread_id_ << "] Phase 2: Optimizing PackingSpace with best SplittingSpace=" << best_layout_splitting_id << " (authblock_lines restored)..." << std::endl;
 #endif 
 
           for (uint64_t layout_packing_id = 0; layout_packing_id < layoutspace_->packing_candidates; layout_packing_id++)
@@ -604,12 +604,12 @@ void MapperThread::Run()
 #ifdef DEBUG_SHOW_LAYOUT_SEARCHING
             log_stream_ << "[" << thread_id_ << "] Testing PackingSpace " << layout_packing_id << "/" << layoutspace_->packing_candidates << std::endl;
 #endif
-            auto construction_status = layoutspace_->ConstructLayout(best_layout_id, layout_packing_id, 0,  &layout_, stats_.thread_best.mapping, false);
+            auto construction_status = layoutspace_->ConstructLayout(best_layout_splitting_id, layout_packing_id, 0,  &layout_, stats_.thread_best.mapping, false);
             bool layout_success = std::accumulate(construction_status.begin(), construction_status.end(), true,
                                         [](bool cur, const layoutspace::Status& status)
                                         { return cur && status.success; });
             if(!layout_success) {
-              log_stream_ << "[" << thread_id_ << "] PackingSpace " << layout_packing_id << " construction failed" << std::endl;
+              log_stream_ << "[" << thread_id_ << "] PackingSpace " << layout_packing_id << " construction failed -- reason:" << construction_status[0].fail_reason << std::endl;
               continue;
             }
 
@@ -648,11 +648,11 @@ void MapperThread::Run()
           }
         }
 
-        // Phase 3: Search AuthSpace (with best IntraLineSpace and best PackingSpace)
+        // Phase 3: Search AuthSpace (with best SplittingSpace and best PackingSpace)
         // Note: authblock_lines are fully functional in this phase
         if (has_valid_layout && layoutspace_->authblock_candidates > 1) {
 #ifdef DEBUG_SHOW_LAYOUT_SEARCHING
-          log_stream_ << "[" << thread_id_ << "] Phase 3: Optimizing AuthSpace with best IntraLineSpace=" << best_layout_id
+          log_stream_ << "[" << thread_id_ << "] Phase 3: Optimizing AuthSpace with best SplittingSpace=" << best_layout_splitting_id
                       << " and PackingSpace=" << best_layout_packing_id << " (authblock_lines active)..." << std::endl;
 #endif 
           log_stream_ << "[" << thread_id_ << "] Add AuthBlock and reinitializes best efficiency and latency" << std::endl;
@@ -664,12 +664,12 @@ void MapperThread::Run()
 #ifdef DEBUG_SHOW_LAYOUT_SEARCHING
             log_stream_ << "[" << thread_id_ << "] Testing AuthSpace " << layout_auth_id << "/" << layoutspace_->authblock_candidates << std::endl;
 #endif 
-            auto construction_status = layoutspace_->ConstructLayout(best_layout_id, best_layout_packing_id, layout_auth_id, &layout_, stats_.thread_best.mapping, false);
+            auto construction_status = layoutspace_->ConstructLayout(best_layout_splitting_id, best_layout_packing_id, layout_auth_id, &layout_, stats_.thread_best.mapping, false);
             bool layout_success = std::accumulate(construction_status.begin(), construction_status.end(), true,
                                         [](bool cur, const layoutspace::Status& status)
                                         { return cur && status.success; });
             if(!layout_success) {
-              log_stream_ << "[" << thread_id_ << "] AuthSpace " << layout_auth_id << " construction failed" << std::endl;
+              log_stream_ << "[" << thread_id_ << "] AuthSpace " << layout_auth_id << " construction failed -- reason:" << construction_status[0].fail_reason << std::endl;
               continue;
             }
 
@@ -709,7 +709,7 @@ void MapperThread::Run()
         }
 
         // Final optimal configuration
-        log_stream_ << "[" << thread_id_ << "] FINAL OPTIMAL CONFIGURATION: IntraLineSpace=" << best_layout_id
+        log_stream_ << "[" << thread_id_ << "] FINAL OPTIMAL CONFIGURATION: SplittingSpace=" << best_layout_splitting_id
                     << ", PackingSpace=" << best_layout_packing_id << ", AuthSpace=" << best_layout_auth_id
                     << " (authblock_lines effects included in final result)" << std::endl;
 
