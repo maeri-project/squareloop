@@ -134,9 +134,9 @@ class LayoutSpace
     return size_;
   }
 
-  layout::Layouts* GetLayout()
+  layout::Layouts GetLayout()
   {
-    return &layout_;
+    return layout_;
   }
 
 }; // class LayoutSpace

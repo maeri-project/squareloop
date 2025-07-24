@@ -151,7 +151,7 @@ class Legal : public LayoutSpace
   // Layout constraint methods
   void CreateConcordantLayout(const Mapping& mapping);
   void CreateSpace(model::Engine::Specs arch_specs);
-  void CreateSplittingSpace(model::Engine::Specs arch_specs, const Mapping& mapping);
+  void CreateIntralineFactorSpace(model::Engine::Specs arch_specs, const Mapping& mapping);
   void CreateAuthSpace(model::Engine::Specs arch_specs);
 
   // Helper methods for multi-rank splitting

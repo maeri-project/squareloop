@@ -505,7 +505,7 @@ void MapperThread::Run()
                     << std::endl;
 
         layoutspace_ = new layoutspace::Legal(arch_specs_, stats_.thread_best.mapping, layout_, false);
-
+        auto concordant_layout = layoutspace_->GetLayout();
         // Initialize global optimal tracking variables
         std::uint64_t mapping_specific_best_latency = UINT64_MAX;
         double mapping_specific_best_energy_per_compute = std::numeric_limits<double>::max();
@@ -741,7 +741,12 @@ void MapperThread::Run()
           mutex_->unlock();
 
         } else {
-          log_stream_ << "[" << thread_id_ << "] No valid layouts found for best mapping." << std::endl;
+          log_stream_ << "[" << thread_id_ << "] No valid layouts found for best mapping or no valid design choice in layout, fall back to concordant layout " << std::endl;
+          auto final_status = engine.Evaluate(stats_.thread_best.mapping, workload_, concordant_layout, sparse_optimizations_, crypto_, !diagnostics_on_);
+          auto final_topology = engine.GetTopology();
+          auto final_stats = final_topology.GetStats();
+          EvaluationResult final_result = { true, stats_.thread_best.mapping, final_stats, concordant_layout };
+          stats_.thread_best = final_result;
         }
       }
       break;

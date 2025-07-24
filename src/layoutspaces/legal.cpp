@@ -305,7 +305,7 @@ Legal::Legal(
   CreateConcordantLayout(mapping);
 
   // Step 2: Create design spaces for layout optimization
-  CreateSplittingSpace(arch_specs, mapping);
+  CreateIntralineFactorSpace(arch_specs, mapping);
 
   // Step 3: Create AuthSpace
   CreateAuthSpace(arch_specs);
@@ -1356,9 +1356,9 @@ void Legal::CreateConcordantLayout(const Mapping& mapping)
 }
 
 //
-// CreateSplittingSpace() - Step 3: Generate all possible intraline factor combinations
+// CreateIntralineFactorSpace() - Step 3: Generate all possible intraline factor combinations (SplittingSpace and PackingSpace)
 //
-void Legal::CreateSplittingSpace(model::Engine::Specs arch_specs, const Mapping& mapping)
+void Legal::CreateIntralineFactorSpace(model::Engine::Specs arch_specs, const Mapping& mapping)
 {
   (void) arch_specs; // Suppress unused parameter warning
 
@@ -1425,7 +1425,7 @@ void Legal::CreateSplittingSpace(model::Engine::Specs arch_specs, const Mapping&
                 << "). Generating design space for factor conversions..." << std::endl;
 
       // Calculate maximum packing factor that can be applied
-      uint32_t max_splitting_factor = static_cast<uint32_t>(static_cast<float>(intraline_size_per_lvl[lvl]) / static_cast<float>(storage_level_line_capacity[lvl]));
+      uint32_t max_splitting_factor = static_cast<uint32_t>((static_cast<float>(intraline_size_per_lvl[lvl]) + static_cast<float>(storage_level_line_capacity[lvl]) - 1) / static_cast<float>(storage_level_line_capacity[lvl]));
       if (max_splitting_factor > 1){
         std::cout << "    Maximum splitting factor: " << max_splitting_factor << std::endl;
 
