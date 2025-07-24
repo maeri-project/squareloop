@@ -47,7 +47,7 @@ problem:
           - Hstride
       ranks:
       - N
-      - C
+      - V
       - H
       - W
     - name: Outputs

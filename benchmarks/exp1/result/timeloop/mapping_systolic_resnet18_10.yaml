@@ -11,8 +11,9 @@ mapping:
     keep:
       - Weights
       - Inputs
-    bypass:
       - Outputs
+    bypass:
+      []
   - target: MainMemory
     type: datatype
     keep:
@@ -37,4 +38,4 @@ mapping:
   - target: MainMemory
     type: temporal
     factors: C1 M4 R1 S3 N1 P1 Q1
-    permutation: MSCRNPQ
+    permutation: SMCRNPQ
