@@ -1854,7 +1854,8 @@ namespace model
     // each data space (input, weights or output) is analysed independently
     std::unordered_map<problem::Shape::FlattenedDimensionID, int>
       dim_id_to_number_of_tiles;
-    for (auto tile : tile.data_movement_info) {
+    for (auto tile : tile.data_movement_info) 
+    {
       // ****************************************************************
       // This check has three phases
       // ****************************************************************
@@ -1963,7 +1964,7 @@ namespace model
     double slowdown_subtile_check = 1.0;
     double subtile_check_num_access_ratio_bw_over_layout = 1.0;
     std::pair<double, double> subtile_bc_analysis_result;
-    if (dim_id_to_subtile_shape.size() > 0) {
+    if (dim_id_to_subtile_shape.size() > 0 && dim_id_to_mapping_parallelism.size() == 0) {
       subtile_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(
         layout, mask, crypto_config, compute_cycles,
         dim_id_to_subtile_shape, dim_id_to_number_of_tiles,
