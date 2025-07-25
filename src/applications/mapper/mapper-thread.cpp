@@ -780,6 +780,11 @@ void MapperThread::Run()
           auto final_stats = final_topology.GetStats();
           EvaluationResult final_result = { true, stats_.thread_best.mapping, final_stats, concordant_layout };
           stats_.thread_best = final_result;
+
+          // Sync the fallback result to global best
+          mutex_->lock();
+          best_->UpdateIfBetter(stats_.thread_best, optimization_metrics_);
+          mutex_->unlock();
         }
       }
       break;

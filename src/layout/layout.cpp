@@ -297,7 +297,7 @@ namespace layout
         LayoutNest authblock_nest;
         authblock_nest.data_space = ds;
         authblock_nest.type = "authblock_lines";
-        if (config_layout[t].find("authblock_lines") != config_layout[t].end())
+        if (config_layout[t].find("authblock_lines") != config_layout[t].end()) // Only push AuthBlock if the layout file specifies it
         {
           std::string perm = config_layout[t]["authblock_lines"].first;
           std::map<std::string, std::uint32_t> factors = config_layout[t]["authblock_lines"].second;
@@ -314,12 +314,8 @@ namespace layout
           std::reverse(order.begin(), order.end());
           authblock_nest.ranks = order;
           authblock_nest.factors = factors;
+          layout.authblock_lines.push_back(authblock_nest);
         }
-        else
-        {
-          authblock_nest.ranks = layout.dataSpaceToRank[ds];
-        }
-        layout.authblock_lines.push_back(authblock_nest);
       }
 
       layouts.push_back(layout);

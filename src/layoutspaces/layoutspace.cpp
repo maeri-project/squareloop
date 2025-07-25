@@ -34,6 +34,8 @@
  // #define DEBUG_CONCORDANT_LAYOUT
  // #define DEBUG_BUFFER_CAPACITY_CONSTRAINT
  // #define DEBUG_CONSTRUCTION_LAYOUT
+ // #define DEBUG_CREATE_AUTH_SPACE
+ // #define DEBUG_CREATE_INTRALINE_FACTOR_SPACE
  #define PACKING_PRUNING_RATIO 0.9
 
  namespace layoutspace
@@ -67,24 +69,16 @@
       for (unsigned lvl = 0; lvl < num_storage_levels; lvl++)
       {
         // Check if authblock_lines vector has enough elements first
-        if (layout_.at(lvl).authblock_lines.size() >= num_data_spaces)
-        {
-          for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++)
-          {
-            if (!layout_.at(lvl).authblock_lines.at(ds_idx).factors.empty())
-            {
+        if (layout_.at(lvl).authblock_lines.size() >= num_data_spaces){
+          for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++){
+            if (!layout_.at(lvl).authblock_lines.at(ds_idx).factors.empty()){
               has_non_empty_authblock = true;
-              std::cout << "storage level " << lvl << "  dataspace " << ds_idx << " has non-empty authblock_lines" << std::endl;
               break;
-            }
-            else{
-              std::cout << "storage level " << lvl << "  dataspace " << ds_idx << " has empty authblock_lines" << std::endl;
             }
           }
         }
       }
-      if (!has_non_empty_authblock) 
-      {
+      if (!has_non_empty_authblock) {
         throw std::runtime_error("No non-empty authblock_lines found in any dataspace");
       }
       CreateAuthSpace(arch_specs);
@@ -330,8 +324,10 @@
       }
       else
       {
-        std::cout << "    WARNING: Storage level " << storage_level
-                  << " (" << storage_level_specs->name.Get() << ") has unspecified size, treating as infinite" << std::endl;
+        #ifdef DEBUG_ARCH_PARSING
+          std::cout << "    WARNING: Storage level " << storage_level
+                    << " (" << storage_level_specs->name.Get() << ") has unspecified size, treating as infinite" << std::endl;
+        #endif
         total_capacity = std::numeric_limits<uint64_t>::max();
       }
 
@@ -1024,7 +1020,9 @@
     assert(storage_level_line_capacity.size() > 0 && "storage_level_line_capacity has members");
     assert(storage_level_keep_factor.size() > 0 && "storage_level_keep_factor has members");
 
-    std::cout << "Step 2: Creating SplittingSpace and PackingSpace candidates from intraline factors..." << std::endl;
+    #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
+      std::cout << "Step 2: Creating SplittingSpace and PackingSpace candidates from intraline factors..." << std::endl;
+    #endif
 
     // Clear previous design spaces
     multi_rank_splitting_options_per_level_per_ds_.clear();
@@ -1059,47 +1057,53 @@
 
     // Phase 2: Check if the line capacity is sufficient for the intraline size
     // First, determine which levels require splitting (intraline_size > line_capacity)
-    std::cout << "Phase 2.1: quick glance at the intraline size and line capacity" << std::endl;
     level_ds_requires_splitting_.resize(num_storage_levels, std::vector<bool>(num_data_spaces, false));
-    for (unsigned lvl = 0; lvl < num_storage_levels; lvl++){
-      for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++){
-        if(storage_level_line_capacity[lvl] < intraline_size_per_ds[lvl][ds_idx]){
-          level_ds_requires_splitting_[lvl][ds_idx] = true;
-          std::cout << "  storage level " << lvl << ": dataspace " << ds_idx << " requires splitting (intraline_size=" << intraline_size_per_ds[lvl][ds_idx]
-                  << " > line_capacity=" << storage_level_line_capacity[lvl] << ")" << std::endl;
-        } else if (storage_level_line_capacity[lvl] > intraline_size_per_ds[lvl][ds_idx]){
-          level_ds_requires_splitting_[lvl][ds_idx] = false;
-          std::cout << "  storage level " << lvl << ": dataspace " << ds_idx << "  requires packing  (intraline_size=" << intraline_size_per_ds[lvl][ds_idx]
-                    << " < line_capacity=" << storage_level_line_capacity[lvl] << ")";
-          if (storage_level_keep_factor[lvl][ds_idx] == 0)
-            std::cout << " - bypass" << std::endl;
-          else
-            std::cout << std::endl;
-        }
-        else{
-          std::cout << "  storage level " << lvl << ": dataspace " << ds_idx << "     do nothing     (intraline_size=" << intraline_size_per_ds[lvl][ds_idx]
-          << " == line_capacity=" << storage_level_line_capacity[lvl] << ")" << std::endl;
+    #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
+      std::cout << "Phase 2.1: quick glance at the intraline size and line capacity" << std::endl;
+      for (unsigned lvl = 0; lvl < num_storage_levels; lvl++){
+        for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++){
+          if(storage_level_line_capacity[lvl] < intraline_size_per_ds[lvl][ds_idx]){
+            level_ds_requires_splitting_[lvl][ds_idx] = true;
+            std::cout << "  storage level " << lvl << ": dataspace " << ds_idx << " requires splitting (intraline_size=" << intraline_size_per_ds[lvl][ds_idx]
+                    << " > line_capacity=" << storage_level_line_capacity[lvl] << ")" << std::endl;
+          } else if (storage_level_line_capacity[lvl] > intraline_size_per_ds[lvl][ds_idx]){
+            level_ds_requires_splitting_[lvl][ds_idx] = false;
+            std::cout << "  storage level " << lvl << ": dataspace " << ds_idx << "  requires packing  (intraline_size=" << intraline_size_per_ds[lvl][ds_idx]
+                      << " < line_capacity=" << storage_level_line_capacity[lvl] << ")";
+            if (storage_level_keep_factor[lvl][ds_idx] == 0)
+              std::cout << " - bypass" << std::endl;
+            else
+              std::cout << std::endl;
+          }
+          else{
+            std::cout << "  storage level " << lvl << ": dataspace " << ds_idx << "     do nothing     (intraline_size=" << intraline_size_per_ds[lvl][ds_idx]
+            << " == line_capacity=" << storage_level_line_capacity[lvl] << ")" << std::endl;
+          }
         }
       }
-    }
+    #endif
 
-    std::cout << "Phase 2.2: generate design space for factor conversions..." << std::endl;
+    #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
+      std::cout << "Phase 2.2: generate design space for factor conversions..." << std::endl;
+    #endif
     for (unsigned lvl = 0; lvl < num_storage_levels; lvl++){
       // First analyze single-rank and multi-rank splitting possibilities for each dataspace.
       for(unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++){ // single
         if(storage_level_line_capacity[lvl] < intraline_size_per_ds[lvl][ds_idx] && storage_level_keep_factor[lvl][ds_idx]){
           // The product of all factors of intraline for a dataspace is too big to fit in the line capacity,
           // so need to reduce the factors of intraline by converting some factors into interline.
-
-          std::cout << "  storage level " << lvl << ": dataspace " << ds_idx << " intraline_size (" << intraline_size_per_ds[lvl][ds_idx]
+          #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
+            std::cout << "  storage level " << lvl << ": dataspace " << ds_idx << " intraline_size (" << intraline_size_per_ds[lvl][ds_idx]
                     << ") exceeds line capacity (" << storage_level_line_capacity[lvl]
                     << "). Generating design space for factor conversions..." << std::endl;
-
+          #endif
           // Calculate maximum packing factor that can be applied
           assert(storage_level_line_capacity[lvl] > 0 && "Division by zero in max_splitting_factor calculation");
           uint32_t max_splitting_factor = static_cast<uint32_t>((static_cast<float>(intraline_size_per_ds[lvl][ds_idx]) + static_cast<float>(storage_level_line_capacity[lvl]) - 1) / static_cast<float>(storage_level_line_capacity[lvl]));
           if (max_splitting_factor > 1){
-            std::cout << "    Maximum splitting factor: " << max_splitting_factor << std::endl;
+            #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
+              std::cout << "    Maximum splitting factor: " << max_splitting_factor << std::endl;
+            #endif
             auto& intraline_nest = layout_.at(lvl).intraline.at(ds_idx);
             std::map<std::string, std::vector<uint32_t>> all_candidate_factors_per_rank;
 
@@ -1127,7 +1131,9 @@
 
             // Multi-rank splitting: find combinations of ranks that together can reduce intraline size to fit
             // Use all candidate factors (including those that don't fit individually)
-            std::cout << "      Multi-rank splitting analysis:" << std::endl;
+            #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
+              std::cout << "      Multi-rank splitting analysis:" << std::endl;
+            #endif
             std::vector<std::vector<std::string>> rank_combinations = GenerateRankCombinations(intraline_nest.ranks);
 
             for (const auto& rank_combo : rank_combinations) {
@@ -1147,24 +1153,28 @@
                                                     intraline_size_per_ds, storage_level_line_capacity[lvl], multi_option)) {
                 multi_rank_splitting_options_per_level_per_ds_[lvl][ds_idx].push_back(multi_option);
 
-                std::cout << "        --> Valid multi-rank option: Ranks [";
-                for (size_t i = 0; i < rank_combo.size(); i++) {
-                  std::cout << rank_combo[i];
-                  if (i < rank_combo.size() - 1) std::cout << ", ";
-                }
-                std::cout << "], total_reduction for dataspace[" << ds_idx << "] = " << multi_option.total_reduction << std::endl;
+                #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
+                  std::cout << "        --> Valid multi-rank option: Ranks [";
+                  for (size_t i = 0; i < rank_combo.size(); i++) {
+                    std::cout << rank_combo[i];
+                    if (i < rank_combo.size() - 1) std::cout << ", ";
+                  }
+                  std::cout << "], total_reduction for dataspace[" << ds_idx << "] = " << multi_option.total_reduction << std::endl;
 
-                // Print individual splitting factors
-                for (const auto& rank : rank_combo) {
-                  std::cout << "          " << rank << "(intraline): " << multi_option.original_intraline_factors.at(rank)
-                            << " -> " << (multi_option.original_intraline_factors.at(rank) / multi_option.splitting_factors.at(rank))
-                            << " (split by " << multi_option.splitting_factors.at(rank) << ")" << std::endl;
-                }
+                  // Print individual splitting factors
+                  for (const auto& rank : rank_combo) {
+                    std::cout << "          " << rank << "(intraline): " << multi_option.original_intraline_factors.at(rank)
+                              << " -> " << (multi_option.original_intraline_factors.at(rank) / multi_option.splitting_factors.at(rank))
+                              << " (split by " << multi_option.splitting_factors.at(rank) << ")" << std::endl;
+                  }
+                #endif
               }
             }
           }
           else{
-            std::cout << "  storage level " << lvl << ": splitting factor = 1, no splitting is needed." << std::endl;
+            #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
+              std::cout << "  storage level " << lvl << ": splitting factor = 1, no splitting is needed." << std::endl;
+            #endif
           }
           // Calculate maximum splitting factor that can be applied
         }
@@ -1172,20 +1182,26 @@
           // Intraline has free space to hold more data, could convert some factors of interline into intraline,
           // this creates the overall design spaces
 
-          std::cout << "  storage level " << lvl << " Dataspace[" << ds_idx << "] intraline_size (" << intraline_size_per_ds[lvl][ds_idx]
-                    << ") has " << (storage_level_line_capacity[lvl] - intraline_size_per_ds[lvl][ds_idx])
-                    << " free capacity. Generating design space for data packing..." << std::endl;
+          #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
+            std::cout << "  storage level " << lvl << " Dataspace[" << ds_idx << "] intraline_size (" << intraline_size_per_ds[lvl][ds_idx]
+                      << ") has " << (storage_level_line_capacity[lvl] - intraline_size_per_ds[lvl][ds_idx])
+                      << " free capacity. Generating design space for data packing..." << std::endl;
+          #endif
 
           // Calculate maximum packing factor that can be applied
           assert(intraline_size_per_ds[lvl][ds_idx] > 0 && "Division by zero in max_packing_factor calculation");
           uint32_t max_packing_factor = static_cast<uint32_t>(static_cast<float>(storage_level_line_capacity[lvl]) / static_cast<float>(intraline_size_per_ds[lvl][ds_idx]));
           if (max_packing_factor > 1){
-            std::cout << "    Maximum packing factor: " << max_packing_factor << std::endl;
+            #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
+              std::cout << "    Maximum packing factor: " << max_packing_factor << std::endl;
+            #endif
 
             auto& inter_nest = layout_.at(lvl).interline.at(ds_idx);
 
             // Multi-rank packing analysis within each dataspace
-            std::cout << "    DataSpace " << ds_idx << " Multi-rank packing analysis:" << std::endl;
+            #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
+              std::cout << "    DataSpace " << ds_idx << " Multi-rank packing analysis:" << std::endl;
+            #endif
 
             // Collect all ranks and their candidate factors from this dataspace
             std::map<std::string, std::vector<uint32_t>> all_candidate_factors_per_rank;
@@ -1229,31 +1245,37 @@
                       if (max_intraline_to_interline_factor > max_possible_factor)
                         max_intraline_to_interline_factor = max_possible_factor;
                     }
-                    uint32_t size_option = multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx].size()-1;
-                    std::cout << "      --> Valid multi-rank packing option: Ranks [";
-                    for (size_t i = 0; i < rank_combo->size(); i++) {
-                      std::cout << (*rank_combo)[i];
-                      if (i < rank_combo->size() - 1) std::cout << ", ";
-                    }
-                    std::cout << "], total_packing=" << multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].total_packing << std::endl;
+                    #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
+                      uint32_t size_option = multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx].size()-1;
+                      std::cout << "      --> Valid multi-rank packing option: Ranks [";
+                      for (size_t i = 0; i < rank_combo->size(); i++) {
+                        std::cout << (*rank_combo)[i];
+                        if (i < rank_combo->size() - 1) std::cout << ", ";
+                      }
+                      std::cout << "], total_packing=" << multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].total_packing << std::endl;
 
-                    // Print individual packing factors
-                    for (const auto& rank : *rank_combo) {
-                      assert(multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].packing_factors.at(rank) > 0 && "Division by zero in print packing factor");
-                      std::cout << "        " << rank << "(interline): " << multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].original_interline_factors.at(rank)
-                                << " -> " << (multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].original_interline_factors.at(rank) / multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].packing_factors.at(rank))
-                                << " (pack by " << multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].packing_factors.at(rank) << ")" << std::endl;
-                    }
+                      // Print individual packing factors
+                      for (const auto& rank : *rank_combo) {
+                        assert(multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].packing_factors.at(rank) > 0 && "Division by zero in print packing factor");
+                        std::cout << "        " << rank << "(interline): " << multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].original_interline_factors.at(rank)
+                                  << " -> " << (multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].original_interline_factors.at(rank) / multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].packing_factors.at(rank))
+                                  << " (pack by " << multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].packing_factors.at(rank) << ")" << std::endl;
+                      }
+                    #endif
                   }
                 }
               }
             } else {
-              std::cout << "      Insufficient ranks for multi-rank combinations in this dataspace" << std::endl;
+              #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
+                std::cout << "      Insufficient ranks for multi-rank combinations in this dataspace" << std::endl;
+              #endif
             }
 
           }
           else{
-            std::cout << "  storage level " << lvl << ": packing factor = 1, no packing is needed." << std::endl;
+            #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
+              std::cout << "  storage level " << lvl << ": packing factor = 1, no packing is needed." << std::endl;
+            #endif
           }
         }
         // Do nothing if the line capacity is equal to the intraline size
@@ -1277,17 +1299,19 @@
     }
 
     // Print flattened splitting choices in table format
-    std::cout << "Breakdown of splitting candidates:" << std::endl;
-    std::cout << "Level | DataSpace | Candidates" << std::endl;
-    std::cout << "------|-----------|-----------" << std::endl;
-    for (unsigned lvl = 0; lvl < num_storage_levels; lvl++) {
-      for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++) {
-        std::cout << std::setw(6) << lvl << " | "
-                  << std::setw(9) << ds_idx << " | "
-                  << std::setw(9) << splitting_candidates_per_lvl_per_ds[lvl][ds_idx] << std::endl;
+    #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
+      std::cout << "Breakdown of splitting candidates:" << std::endl;
+      std::cout << "Level | DataSpace | Candidates" << std::endl;
+      std::cout << "------|-----------|-----------" << std::endl;
+      for (unsigned lvl = 0; lvl < num_storage_levels; lvl++) {
+        for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++) {
+          std::cout << std::setw(6) << lvl << " | "
+                    << std::setw(9) << ds_idx << " | "
+                    << std::setw(9) << splitting_candidates_per_lvl_per_ds[lvl][ds_idx] << std::endl;
+        }
       }
-    }
-    std::cout << std::endl;
+      std::cout << std::endl;
+    #endif
 
     //  if (splitting_candidates == 1)
     //    splitting_candidates = 0;
@@ -1310,17 +1334,19 @@
     }
 
     // Print flattened packing choices in table format
-    std::cout << "Breakdown of packing candidates:" << std::endl;
-    std::cout << "Level | DataSpace | Candidates" << std::endl;
-    std::cout << "------|-----------|-----------" << std::endl;
-    for (unsigned lvl = 0; lvl < num_storage_levels; lvl++) {
-      for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++) {
-        std::cout << std::setw(6) << lvl << " | "
-                  << std::setw(9) << ds_idx << " | "
-                  << std::setw(9) << packing_candidates_per_lvl_per_ds[lvl][ds_idx] << std::endl;
+    #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
+      std::cout << "Breakdown of packing candidates:" << std::endl;
+      std::cout << "Level | DataSpace | Candidates" << std::endl;
+      std::cout << "------|-----------|-----------" << std::endl;
+      for (unsigned lvl = 0; lvl < num_storage_levels; lvl++) {
+        for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++) {
+          std::cout << std::setw(6) << lvl << " | "
+                    << std::setw(9) << ds_idx << " | "
+                    << std::setw(9) << packing_candidates_per_lvl_per_ds[lvl][ds_idx] << std::endl;
+        }
       }
-    }
-    std::cout << std::endl;
+      std::cout << std::endl;
+    #endif
 
     //  if (packing_candidates == 1)
     //    packing_candidates = 0;
@@ -1334,7 +1360,9 @@
   void Legal::CreateAuthSpace(model::Engine::Specs arch_specs)
   {
     (void) arch_specs; // Suppress unused parameter warning
-    std::cout << "Step 3: Creating layout candidate space from authblock_lines factors..." << std::endl;
+    #ifdef DEBUG_CREATE_AUTH_SPACE
+      std::cout << "Step 3: Creating layout candidate space from authblock_lines factors..." << std::endl;
+    #endif
     CreateConcordantLayout(mapping_);
     num_storage_levels = layout_.size();
     num_data_spaces = layout_.at(0).intraline.size();
@@ -1361,8 +1389,10 @@
 
       if (has_non_empty_authblock)
       {
-        std::cout << "  storage level " << lvl << " has non-empty authblock_lines, will generate candidates" << std::endl;
-
+        #ifdef DEBUG_CREATE_AUTH_SPACE
+          std::cout << "  storage level " << lvl << " has non-empty authblock_lines, will generate candidates" << std::endl;
+        #endif
+        
         // Collect variable authblock_lines factors for this level
         for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++)
         {
@@ -1398,18 +1428,25 @@
                   }
                   else
                   {
-                    std::cout << "Warning: dimension ID " << dim_id << " not found or zero division in cumulatively_product_dimval for level " << lvl-1 << " or " << (lvl-2) << std::endl;
+                    #ifdef DEBUG_CREATE_AUTH_SPACE
+                      std::cout << "Warning: dimension ID " << dim_id << " not found or zero division in cumulatively_product_dimval for level " << lvl-1 << " or " << (lvl-2) << std::endl;
+                    #endif
                   }
                 }
               }
 
-              std::cout << " lvl=" << lvl << " ds_idx=" << ds_idx << " rank=" << rank << " dims=[";
+              #ifdef DEBUG_CREATE_AUTH_SPACE
+                std::cout << " lvl=" << lvl << " ds_idx=" << ds_idx << " rank=" << rank << " dims=[";
+              #endif
+              
               for (size_t i = 0; i < dims.size(); i++)
               {
                 std::cout << dims[i];
                 if (i < dims.size() - 1) std::cout << ",";
               }
-              std::cout << "] max_factor(product of ratios cumulatively_product_dimval[" << lvl-1 << "]/cumulatively_product_dimval[" << (lvl-2) << "])=" << max_factor << std::endl;
+              #ifdef DEBUG_CREATE_AUTH_SPACE
+                std::cout << "] max_factor(product of ratios cumulatively_product_dimval[" << lvl-1 << "]/cumulatively_product_dimval[" << (lvl-2) << "])=" << max_factor << std::endl;
+              #endif
 
               // Only add if max_factor > 1 (there are variations possible)
               if (max_factor > 1)
@@ -1418,22 +1455,24 @@
 
                 // Show the divisors that will be used
                 std::vector<uint32_t> divisors = FindDivisors(max_factor);
-                std::cout << "  Variable factor: storage level " << lvl
-                          << ", DataSpace " << ds_idx
-                          << ", Rank " << rank
-                          << ", Dimensions: [";
-                for (size_t i = 0; i < dims.size(); i++)
-                {
-                  std::cout << dims[i];
-                  if (i < dims.size() - 1) std::cout << ",";
-                }
-                std::cout << "], max_factor: " << max_factor << ", divisors: [";
-                for (size_t i = 0; i < divisors.size(); i++)
-                {
-                  std::cout << divisors[i];
-                  if (i < divisors.size() - 1) std::cout << ",";
-                }
-                std::cout << "]" << std::endl;
+                #ifdef DEBUG_CREATE_AUTH_SPACE
+                  std::cout << "  Variable factor: storage level " << lvl
+                            << ", DataSpace " << ds_idx
+                            << ", Rank " << rank
+                            << ", Dimensions: [";
+                  for (size_t i = 0; i < dims.size(); i++)
+                  {
+                    std::cout << dims[i];
+                    if (i < dims.size() - 1) std::cout << ",";
+                  }
+                  std::cout << "], max_factor: " << max_factor << ", divisors: [";
+                  for (size_t i = 0; i < divisors.size(); i++)
+                  {
+                    std::cout << divisors[i];
+                    if (i < divisors.size() - 1) std::cout << ",";
+                  }
+                  std::cout << "]" << std::endl;
+                #endif
               }
             }
           }
@@ -1441,7 +1480,9 @@
       }
       else
       {
-        std::cout << "  storage level " << lvl << " has empty authblock_lines, skipping candidate generation" << std::endl;
+        #ifdef DEBUG_CREATE_AUTH_SPACE
+          std::cout << "  storage level " << lvl << " has empty authblock_lines, skipping candidate generation" << std::endl;
+        #endif
       }
     }
 
@@ -1457,26 +1498,36 @@
         authblock_factor_ranges_.push_back(divisors); // Store all divisors of max_factor
         authblock_candidates *= divisors.size();
       }
-      std::cout << "  Authblock_lines layout candidates: " << authblock_candidates << std::endl;
+      #ifdef DEBUG_CREATE_AUTH_SPACE
+        std::cout << "  Authblock_lines layout candidates: " << authblock_candidates << std::endl;
+      #endif
     }
     else
     {
-      std::cout << "  No variable authblock_lines factors found." << std::endl;
+      #ifdef DEBUG_CREATE_AUTH_SPACE
+        std::cout << "  No variable authblock_lines factors found." << std::endl;
+      #endif
       authblock_candidates = 0;
     }
 
     // Total layout candidates is the sum of all three design spaces
     num_layout_candidates = authblock_candidates + splitting_candidates + packing_candidates;
-    std::cout << "  Total combined layout candidates: " << num_layout_candidates << std::endl;
-    std::cout << "  Variable factors count: " << variable_authblock_factors_.size() << std::endl;
-    std::cout << "  Note: Only using divisors of max_factor for each variable factor" << std::endl;
-    std::cout << "  ✓ Layout candidate space created successfully" << std::endl;
+    #ifdef DEBUG_CREATE_AUTH_SPACE
+      std::cout << "  Splitting Candidates: " << splitting_candidates << std::endl;
+      std::cout << "  Packing Candidates: " << packing_candidates << std::endl;
+      std::cout << "  Total combined layout candidates: " << num_layout_candidates << std::endl;
+      std::cout << "  Variable factors count: " << variable_authblock_factors_.size() << std::endl;
+      std::cout << "  Note: Only using divisors of max_factor for each variable factor" << std::endl;
+      std::cout << "  ✓ Layout candidate space created successfully" << std::endl;
+    #endif
   }
 
   void Legal::SequentialFactorizeLayout(layout::Layouts& layout){
     for (unsigned lvl = 0; lvl < num_storage_levels; lvl++)
     {
-      std::cout << "lvl=" << lvl << " storage_level_line_capacity[lvl]=" << storage_level_line_capacity[lvl] << std::endl;
+      #ifdef DEBUG_CREATE_AUTH_SPACE
+        std::cout << "lvl=" << lvl << " storage_level_line_capacity[lvl]=" << storage_level_line_capacity[lvl] << std::endl;
+      #endif
       for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++)
       {
         // Check if this dataspace is bypassed at this storage level
@@ -1494,23 +1545,35 @@
 
           float splitting_factor = (float)intraline_per_ds / (float)storage_level_line_capacity[lvl];
           // Check if the intraline product of dataspaces is greater than the storage level line capacity
-          std::cout << "Initial splitting_factor: " << splitting_factor << std::endl;
+          #ifdef DEBUG_CREATE_AUTH_SPACE
+            std::cout << "Initial splitting_factor: " << splitting_factor << std::endl;
+          #endif
           for (const auto &r : layout.at(lvl).intraline.at(ds_idx).ranks)
           {
-            std::cout << "  Processing rank " << r << ", current factor: " << layout.at(lvl).intraline.at(ds_idx).factors[r] << std::endl;
+            #ifdef DEBUG_CREATE_AUTH_SPACE
+              std::cout << "  Processing rank " << r << ", current factor: " << layout.at(lvl).intraline.at(ds_idx).factors[r] << std::endl;
+            #endif
             if (layout.at(lvl).intraline.at(ds_idx).factors[r] > 1)
             {
-              std::cout << "  rank: " << r << " intraline factor: " << layout.at(lvl).intraline.at(ds_idx).factors[r] << " -> 1 ";
+              #ifdef DEBUG_CREATE_AUTH_SPACE
+                std::cout << "  rank: " << r << " intraline factor: " << layout.at(lvl).intraline.at(ds_idx).factors[r] << " -> 1 ";
+              #endif
               layout.at(lvl).interline.at(ds_idx).factors[r] *= layout.at(lvl).intraline.at(ds_idx).factors[r];
-              splitting_factor = splitting_factor / (float) layout.at(lvl).intraline.at(ds_idx).factors[r];
+              #ifdef DEBUG_CREATE_AUTH_SPACE
+                splitting_factor = splitting_factor / (float) layout.at(lvl).intraline.at(ds_idx).factors[r];
+              #endif
               layout.at(lvl).intraline.at(ds_idx).factors[r] = 1;
-              std::cout << " new splitting_factor: " << splitting_factor << std::endl;
+              #ifdef DEBUG_CREATE_AUTH_SPACE
+                std::cout << " new splitting_factor: " << splitting_factor << std::endl;
+              #endif
             }
             if (splitting_factor < 1.0)
             {
               break;
             }
-            std::cout << "Final splitting_factor for this iteration: " << splitting_factor << std::endl;
+            #ifdef DEBUG_CREATE_AUTH_SPACE
+              std::cout << "Final splitting_factor for this iteration: " << splitting_factor << std::endl;
+            #endif
           }
         }
       }

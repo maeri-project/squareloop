@@ -272,7 +272,7 @@ Model::Model(config::CompoundConfig* config,
   
   if (existing_layout){
     std::vector<std::pair<std::string, std::pair<uint32_t, uint32_t>>> externalPortMapping;
-    for (auto i: arch_specs_.topology.LevelNames())
+    for (auto i: arch_specs_.topology.StorageLevelNames())
         externalPortMapping.push_back({i, {arch_specs_.topology.GetStorageLevel(i)->num_ports.Get(), arch_specs_.topology.GetStorageLevel(i)->num_ports.Get()}});
 
     layout_ = layout::ParseAndConstruct(compound_config_node_layout, workload_, externalPortMapping);
