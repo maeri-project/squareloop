@@ -509,6 +509,7 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
   }
 
   // Print flattened splitting choices
+#ifdef DEBUG_CONSTRUCTION_LAYOUT
   std::cout << "Splitting choices:" << std::endl;
   std::cout << "Level | DataSpace | Choice" << std::endl;
   std::cout << "------|-----------|--------" << std::endl;
@@ -520,6 +521,7 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
     }
   }
   std::cout << std::endl;
+#endif
 
   // Decode PackingSpace choices using layout_packing_id (interline-to-intraline packing)
   std::vector<std::vector<std::uint64_t>> packing_choice_per_lvl_per_ds(num_storage_levels, std::vector<std::uint64_t>(num_data_spaces, 0));
@@ -532,6 +534,7 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
   }
 
   // Print flattened packing choices
+#ifdef DEBUG_CONSTRUCTION_LAYOUT
   std::cout << "Packing choices:" << std::endl;
   std::cout << "Level | DataSpace | Choice" << std::endl;
   std::cout << "------|-----------|--------" << std::endl;
@@ -543,7 +546,7 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
     }
   }
   std::cout << std::endl;
-
+#endif
 
   // Decode AuthBlockSpace choices using layout_auth_id (authblock factor variations)
   std::vector<uint32_t> authblock_choices(variable_authblock_factors_.size());
@@ -577,7 +580,9 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
     for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++) {
       uint64_t choice = splitting_choice_per_lvl_per_ds[lvl][ds_idx];
       if (!(choice < multi_rank_splitting_options_per_level_per_ds_[lvl][ds_idx].size())){
+#ifdef DEBUG_CONSTRUCTION_LAYOUT
         std::cout << "Note: Do not need to split for storage level " << lvl << ", dataspace " << ds_idx << " because data fits in line capacity." << std::endl;
+#endif
         continue;
       }
       const auto& multi_rank_option = multi_rank_splitting_options_per_level_per_ds_[lvl][ds_idx][choice];
@@ -659,7 +664,9 @@ std::vector<Status> Legal::ConstructLayout(ID layout_id, layout::Layouts* layout
     for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++) {
       uint64_t choice = packing_choice_per_lvl_per_ds[lvl][ds_idx];
       if (!(choice < multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx].size())){
+#ifdef DEBUG_CONSTRUCTION_LAYOUT
         std::cout << "Note: Do not need to pack for storage level " << lvl << ", dataspace " << ds_idx << " because no data could be fitted into a line capacity." << std::endl;
+#endif
         continue;
       }
       const auto& multi_rank_option = multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][choice];
