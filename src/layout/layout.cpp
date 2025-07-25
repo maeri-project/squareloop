@@ -502,21 +502,6 @@ namespace layout
           intranest.factors[r] = 1;
         }
         layout.intraline.push_back(intranest);
-
-        // --- AuthBlock nest with dummy values ---
-        // AuthBlock is left as blank for the memory level that does not need Authentication.
-        if (layout.target == "DRAM" or layout.target == "MainMemory"){
-          LayoutNest authblock_nest;
-          authblock_nest.data_space = ds;
-          authblock_nest.type = "authblock_lines";
-          authblock_nest.ranks = layout.dataSpaceToRank[ds];
-          // Set all factors to 1 for dummy layout
-          for (const auto &r : authblock_nest.ranks)
-          {
-            authblock_nest.factors[r] = 1;
-          }
-          layout.authblock_lines.push_back(authblock_nest);
-        }
       }
 
       layouts.push_back(layout);

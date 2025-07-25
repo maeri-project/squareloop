@@ -232,9 +232,7 @@ mapspaces/ruby.cpp
 """)
 
 layoutspace_sources = Split("""
-layoutspaces/layoutspace-base.cpp
-layoutspaces/layoutspace-factory.cpp
-layoutspaces/legal.cpp
+layoutspaces/layoutspace.cpp
 """)
 
 search_sources = Split("""

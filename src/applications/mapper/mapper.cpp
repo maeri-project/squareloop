@@ -35,7 +35,7 @@
 
 #include "applications/mapper/mapper.hpp"
 #include "layout/layout.hpp"
-#include "layoutspaces/layoutspace-factory.hpp"
+#include "layoutspaces/layoutspace.hpp"
 #include "crypto/crypto.hpp"
 
 //--------------------------------------------//
