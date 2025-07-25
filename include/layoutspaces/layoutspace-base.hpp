@@ -90,11 +90,14 @@ class LayoutSpace
   std::vector<std::map<std::uint32_t, std::uint32_t>> cumulatively_product_dimval;
   std::vector<std::uint32_t> storage_level_total_capacity;
   std::vector<std::uint32_t> storage_level_line_capacity;
+  std::vector<std::vector<bool>> storage_level_bypass_factor; // true as kept, false as bypassed
   std::vector<std::string> kept_data_spaces, bypassed_data_spaces;
   
   uint64_t splitting_candidates;
   uint64_t packing_candidates;
   uint64_t authblock_candidates;
+  std::vector<std::vector<std::uint64_t>> splitting_candidates_per_lvl_per_ds;
+  std::vector<std::vector<std::uint64_t>> packing_candidates_per_lvl_per_ds;
 
   LayoutSpace(model::Engine::Specs arch_specs,
               const Mapping& mapping,
@@ -110,9 +113,11 @@ class LayoutSpace
   virtual std::vector<Status> ConstructLayout(ID layout_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure = true);
 
   // Construct a specific layout using separate IDs for all three design spaces.
-  virtual std::vector<Status> ConstructLayout(uint64_t layout_splitting_id, uint64_t layout_auth_id, uint64_t layout_packing_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure = true);
+  virtual std::vector<Status> ConstructLayout(uint64_t layout_splitting_id, uint64_t layout_packing_id, uint64_t layout_auth_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure = true);
 
   virtual void CreateConcordantLayout(const Mapping& mapping) = 0;
+
+  virtual void SequentialFactorizeLayout(layout::Layouts& layout) = 0;
 
   uint128_t Size(Dimension dim)
   {

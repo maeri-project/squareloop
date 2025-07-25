@@ -1728,7 +1728,6 @@ namespace model
               << " bw/layout = " << num_lines_correction_ratio << std::endl;
 #endif
 
-
     assert(assume_reuse || assume_row_buffer || num_lines_correction_ratio <= 1);
 
     return std::pair<double, double>{slowdown_current_dataspace,

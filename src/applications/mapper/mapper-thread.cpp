@@ -594,7 +594,7 @@ void MapperThread::Run()
 
         // Phase 2: Search PackingSpace (with best SplittingSpace and default AuthSpace=0)
         // Note: authblock_lines clearing from Phase 1 does not affect this phase as layout is reconstructed
-        if (has_valid_layout && layoutspace_->packing_candidates > 1) {
+        if (layoutspace_->packing_candidates > 1) {
 #ifdef DEBUG_SHOW_LAYOUT_SEARCHING
           log_stream_ << "[" << thread_id_ << "] Phase 2: Optimizing PackingSpace with best SplittingSpace=" << best_layout_splitting_id << " (authblock_lines restored)..." << std::endl;
 #endif 
@@ -639,6 +639,7 @@ void MapperThread::Run()
               mapping_specific_best_energy_per_compute = energy_per_compute;
               mapping_specific_best_layout = layout_;
               best_layout_packing_id = layout_packing_id;
+              has_valid_layout = true;
 
               log_stream_ << "[" << thread_id_ << "] NEW PACKING OPTIMAL: ID=" << best_layout_packing_id
                           << ", Latency=" << mapping_specific_best_latency << " cycles"
@@ -742,6 +743,7 @@ void MapperThread::Run()
 
         } else {
           log_stream_ << "[" << thread_id_ << "] No valid layouts found for best mapping or no valid design choice in layout, fall back to concordant layout " << std::endl;
+          layoutspace_->SequentialFactorizeLayout(concordant_layout);
           auto final_status = engine.Evaluate(stats_.thread_best.mapping, workload_, concordant_layout, sparse_optimizations_, crypto_, !diagnostics_on_);
           auto final_topology = engine.GetTopology();
           auto final_stats = final_topology.GetStats();
