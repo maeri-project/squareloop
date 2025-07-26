@@ -13,7 +13,7 @@ if __name__ == "__main__":
   arch_name_component = "/home/ubuntu/squareloop/benchmarks/secureloop-cross-eval/arch/components/*"
   arch_search_constraint = "/home/ubuntu/squareloop/benchmarks/secureloop-cross-eval/arch_constraint/eyeriss_like_arch_constraints.yaml"
   map_search_constraint = "/home/ubuntu/squareloop/benchmarks/secureloop-cross-eval/arch_constraint/eyeriss_like_map_constraints.yaml"
-  mapper_path = "/home/ubuntu/squareloop/benchmarks/secureloop-sanity-check/test_mapper.yaml"
+  mapper_path = "/home/ubuntu/squareloop/benchmarks/mapper/mapper_squarelooop.yaml"
   
   for layer_idx in range(1, 20):
     layer_path = f"/home/ubuntu/squareloop/benchmarks/script/crosslayer_search/test/resnet18/resnet18_layer{layer_idx}.yaml"
