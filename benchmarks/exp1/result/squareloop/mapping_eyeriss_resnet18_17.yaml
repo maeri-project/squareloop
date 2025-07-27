@@ -66,14 +66,14 @@ mapping:
     permutation: CMRSNPQ
   - target: GlobalBuffer
     type: spatial
-    factors: C1 M16 R1 S1 N1 P1 Q1
-    permutation: MCRSNPQ
-    split: 1
+    factors: C1 M2 R1 S1 N1 P1 Q7
+    permutation: QMCRSNP
+    split: 2
   - target: GlobalBuffer
     type: temporal
-    factors: C16 M4 R1 S1 N1 P7 Q1
-    permutation: CPMRSNQ
+    factors: C1 M4 R1 S1 N1 P7 Q1
+    permutation: PMCRSNQ
   - target: MainMemory
     type: temporal
-    factors: C8 M1 R1 S1 N1 P1 Q7
-    permutation: CQMRSNP
+    factors: C128 M8 R1 S1 N1 P1 Q1
+    permutation: CMRSNPQ

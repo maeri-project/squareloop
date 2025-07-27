@@ -1,16 +1,16 @@
-#error Tenssella does not support bypass.
 t2
-C 1 M 2 R 1 S 1 N 1 P 1 Q 1 
-M
+C 3 M 1 R 1 S 1 N 1 P 1 Q 1 
+C
+#error Tenssella does not support bypass.
 #error Tenssella does not support bypass.
 #error Tenssella does not support bypass.
 t1
-C 10 M 40 R 1 S 1 N 1 P 1 Q 1 
-MC
+C 1 M 4 R 1 S 1 N 1 P 1 Q 1 
+M
 s1
-C 16 M 1 R 1 S 1 N 1 P 1 Q 7 
-CQ
+C 6 M 1 R 1 S 1 N 1 P 1 Q 1 
+C
 7
 t0
-C 1 M 12 R 1 S 1 N 1 P 7 Q 1 
-MP
+C 4 M 18 R 5 S 5 N 1 P 28 Q 28 
+CMRSPQ

@@ -1,49 +1,53 @@
 layout:
   - target: MainMemory
     type: interline
-    factors: C=1 M=1 R=1 S=1 N=1 H=1 W=56 Q=56 P=1
-    permutation: CMRSNHWQP
+    factors: C=36 K=9 R=3 S=1 N=1 V=36 H=58 W=3 L=9 Q=7 P=56
+    permutation: CKRSNVHWLQP
   - target: MainMemory
     type: intraline
-    factors: C=1 M=1 R=1 S=1 N=1 H=1 W=1 Q=1 P=1
-    permutation: CMRSNHWQP
-  - target: DummyBuffer
-    type: interline
-    factors: C=12 M=3 R=1 S=1 N=1 H=56 W=1 Q=1 P=56
-    permutation: CMRSNHWQP
-  - target: DummyBuffer
-    type: intraline
-    factors: C=1 M=12 R=1 S=1 N=1 H=1 W=1 Q=1 P=1
-    permutation: CMRSNHWQP
-  - target: RegisterFile
-    type: interline
-    factors: C=1 M=1 R=1 S=1 N=1 H=1 W=1 Q=1 P=1
-    permutation: CMRSNHWQP
-  - target: RegisterFile
-    type: intraline
-    factors: C=3 M=1 R=1 S=3 N=1 H=1 W=3 Q=1 P=1
-    permutation: CMRSNHWQP
+    factors: C=2 K=8 R=1 S=3 N=1 V=2 H=1 W=20 L=8 Q=8 P=1
+    permutation: CKRSNVHWLQP
+  - target: MainMemory
+    type: authblock_lines
+    factors: C=3 K=4 R=1 S=1 N=1 V=3 H=56 W=1 L=4 Q=1 P=56
+    permutation: CKRSNVHWLQP
   - target: GlobalBuffer
     type: interline
-    factors: C=1 M=1 R=1 S=1 N=1 H=1 W=1 Q=1 P=1
-    permutation: CMRSNHWQP
+    factors: C=9 K=18 R=3 S=1 N=1 V=9 H=58 W=1 L=9 Q=1 P=56
+    permutation: CKRSNVHWLQP
   - target: GlobalBuffer
     type: intraline
-    factors: C=1 M=1 R=1 S=1 N=1 H=1 W=1 Q=1 P=1
-    permutation: CMRSNHWQP
+    factors: C=2 K=4 R=1 S=3 N=1 V=2 H=1 W=10 L=8 Q=8 P=1
+    permutation: CKRSNVHWLQP
+  - target: DummyBuffer
+    type: interline
+    factors: C=3 K=9 R=3 S=1 N=1 V=3 H=3 W=1 L=9 Q=1 P=1
+    permutation: CKRSNVHWLQP
+  - target: DummyBuffer
+    type: intraline
+    factors: C=2 K=2 R=1 S=3 N=1 V=2 H=1 W=3 L=2 Q=1 P=1
+    permutation: CKRSNVHWLQP
+  - target: RegisterFile
+    type: interline
+    factors: C=3 K=9 R=3 S=1 N=1 V=3 H=3 W=1 L=9 Q=1 P=1
+    permutation: CKRSNVHWLQP
+  - target: RegisterFile
+    type: intraline
+    factors: C=1 K=1 R=1 S=1 N=1 V=1 H=1 W=1 L=1 Q=1 P=1
+    permutation: CKRSNVHWLQP
   - target: weights_spad
     type: interline
-    factors: C=2 M=1 R=3 S=1 N=1 H=3 W=1 Q=1 P=1
-    permutation: CMRSNHWQP
+    factors: C=3 K=9 R=3 S=1 N=1 V=3 H=3 W=1 L=9 Q=1 P=1
+    permutation: CKRSNVHWLQP
   - target: weights_spad
     type: intraline
-    factors: C=1 M=1 R=1 S=1 N=1 H=1 W=1 Q=1 P=1
-    permutation: CMRSNHWQP
+    factors: C=1 K=1 R=1 S=1 N=1 V=1 H=1 W=1 L=1 Q=1 P=1
+    permutation: CKRSNVHWLQP
   - target: ofmap_spad
     type: interline
-    factors: C=1 M=2 R=1 S=1 N=1 H=1 W=1 Q=1 P=1
-    permutation: CMRSNHWQP
+    factors: C=1 K=9 R=1 S=1 N=1 V=1 H=1 W=1 L=9 Q=1 P=1
+    permutation: CKRSNVHWLQP
   - target: ofmap_spad
     type: intraline
-    factors: C=1 M=1 R=1 S=1 N=1 H=1 W=1 Q=1 P=1
-    permutation: CMRSNHWQP
+    factors: C=1 K=1 R=1 S=1 N=1 V=1 H=1 W=1 L=1 Q=1 P=1
+    permutation: CKRSNVHWLQP
