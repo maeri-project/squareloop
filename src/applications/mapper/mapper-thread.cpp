@@ -33,6 +33,7 @@
 // #define DEBUG_SHOW_MAPPING_LAYOUT
 // #define DEBUG_SHOW_LAYOUT_SEARCHING
 // #define BANDWIDTH_MODEL_MAPPING_SEARCH // uncomment out to use memory bandwidth-based mapping search.
+#define NO_IMPROVEMENT_COUNTER_THRESHOLD 10
 #define LESS_IMPROVEMENT_COUNTER_THRESHOLD 10
 
 bool gTerminate = false;
@@ -692,6 +693,7 @@ void MapperThread::Run()
           mapping_specific_best_latency = UINT64_MAX;
           mapping_specific_best_energy_per_compute = std::numeric_limits<double>::max();
           uint32_t less_improvement_counter = 0;
+          uint32_t no_improvement_counter = 0;
 
           std::random_device rd;
           std::mt19937 gen(rd());
@@ -727,6 +729,7 @@ void MapperThread::Run()
               is_better = true;
               improvement_reason = "AuthSpace: better latency";
               less_improvement_counter = 0;
+              no_improvement_counter = 0;
             }
             else if (runtime_latency == mapping_specific_best_latency && energy_per_compute < mapping_specific_best_energy_per_compute) {
               is_better = true;
@@ -734,6 +737,10 @@ void MapperThread::Run()
               if ((mapping_specific_best_energy_per_compute - energy_per_compute) < 0.1) {
                 less_improvement_counter++;
               }
+            }
+            else
+            {
+              no_improvement_counter ++;
             }
 
             if (is_better) {
@@ -748,7 +755,7 @@ void MapperThread::Run()
                           << " (" << improvement_reason << ")" << std::endl;
             }
 
-            if (less_improvement_counter > LESS_IMPROVEMENT_COUNTER_THRESHOLD) {
+            if (less_improvement_counter > LESS_IMPROVEMENT_COUNTER_THRESHOLD || no_improvement_counter > NO_IMPROVEMENT_COUNTER_THRESHOLD) {
               break;
             }
           }
