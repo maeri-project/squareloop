@@ -33,6 +33,7 @@
 // #define DEBUG_SHOW_MAPPING_LAYOUT
 // #define DEBUG_SHOW_LAYOUT_SEARCHING
 // #define BANDWIDTH_MODEL_MAPPING_SEARCH // uncomment out to use memory bandwidth-based mapping search.
+#define LESS_IMPROVEMENT_COUNTER_THRESHOLD 10
 
 bool gTerminate = false;
 
@@ -690,9 +691,14 @@ void MapperThread::Run()
           log_stream_ << "[" << thread_id_ << "] Add AuthBlock and reinitializes best efficiency and latency" << std::endl;
           mapping_specific_best_latency = UINT64_MAX;
           mapping_specific_best_energy_per_compute = std::numeric_limits<double>::max();
+          uint32_t less_improvement_counter = 0;
 
-          for (uint64_t layout_auth_id = 0; layout_auth_id < layoutspace_->authblock_candidates; layout_auth_id++)
+          std::random_device rd;
+          std::mt19937 gen(rd());
+          std::uniform_int_distribution<uint64_t> dist(0, layoutspace_->authblock_candidates - 1);
+          for (uint64_t i = 0; i < layoutspace_->authblock_candidates; i++)
           {
+            uint64_t layout_auth_id = dist(gen);
 #ifdef DEBUG_SHOW_LAYOUT_SEARCHING
             log_stream_ << "[" << thread_id_ << "] Testing AuthSpace " << layout_auth_id << "/" << layoutspace_->authblock_candidates << std::endl;
 #endif 
@@ -720,10 +726,14 @@ void MapperThread::Run()
             if (runtime_latency < mapping_specific_best_latency) {
               is_better = true;
               improvement_reason = "AuthSpace: better latency";
+              less_improvement_counter = 0;
             }
             else if (runtime_latency == mapping_specific_best_latency && energy_per_compute < mapping_specific_best_energy_per_compute) {
               is_better = true;
               improvement_reason = "AuthSpace: same latency, better energy efficiency";
+              if ((mapping_specific_best_energy_per_compute - energy_per_compute) < 0.1) {
+                less_improvement_counter++;
+              }
             }
 
             if (is_better) {
@@ -736,6 +746,10 @@ void MapperThread::Run()
                           << ", Latency=" << mapping_specific_best_latency << " cycles"
                           << ", Energy/Compute=" << mapping_specific_best_energy_per_compute << " pJ/compute"
                           << " (" << improvement_reason << ")" << std::endl;
+            }
+
+            if (less_improvement_counter > LESS_IMPROVEMENT_COUNTER_THRESHOLD) {
+              break;
             }
           }
         }

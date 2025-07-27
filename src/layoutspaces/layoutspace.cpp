@@ -1415,11 +1415,11 @@
               {
                 for (uint32_t dim_id : dims)
                 {
-                  auto cumulative_it_lvl = cumulatively_product_dimval[lvl-1].find(dim_id);
-                  auto cumulative_it_lvl_minus_1 = cumulatively_product_dimval[lvl-2].find(dim_id);
+                  auto cumulative_it_lvl = cumulatively_product_dimval[lvl].find(dim_id);
+                  auto cumulative_it_lvl_minus_1 = cumulatively_intraline_dimval[lvl].find(dim_id);
 
-                  if (cumulative_it_lvl != cumulatively_product_dimval[lvl-1].end() &&
-                      cumulative_it_lvl_minus_1 != cumulatively_product_dimval[lvl-2].end() &&
+                  if (cumulative_it_lvl != cumulatively_product_dimval[lvl].end() &&
+                      cumulative_it_lvl_minus_1 != cumulatively_intraline_dimval[lvl].end() &&
                       cumulative_it_lvl_minus_1->second != 0)
                   {
                     assert(cumulative_it_lvl_minus_1->second > 0 && "Division by zero in ratio calculation");
@@ -1429,7 +1429,7 @@
                   else
                   {
                     #ifdef DEBUG_CREATE_AUTH_SPACE
-                      std::cout << "Warning: dimension ID " << dim_id << " not found or zero division in cumulatively_product_dimval for level " << lvl-1 << " or " << (lvl-2) << std::endl;
+                      std::cout << "Warning: dimension ID " << dim_id << " not found or zero division in cumulatively_product_dimval for level " << lvl << " or cumulatively_intraline_dimval for level " << lvl << std::endl;
                     #endif
                   }
                 }
@@ -1445,7 +1445,7 @@
                 if (i < dims.size() - 1) std::cout << ",";
               }
               #ifdef DEBUG_CREATE_AUTH_SPACE
-                std::cout << "] max_factor(product of ratios cumulatively_product_dimval[" << lvl-1 << "]/cumulatively_product_dimval[" << (lvl-2) << "])=" << max_factor << std::endl;
+                std::cout << "] max_factor(product of ratios cumulatively_product_dimval[" << lvl << "]/cumulatively_intraline_dimval[" << lvl << "])=" << max_factor << std::endl;
               #endif
 
               // Only add if max_factor > 1 (there are variations possible)
