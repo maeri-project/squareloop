@@ -1,0 +1,40 @@
+mapping:
+  - target: pe_spad
+    type: datatype
+    keep:
+      - Weights
+    bypass:
+      - Inputs
+      - Outputs
+  - target: shared_glb
+    type: datatype
+    keep:
+      - Inputs
+      - Outputs
+    bypass:
+      - Weights
+  - target: DRAM
+    type: datatype
+    keep:
+      - Weights
+      - Inputs
+      - Outputs
+    bypass:
+      []
+  - target: pe_spad
+    type: temporal
+    factors: C10 M6 R1 S1 N1 P2 Q7
+    permutation: CMPQRSN
+  - target: shared_glb
+    type: spatial
+    factors: C2 M8 R1 S1 N1 P7 Q1
+    permutation: CMPRSNQ
+    split: 3
+  - target: shared_glb
+    type: temporal
+    factors: C2 M5 R3 S3 N1 P1 Q2
+    permutation: QMSCRNP
+  - target: DRAM
+    type: temporal
+    factors: C6 M1 R1 S1 N1 P1 Q1
+    permutation: CMRSNPQ

@@ -1,0 +1,53 @@
+layout:
+- factors: 'N=1 C=1 V=1 K=1 L=1 P=1 Q=1 R=1 S=1 H=1 W=1 '
+  permutation: NCVKLPQRSHW
+  target: ofmap_spad
+  type: intraline
+- factors: 'N=1 C=1 P=1 Q=1 R=1 S=1 V=1 K=1 L=1 H=1 W=1 '
+  permutation: NCPQRSVKLHW
+  target: ofmap_spad
+  type: interline
+- factors: 'N=1 C=1 V=1 K=1 L=1 P=1 Q=1 R=1 S=1 H=1 W=1 '
+  permutation: NCVKLPQRSHW
+  target: weights_spad
+  type: intraline
+- factors: 'N=1 C=1 P=1 Q=1 R=1 S=1 V=1 K=24 L=24 H=1 W=1 '
+  permutation: NCPQRSVKLHW
+  target: weights_spad
+  type: interline
+- factors: 'N=1 C=1 V=1 K=1 L=1 P=1 Q=1 R=1 S=1 H=1 W=1 '
+  permutation: NCVKLPQRSHW
+  target: RegisterFile
+  type: intraline
+- factors: 'N=1 C=10 P=1 Q=1 R=1 S=1 V=10 K=24 L=24 H=1 W=1 '
+  permutation: NCPQRSVKLHW
+  target: RegisterFile
+  type: interline
+- factors: 'N=1 C=1 V=1 K=1 L=1 P=1 Q=1 R=1 S=1 H=1 W=1 '
+  permutation: NCVKLPQRSHW
+  target: DummyBuffer
+  type: intraline
+- factors: 'N=1 C=10 P=1 Q=1 R=1 S=1 V=10 K=24 L=24 H=1 W=1 '
+  permutation: NCPQRSVKLHW
+  target: DummyBuffer
+  type: interline
+- factors: 'N=1 C=1 V=1 K=10 L=10 P=6 Q=1 R=1 S=1 H=14 W=1 '
+  permutation: NCVKLPQRSHW
+  target: GlobalBuffer
+  type: intraline
+- factors: 'N=1 C=80 P=1 Q=1 R=1 S=1 V=80 K=5 L=5 H=1 W=1 '
+  permutation: NCPQRSVKLHW
+  target: GlobalBuffer
+  type: interline
+- factors: 'C=8 K=8 R=1 S=1 N=1 V=8 H=2 W=1 L=16 Q=1 P=2 '
+  permutation: NCVKLPQRSHW
+  target: MainMemory
+  type: intraline
+- factors: 'N=1 C=80 P=14 Q=1 R=1 S=1 V=80 K=480 L=480 H=14 W=1 '
+  permutation: NCPQRSVKLHW
+  target: MainMemory
+  type: interline
+- factors: 'C=10 K=60 R=1 S=1 N=1 V=10 H=7 W=1 L=30 Q=1 P=7 '
+  permutation: NCVKLPQRSHW
+  target: MainMemory
+  type: authblock_lines

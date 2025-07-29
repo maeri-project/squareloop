@@ -1,0 +1,69 @@
+architecture:
+  # ============================================================
+  # Architecture Description
+  # ============================================================
+  version: 0.3
+  subtree:
+    - name: system
+      local:
+        - name: DRAM
+          class: DRAM
+          attributes:
+            width: 1024
+            n_banks: 32
+            block_size: 64
+            word_bits: 16
+            read_bandwidth: 128
+            write_bandwidth: 128
+      subtree:
+        - name: eyeriss
+          attributes:
+            technology: 45nm
+          local:
+            - name: shared_glb
+              class: smartbuffer_SRAM
+              attributes:
+                memory_depth: 8192
+                memory_width: 1024
+                n_banks: 32
+                word_bits: 16
+                block_size: 64
+                read_bandwidth: 64
+                write_bandwidth: 64
+            - name: DummyBuffer[0..15] # for better mapping
+              class: regfile
+              attributes:
+                depth: 16
+                width: 16
+                word_bits: 16
+                meshX: 16
+          subtree:
+          - name: PE[0..255]
+            local:
+              - name: ifmap_spad
+                class: smartbuffer_RF
+                attributes:
+                  memory_depth: 16
+                  memory_width: 16
+                  word_bits: 16
+                  meshX: 16
+              - name: weights_spad
+                class: smartbuffer_RF
+                attributes:
+                  memory_depth: 256
+                  memory_width: 16
+                  word_bits: 16
+                  meshX: 16
+              - name: psum_spad
+                class: smartbuffer_RF
+                attributes:
+                  memory_depth: 64
+                  memory_width: 16
+                  update_fifo_depth: 2
+                  word_bits: 16
+                  meshX: 16
+              - name: mac
+                class: intmac
+                attributes:
+                  datawidth: 16
+                  meshX: 16

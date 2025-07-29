@@ -1,0 +1,23 @@
+[  0] Utilization = 0.00 | pJ/Compute = 287126.978 | L2[WIO] M2 - L1[] R7 M2 M16X - L0[] Q112 P112 S7 C3  | Cycles = 136102400
+[  0] Utilization = 0.00 | pJ/Compute = 193170.569 | L2[WIO] M2 - L1[] R7 M2 M16X - L0[W] Q112 P112 S7 C3  | Cycles = 136102400
+[  5] Utilization = 0.00 | pJ/Compute = 304736.631 | L2[WIO] M2 - L1[] R7 M2 M8X C3X - L0[] Q112 P112 S7 M2  | Cycles = 143603713
+[  2] Utilization = 0.00 | pJ/Compute = 287126.978 | L2[WIO] M2 - L1[] R7 C3 M2 M16X - L0[] Q112 P112 S7  | Cycles = 136102400
+[  4] Utilization = 0.00 | pJ/Compute = 288757.226 | L2[WIO] M2 - L1[] R7 M2 M8X - L0[] Q112 P112 S7 M2 C3  | Cycles = 143954945
+[  7] Utilization = 0.00 | pJ/Compute = 117754.740 | L2[WIO] M2 C3 - L1[] R7 M2 M8X - L0[] Q112 P112 S7 M2  | Cycles = 138903894
+[  3] Utilization = 0.00 | pJ/Compute = 114874.718 | L2[WIO] M2 C3 - L1[] R7 M2 M16X - L0[] Q112 P112 S7  | Cycles = 133509974
+[  1] Utilization = 0.00 | pJ/Compute = 309881.066 | L2[WIO] M2 - L1[] R7 M2 M16X C3X - L0[] Q112 P112 S7  | Cycles = 145861632
+[  6] Utilization = 0.00 | pJ/Compute = 288757.226 | L2[WIO] M2 - L1[] R7 C3 M2 M8X - L0[] Q112 P112 S7 M2  | Cycles = 143954945
+[  0] Utilization = 0.06 | pJ/Compute = 6129.705 | L2[WIO] M2 - L1[W] R7 M2 M16X - L0[] Q112 P112 S7 C3  | Cycles = 7777280
+[  5] Utilization = 0.00 | pJ/Compute = 134017.056 | L2[WIO] M2 - L1[] R7 M2 M8X C3X - L0[W] Q112 P112 S7 M2  | Cycles = 143603713
+[  7] Utilization = 0.00 | pJ/Compute = 79994.596 | L2[WIO] M2 C3 - L1[] R7 M2 M8X - L0[W] Q112 P112 S7 M2  | Cycles = 138903894
+[  2] Utilization = 0.00 | pJ/Compute = 193170.569 | L2[WIO] M2 - L1[] R7 C3 M2 M16X - L0[W] Q112 P112 S7  | Cycles = 136102400
+[  4] Utilization = 0.00 | pJ/Compute = 196161.278 | L2[WIO] M2 - L1[] R7 M2 M8X - L0[W] Q112 P112 S7 M2 C3  | Cycles = 143954945
+[  3] Utilization = 0.00 | pJ/Compute = 77284.667 | L2[WIO] M2 C3 - L1[] R7 M2 M16X - L0[W] Q112 P112 S7  | Cycles = 133509974
+[  1] Utilization = 0.00 | pJ/Compute = 129979.907 | L2[WIO] M2 - L1[] R7 M2 M16X C3X - L0[W] Q112 P112 S7  | Cycles = 145861632
+[  6] Utilization = 0.00 | pJ/Compute = 196161.278 | L2[WIO] M2 - L1[] R7 C3 M2 M8X - L0[W] Q112 P112 S7 M2  | Cycles = 143954945
+[  5] Utilization = 0.09 | pJ/Compute = 2340.643 | L2[WIO] M2 - L1[W] R7 M2 M8X C3X - L0[] Q112 P112 S7 M2  | Cycles = 5318656
+[  2] Utilization = 0.06 | pJ/Compute = 6129.701 | L2[WIO] M2 - L1[W] R7 C3 M2 M16X - L0[] Q112 P112 S7  | Cycles = 7777280
+[  4] Utilization = 0.03 | pJ/Compute = 6316.074 | L2[WIO] M2 - L1[W] R7 M2 M8X - L0[] Q112 P112 S7 M2 C3  | Cycles = 15153152
+ERROR: GlobalBuffer memory line infered from layout (48[  3] Utilization = 0.06 | pJ/Compute = 3344.290 | L2[WIO] M2 C3 - L1[W] R7 M2 M16X - L0[] Q112 P112 S7  | Cycles = ) is longer than allowed by architecture (777728032
+)
+[  7] Utilization = 0.03 | pJ/Compute = 3445.970 | L2[WIO] M2 C3 - L1[W] R7 M2 M8X - L0[] Q112 P112 S7 M2  | Cycles = 15153152

@@ -1,0 +1,21 @@
+MainMemory [ Weights:512000 (512000) Inputs:512 (512) Outputs:1000 (1000) ] 
+---------------------------------------------------------------------------
+| for M in [0:125)
+
+GlobalBuffer [ Inputs:512 (512) Outputs:8 (8) ] 
+-----------------------------------------------
+|   for C in [0:2)
+|     for M in [0:8) (Spatial-X)
+
+DummyBuffer [ ] 
+---------------
+|       for C in [0:16) (Spatial-Y)
+
+RegisterFile [ Inputs:16 (16) ] 
+weights_spad [ Weights:16 (16) ] 
+--------------------------------
+|         for C in [0:16)
+
+ofmap_spad [ Outputs:1 (1) ] 
+----------------------------
+|           << Compute >>

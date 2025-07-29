@@ -1,0 +1,29 @@
+layout:
+- factors: 'N=1 C=1 V=1 K=1 L=1 P=1 Q=1 R=1 S=1 H=1 W=1 '
+  permutation: NCVKLPQRSHW
+  target: RegisterFile
+  type: intraline
+- factors: 'N=1 C=1 P=1 Q=1 R=1 S=1 V=1 K=1 L=1 H=1 W=1 '
+  permutation: NCPQRSVKLHW
+  target: RegisterFile
+  type: interline
+- factors: 'N=1 C=3 V=3 K=1 L=1 P=8 Q=7 R=1 S=3 H=8 W=2 '
+  permutation: NCVKLPQRSHW
+  target: GlobalBuffer
+  type: intraline
+- factors: 'N=1 C=1 P=1 Q=1 R=3 S=1 V=1 K=16 L=16 H=2 W=1 '
+  permutation: NCPQRSVKLHW
+  target: GlobalBuffer
+  type: interline
+- factors: 'C=1 K=16 R=1 S=1 N=1 V=1 H=1 W=1 L=16 Q=1 P=1 '
+  permutation: NCVKLPQRSHW
+  target: MainMemory
+  type: intraline
+- factors: 'N=1 C=3 P=112 Q=28 R=3 S=3 V=3 K=16 L=16 H=114 W=29 '
+  permutation: NCPQRSVKLHW
+  target: MainMemory
+  type: interline
+- factors: 'C=3 K=1 R=3 S=3 N=1 V=3 H=223 W=112 L=1 Q=56 P=112 '
+  permutation: NCVKLPQRSHW
+  target: MainMemory
+  type: authblock_lines

@@ -1,0 +1,32 @@
+mapping:
+- factors: 'N=1 M=1 C=3 P=28 Q=1 R=1 S=5 '
+  permutation: CSPNMQR
+  target: pe_spad
+  type: temporal
+- bypass:
+  - Inputs
+  keep:
+  - Weights
+  - Outputs
+  target: pe_spad
+  type: bypass
+- factors: 'N=1 M=3 C=1 P=1 Q=1 R=5 S=1 '
+  permutation: RMNCPQS
+  target: shared_glb
+  type: temporal
+- factors: 'N=1 M=10 C=20 P=1 Q=1 R=1 S=1 '
+  permutation: MCNPQRS
+  split: 2
+  target: shared_glb
+  type: spatial
+- bypass:
+  - Outputs
+  keep:
+  - Weights
+  - Inputs
+  target: shared_glb
+  type: bypass
+- factors: 'N=1 M=4 C=2 P=1 Q=28 R=1 S=1 '
+  permutation: QCMNPRS
+  target: DRAM
+  type: temporal

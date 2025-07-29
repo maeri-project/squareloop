@@ -1,0 +1,3 @@
+Iter,Temp,Cost (J x cycles),Total Latency (cycles),Total Energy (uJ),Additional Off-chip Traffic (bits)
+1,100.0,8607474.81052608,68699.0,125.29257792,4032.0
+2,0.1,8607474.81052608,69149.0,126.07257792,4032.0

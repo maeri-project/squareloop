@@ -1,0 +1,66 @@
+architecture:
+  subtree:
+  - local:
+    - attributes:
+        block_size: 64
+        n_banks: 32
+        read_bandwidth: 128
+        width: 1024
+        word_bits: 16
+        write_bandwidth: 128
+      class: DRAM
+      name: DRAM
+    name: system
+    subtree:
+    - attributes:
+        technology: 45nm
+      local:
+      - attributes:
+          block_size: 64
+          memory_depth: 8192
+          memory_width: 1024
+          n_banks: 32
+          read_bandwidth: 64
+          word_bits: 16
+          write_bandwidth: 64
+        class: smartbuffer_SRAM
+        name: shared_glb
+      - attributes:
+          depth: 16
+          meshX: 16
+          width: 16
+          word_bits: 16
+        class: regfile
+        name: DummyBuffer[0..15]
+      name: eyeriss
+      subtree:
+      - local:
+        - attributes:
+            memory_depth: 16
+            memory_width: 16
+            meshX: 16
+            word_bits: 16
+          class: smartbuffer_RF
+          name: ifmap_spad
+        - attributes:
+            memory_depth: 256
+            memory_width: 16
+            meshX: 16
+            word_bits: 16
+          class: smartbuffer_RF
+          name: weights_spad
+        - attributes:
+            memory_depth: 64
+            memory_width: 16
+            meshX: 16
+            update_fifo_depth: 2
+            word_bits: 16
+          class: smartbuffer_RF
+          name: psum_spad
+        - attributes:
+            datawidth: 16
+            meshX: 16
+          class: intmac
+          name: mac
+        name: PE[0..255]
+  version: 0.3
