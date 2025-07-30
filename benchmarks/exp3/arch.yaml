@@ -9,12 +9,12 @@ architecture:
         - name: MainMemory
           class: DRAM
           attributes:
-            width: 512
+            width: 4096
             n_banks: 32
-            block_size: 32
+            block_size: 256
             word_bits: 16
-            read_bandwidth: 64
-            write_bandwidth: 64
+            read_bandwidth: 512
+            write_bandwidth: 512
       subtree:
         - name: eyeriss
           attributes:
@@ -24,12 +24,12 @@ architecture:
               class: smartbuffer_SRAM
               attributes:
                 memory_depth: 8192
-                memory_width: 512
+                memory_width: 4096
                 n_banks: 32
                 word_bits: 16
-                block_size: 32
-                read_bandwidth: 32
-                write_bandwidth: 32
+                block_size: 256
+                read_bandwidth: 256
+                write_bandwidth: 256
             - name: DummyBuffer[0..15] # for better mapping
               class: regfile
               attributes:

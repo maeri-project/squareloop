@@ -1,17 +1,17 @@
 import time
 import subprocess
 
-timeloop_regular_ld_path = 'LD_LIBRARY_PATH=/home/ubuntu/repo/timeloop/build:$LD_LIBRARY_PATH'
-timeloop_regular_path = '/home/ubuntu/repo/timeloop/build/'
+timeloop_regular_ld_path = 'LD_LIBRARY_PATH=/home/workspace/timeloop/build:$LD_LIBRARY_PATH'
+timeloop_regular_path = '/home/workspace/timeloop/build/'
 timeloop_regular_mapper = timeloop_regular_path + 'timeloop-mapper'
 timeloop_regular_model = timeloop_regular_path + 'timeloop-model'
 
-timeloop_ld_path = 'LD_LIBRARY_PATH=/home/ubuntu/repo/squareloop/build:$LD_LIBRARY_PATH'
-timeloop_path = '/home/ubuntu/repo/squareloop/build/'
+timeloop_ld_path = 'LD_LIBRARY_PATH=/home/workspace/squareloop/build:$LD_LIBRARY_PATH'
+timeloop_path = '/home/workspace/squareloop/build/'
 timeloop_mapper = timeloop_path + 'timeloop-mapper'
 timeloop_model = timeloop_path + 'timeloop-model'
 
-exp1_dir = '/home/ubuntu/repo/squareloop/benchmarks/exp3/'
+exp1_dir = '/home/workspace/squareloop/benchmarks/exp3/'
 
 csv_file = exp1_dir + 'result/stats.csv'
 
@@ -258,10 +258,9 @@ with open(csv_file, 'w') as f:
 arch = 'eyeriss'
 model = 'mobv3'
 layer = 2
-block_size_options = [32, 64, 128, 256]
+block_size_options = [4, 8, 16, 32, 64, 128, 256]
 for block_size in block_size_options:
     print("MAP", arch, model, "layer", layer, "block_size", block_size)
     run_mapper(arch, model, layer, block_size)
-for block_size in block_size_options:
     print("NOCRYPTO", arch, model, "layer", layer, "block_size", block_size)
     run_mapper_no_crypto(arch, model, layer, block_size)
