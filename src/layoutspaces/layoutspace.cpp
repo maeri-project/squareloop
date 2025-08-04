@@ -1313,10 +1313,6 @@
       std::cout << std::endl;
     #endif
 
-    //  if (splitting_candidates == 1)
-    //    splitting_candidates = 0;
-    //  std::cout << "Splitting layout candidates: " << splitting_candidates << std::endl;
-
     // cross_dataspace_multi_rank_packing_options_per_level_
     packing_candidates_per_lvl_per_ds.clear();
     packing_candidates_per_lvl_per_ds.resize(num_storage_levels, std::vector<std::uint64_t>(num_data_spaces, 1));
@@ -1347,10 +1343,6 @@
       }
       std::cout << std::endl;
     #endif
-
-    //  if (packing_candidates == 1)
-    //    packing_candidates = 0;
-    //  std::cout << "Packing layout candidates: " << packing_candidates << std::endl;
   }
 
 
@@ -1392,7 +1384,7 @@
         #ifdef DEBUG_CREATE_AUTH_SPACE
           std::cout << "  storage level " << lvl << " has non-empty authblock_lines, will generate candidates" << std::endl;
         #endif
-        
+
         // Collect variable authblock_lines factors for this level
         for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++)
         {
@@ -1438,7 +1430,7 @@
               #ifdef DEBUG_CREATE_AUTH_SPACE
                 std::cout << " lvl=" << lvl << " ds_idx=" << ds_idx << " rank=" << rank << " dims=[";
               #endif
-              
+
               for (size_t i = 0; i < dims.size(); i++)
               {
                 std::cout << dims[i];
