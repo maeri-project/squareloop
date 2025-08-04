@@ -1,0 +1,66 @@
+sparse_optimizations:
+  targets:
+  - name: MainMemory
+    representation-format:
+      data-spaces:
+        - name: A
+          ranks:
+            - format: B
+            - format: B
+            - format: B             
+            - format: B             
+              flattened-rankIDs: [ [ K, K ] ]
+              metadata-word-bits: 4
+          rank-application-order: inner-to-outer
+        - name: B
+          ranks:
+            - format: UOP
+            - format: UOP
+          rank-application-order: inner-to-outer
+
+  - name: GlobalBuffer
+    representation-format:
+      data-spaces:
+        - name: A
+          ranks: 
+            - format: B            
+            - format: B             
+              flattened-rankIDs: [ [ K, K ] ]
+              metadata-word-bits: 4
+          rank-application-order: inner-to-outer
+        - name: B
+          ranks:
+            - format: UOP
+            - format: UOP
+          rank-application-order: inner-to-outer
+    action-optimization:
+      - type: skipping
+        options:
+          - target: B
+            condition-on: [ A ]
+    #  - type: skipping
+    #    options:
+    #      - target: Z
+    #        condition-on: [ A ]
+          
+  - name: RegisterFile
+    representation-format:
+      data-spaces:
+        - name: A
+          ranks: 
+            - format: B
+              metadata-word-bits: 4
+          rank-application-order: inner-to-outer
+    #action-optimization:
+    #  - type: skipping
+    #    options:
+    #      - target: B
+    #        condition-on: [ A ]
+    #    options:
+    #      - target: A
+    #        condition-on: [ B ]
+
+  - name: MACC
+    #compute-optimization:
+    #- type: skipping
+

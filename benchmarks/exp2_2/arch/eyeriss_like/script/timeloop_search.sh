@@ -1,1 +1,0 @@
-timeloop-mapper ../layer_shapes/CONV/ResNet50/resnet50_1.yaml ../arch_designs/eyeriss_like/arch/eyeriss_like.yaml ../arch_designs/eyeriss_like/arch/components/* ../arch_designs/eyeriss_like/mapper/mapper.yaml  ../arch_designs/eyeriss_like/constraints/eyeriss_like_arch_constraints.yaml  ../arch_designs/eyeriss_like/constraints/eyeriss_like_map_constraints.yaml

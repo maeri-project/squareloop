@@ -1,0 +1,30 @@
+problem:
+  version: 0.4
+  instance:
+    K: 16
+    M: 1
+    N: 1
+    densities:
+      A:
+        density: 0.48
+        distribution: fixed_structured
+  shape:
+    name: gemm_ABZ
+    dimensions:
+    - M
+    - N
+    - K   
+    data_spaces:
+    - name: A
+      projection:
+      - - - M
+      - - - K
+    - name: B
+      projection:
+      - - - N
+      - - - K
+    - name: Z
+      projection:
+      - - - M
+      - - - N
+      read_write: true
