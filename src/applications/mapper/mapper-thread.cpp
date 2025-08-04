@@ -650,7 +650,7 @@ void MapperThread::Run()
       double mapping_specific_best_energy_per_compute = std::numeric_limits<double>::max();
       layout::Layouts mapping_specific_best_layout;
       bool has_valid_layout = false;
-
+      
       // Track best IDs for each design space
       uint64_t local_best_layout_splitting_id = 0;
       uint64_t local_best_layout_packing_id = 0;
@@ -964,10 +964,10 @@ void MapperThread::Run()
         double improvement = stats_.thread_best.valid ?
           (Cost(stats_.thread_best.stats, optimization_metrics_.at(0)) - Cost(stats, optimization_metrics_.at(0))) /
           Cost(stats_.thread_best.stats, optimization_metrics_.at(0)) : 1.0;
-        // mutex_->lock();
-        // log_stream_ << "[" << thread_id_ << "] UPDATE " << total_mappings << " " << valid_mappings
-        //             << " " << mappings_since_last_best_update << " " << improvement << std::endl;
-        // mutex_->unlock();
+        mutex_->lock();
+        log_stream_ << "[" << thread_id_ << "] UPDATE " << total_mappings << " " << valid_mappings
+                    << " " << mappings_since_last_best_update << " " << improvement << std::endl;
+        mutex_->unlock();
       }
 
       if (!log_suboptimal_)

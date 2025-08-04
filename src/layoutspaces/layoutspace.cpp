@@ -1429,14 +1429,11 @@
 
               #ifdef DEBUG_CREATE_AUTH_SPACE
                 std::cout << " lvl=" << lvl << " ds_idx=" << ds_idx << " rank=" << rank << " dims=[";
-              #endif
-
-              for (size_t i = 0; i < dims.size(); i++)
-              {
-                std::cout << dims[i];
-                if (i < dims.size() - 1) std::cout << ",";
-              }
-              #ifdef DEBUG_CREATE_AUTH_SPACE
+                for (size_t i = 0; i < dims.size(); i++)
+                {
+                  std::cout << dims[i];
+                  if (i < dims.size() - 1) std::cout << ",";
+                }
                 std::cout << "] max_factor(product of ratios cumulatively_product_dimval[" << lvl << "]/cumulatively_intraline_dimval[" << lvl << "])=" << max_factor << std::endl;
               #endif
 

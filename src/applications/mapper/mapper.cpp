@@ -109,7 +109,6 @@ Mapper::Mapper(config::CompoundConfig* config,
       std::cout << pro2  << " ";
     }
     std::cout << std::endl;
-    index++;
   }
   std::cout << std::endl;
   std::cout << "Overall Workload Dimension" << std::endl;
