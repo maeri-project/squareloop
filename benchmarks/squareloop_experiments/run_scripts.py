@@ -4,8 +4,8 @@ import yaml
 import copy
 import numpy as np
 
-timeloop_dir = '/home/ubuntu/repo/timeloop/'
-squareloop_dir = '/home/ubuntu/repo/squareloop/'
+timeloop_dir = '/home/workspace/timeloop/'
+squareloop_dir = '/home/workspace/squareloop/'
 
 timeloop_ld_path = 'LD_LIBRARY_PATH=' + timeloop_dir + 'build:$LD_LIBRARY_PATH'
 timeloop_path = timeloop_dir + 'build/'
@@ -25,12 +25,6 @@ mapper_file = benchmarks_dir + 'mapper/mapper_squareloop.yaml'
 
 crypto_file = benchmarks_dir + 'crypto/AES-GCM-parallel.yaml'
 
-arch_path = {
-    'eyeriss' : benchmarks_dir + 'arch_designs/eyeriss_like/arch/eyeriss_like.yaml ' + benchmarks_dir + 'arch_designs/eyeriss_like/arch/components/* ' + benchmarks_dir + 'arch_designs/eyeriss_like/constraints/*',
-    'systolic' : benchmarks_dir + 'arch_designs/vector_256.yaml ' + benchmarks_dir + 'arch_designs/systolic_constraint/mapspace_XY_OS.yaml',
-    'vector256' : benchmarks_dir + 'arch_designs/vector_256.yaml',
-}
-
 arch_path_no_constraint = {
     'eyeriss' : benchmarks_dir + 'arch_designs/eyeriss_like/arch/eyeriss_like.yaml ' + benchmarks_dir + 'arch_designs/eyeriss_like/arch/components/*',
     'systolic' : benchmarks_dir + 'arch_designs/vector_256.yaml',
@@ -46,6 +40,12 @@ arch_path_components = {
 arch_path_constraints = {
     'eyeriss' : benchmarks_dir + 'arch_designs/eyeriss_like/constraints/*',
     'systolic' : benchmarks_dir + 'arch_designs/systolic_constraint/mapspace_XY_OS.yaml',
+    'vector256' : '',
+}
+
+arch_path_constraints_depthwise = {
+    'eyeriss' : benchmarks_dir + 'arch_designs/eyeriss_like/constraints_depthwise/*',
+    'systolic' : benchmarks_dir + 'arch_designs/systolic_constraint_depthwise/mapspace_XY_OS.yaml',
     'vector256' : '',
 }
 
@@ -71,6 +71,12 @@ unique_layers = {
     'resnet18' : [1, 2, 6, 7, 8, 11, 12, 13, 16, 17, 18, 21],
     'mobv3' : [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 25, 26, 27, 28, 29, 30, 31, 32, 33, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 48, 51, 52, 53, 54, 55, 56],
     'bert_conv' : [1, 2, 3],
+}
+
+depthwise_layers = {
+    'resnet18' : [],
+    'mobv3' : [2, 5, 8, 11, 16, 21, 26, 29, 32, 35, 38, 43, 48, 53, 58],
+    'bert_conv' : [],
 }
 
 
@@ -258,6 +264,11 @@ def rehash_latency(layout_in_file, layout_out_file):
 
 
 
+def is_layer_depthwise(model, layer):
+    return (layer in depthwise_layers[model])
+
+
+
 
 
 
@@ -354,12 +365,14 @@ def run_squareloop(arch, model, layer, csv_type, result_dir, csv_file, layout_fi
     elif no_crypto:
         crypto_file_tmp = ''
 
-    arch_file = arch_path[arch] if not mapping_file else arch_path_no_constraint[arch]
+    arch_file = arch_path_no_constraint[arch]
     if block_size != None and block_size != '':
         arch_file = 'arch.yaml'
         generate_block_size_arch(arch_path_single[arch], arch_file, block_size)
         arch_file += ' ' + arch_path_components[arch]
-        arch_file += (' ' + arch_path_constraints[arch]) if not mapping_file else ''
+    if not mapping_file:
+        arch_file += ' '
+        arch_file += arch_path_constraints_depthwise[arch] if is_layer_depthwise(model, layer) else arch_path_constraints[arch]
 
     workload_file = model_path[model] + str(layer) + '.yaml'
 
@@ -370,7 +383,8 @@ def run_squareloop(arch, model, layer, csv_type, result_dir, csv_file, layout_fi
     ld_path_tmp = timeloop_ld_path if use_timeloop else squareloop_ld_path
     exe_tmp = timeloop_exe if use_timeloop else squareloop_exe
     
-    mapper_command = ld_path_tmp + ' ' + exe_tmp + ' ' + mapper_file_tmp + ' ' + arch_file + ' ' + workload_file + ' ' + crypto_file_tmp + layout_file + mapping_file
+    mapper_command = ld_path_tmp + ' ' + exe_tmp + ' ' + mapper_file_tmp + ' ' + arch_file + ' ' + workload_file + ' ' + crypto_file_tmp + ' ' + layout_file + ' ' + mapping_file
+    #print(mapper_command)
 
     start = time.time()
     result = subprocess.run(mapper_command, capture_output=True, text=True, shell=True)
@@ -398,14 +412,14 @@ def run_squareloop(arch, model, layer, csv_type, result_dir, csv_file, layout_fi
     else:
         subprocess.run('cp timeloop-mapper.map.yaml ' + mapping_file_write, capture_output=False, shell=True)
 
-    energy, latency = extract_energy_latency(result)
+    energy, latency = extract_energy_latency()
     wall_time = end - start
 
     csv_str = csv_type + ', ' + arch + ', ' + model + ', ' + str(layer) + ', ' 
     if shared != None:
-        csv += str(shared) + ', ' + str(number_engines) + ', '
+        csv_str += str(shared) + ', ' + str(number_engines) + ', '
     if block_size != None:
-        csv += str(block_size) + ', '
+        csv_str += str(block_size) + ', '
     csv_str += str(energy) + ', ' + str(latency) + ', ' + f"{wall_time:.3f}" + '\n'
     with open(csv_file, 'a') as f:
         f.write(csv_str)
@@ -420,6 +434,8 @@ def run_squareloop(arch, model, layer, csv_type, result_dir, csv_file, layout_fi
 
 
 def run_Timeloop1Layer_exp():
+    print("Timeloop1Layer")
+
     result_dir = exp_dir + 'results/Timeloop1Layer/'
 
     csv_file = result_dir + 'stats.csv'
@@ -427,7 +443,7 @@ def run_Timeloop1Layer_exp():
         csv_header = "Type, Architecture, Model, Layer, Energy, Latency, Wall time\n"
         f.write(csv_header)
 
-    for arch in arch_path:
+    for arch in arch_path_single:
         for model in model_path:
             num_layers = model_num_layers[model]
             for layer in range(1, num_layers+1):
@@ -435,6 +451,8 @@ def run_Timeloop1Layer_exp():
 
 
 def run_Squareloop1Layer_exp():
+    print("Squareloop1Layer")
+
     result_dir = exp_dir + 'results/Squareloop1Layer/'
 
     csv_file = result_dir + 'stats.csv'
@@ -442,7 +460,7 @@ def run_Squareloop1Layer_exp():
         csv_header = "Type, Architecture, Model, Layer, Energy, Latency, Wall time\n"
         f.write(csv_header)
 
-    for arch in arch_path:
+    for arch in arch_path_single:
         for model in model_path:
             #for layer in unique_layers[model]:
             num_layers = model_num_layers[model]
@@ -451,6 +469,8 @@ def run_Squareloop1Layer_exp():
 
 
 def run_NumberEngines_exp():
+    print("NumberEngines")
+
     result_dir = exp_dir + 'results/NumberEngines/'
 
     csv_file = result_dir + 'stats.csv'
@@ -481,6 +501,8 @@ def run_NumberEngines_exp():
 
 
 def run_BlockSize_exp():
+    print("BlockSize")
+
     result_dir = exp_dir + 'results/BlockSize/'
 
     csv_file = result_dir + 'stats.csv'
@@ -493,12 +515,15 @@ def run_BlockSize_exp():
     model = 'mobv3'
     layer = 2
     block_size_options = [4, 8, 16, 32, 64, 128, 256]
+    #block_size_options = [16, 32]
     for block_size in block_size_options:
         run_squareloop(arch, model, layer, 'Map', result_dir, csv_file, block_size=block_size)
         run_squareloop(arch, model, layer, 'NoCrypto', result_dir, csv_file, block_size=block_size, no_crypto=True)
 
 
 def run_LayerPairs_exp():
+    print("LayerPairs")
+
     result_dir = exp_dir + 'results/LayerPairs/'
 
     csv_file = result_dir + 'stats.csv'
@@ -550,17 +575,12 @@ def run_LayerPairs_exp():
 
 
 
-print("Timeloop1Layer")
-run_Timeloop1Layer_exp()
+#run_Timeloop1Layer_exp()
 
-print("Squareloop1Layer")
-run_Squareloop1Layer_exp()
+#run_Squareloop1Layer_exp()
 
-print("NumberEngines")
-run_NumberEngines_exp()
+#run_NumberEngines_exp()
 
-print("BlockSize")
 run_BlockSize_exp()
 
-print("LayerPairs")
-run_LayerPairs_exp()
+#run_LayerPairs_exp()

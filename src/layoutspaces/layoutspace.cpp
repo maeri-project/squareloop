@@ -214,11 +214,12 @@
   bool Legal::TestMultiRankPackingWithCandidates(unsigned lvl, unsigned ds_idx, const std::vector<std::string>& rank_combination,
                                                     const std::map<std::string, std::vector<uint32_t>>& candidate_factors_per_rank,
                                                     const std::vector<std::vector<std::uint64_t>>& intraline_size_per_ds,
-                                                    uint64_t line_capacity, MultiRankPackingOption& option)
+                                                    uint64_t line_capacity, std::vector<MultiRankPackingOption>& options)
   {
-    auto& intraline_nest = layout_.at(lvl).intraline.at(ds_idx);
+    auto& interline_nest = layout_.at(lvl).interline.at(ds_idx);
 
     // Initialize the option
+    MultiRankPackingOption option;
     option.dataspace = ds_idx;
     option.ranks = rank_combination;
     option.original_interline_factors.clear();
@@ -228,8 +229,8 @@
     // Get original factors and candidate packing factors for each rank in the combination
     std::vector<std::vector<uint32_t>> candidate_factors_list;
     for (const auto& rank : rank_combination) {
-      uint32_t original_factor = (intraline_nest.factors.find(rank) != intraline_nest.factors.end()
-                                  ? intraline_nest.factors.at(rank) : 1);
+      uint32_t original_factor = (interline_nest.factors.find(rank) != interline_nest.factors.end()
+                                  ? interline_nest.factors.at(rank) : 1);
       option.original_interline_factors[rank] = original_factor;
 
       // Get candidate factors for this rank
@@ -258,6 +259,9 @@
           for (size_t i = 0; i < rank_combination.size(); i++) {
             option.packing_factors[rank_combination[i]] = current_factors[i];
           }
+          options.push_back(option);
+          option.total_packing = 1;
+          option.packing_factors.clear();
           return true;
         }
         return false;
@@ -267,6 +271,7 @@
       const auto& rank = rank_combination[rank_idx];
       const auto& factors = candidate_factors_list[rank_idx];
       uint32_t original_factor = option.original_interline_factors.at(rank);
+      bool ret = false;
 
       for (auto factor = factors.rbegin(); factor != factors.rend(); ++factor) {
         // Check if this factor is valid (i.e., divides the original factor)
@@ -276,12 +281,12 @@
 
           // Recursive call for next rank
           if (try_combinations(rank_idx + 1, current_factors, new_accumulated_packing)) {
-            return true; // Found a valid combination
+            ret = true; // Found a valid combination
           }
         }
       }
 
-      return false; // No valid combination found with current prefix
+      return ret; 
     };
 
     // Start the recursive combination testing
@@ -418,8 +423,8 @@
 
     // Decode SplittingSpace choices using layout_splitting_id (intraline-to-interline splitting)
     std::vector<std::vector<std::uint64_t>> splitting_choice_per_lvl_per_ds(num_storage_levels, std::vector<std::uint64_t>(num_data_spaces, 0));
-    for (unsigned lvl = num_storage_levels-1; lvl-- > 0;) {
-      for (unsigned ds_idx = num_data_spaces-1; ds_idx-- > 0;) {
+    for (unsigned lvl = num_storage_levels; lvl-- > 0;) {
+      for (unsigned ds_idx = num_data_spaces; ds_idx-- > 0;) {
         uint32_t divide_factor = 0;
         if (splitting_candidates_per_lvl_per_ds[lvl][ds_idx] > 0 && storage_level_keep_factor[lvl][ds_idx]) {
           divide_factor = splitting_candidates_per_lvl_per_ds[lvl][ds_idx];
@@ -451,8 +456,8 @@
 
     // Decode PackingSpace choices using layout_packing_id (interline-to-intraline packing)
     std::vector<std::vector<std::uint64_t>> packing_choice_per_lvl_per_ds(num_storage_levels, std::vector<std::uint64_t>(num_data_spaces, 0));
-    for (unsigned lvl = num_storage_levels-1; lvl-- > 0;) {
-      for (unsigned ds_idx = num_data_spaces-1; ds_idx-- > 0;) {
+    for (unsigned lvl = num_storage_levels; lvl-- > 0;) {
+      for (unsigned ds_idx = num_data_spaces; ds_idx-- > 0;) {
         uint32_t divide_factor = 0;
         if (packing_candidates_per_lvl_per_ds[lvl][ds_idx] > 0 && storage_level_keep_factor[lvl][ds_idx]) {
           divide_factor = packing_candidates_per_lvl_per_ds[lvl][ds_idx];
@@ -842,13 +847,20 @@
       // Calculate cumulative product from second-to-last level backwards to first level
       for (int lvl = 1; lvl < static_cast<int>(storage_level_intraline_dimid_to_loopend.size()); lvl++)
       {
+        bool is_spatial = false;
+        for (const auto& kv : storage_level_intraline_dimid_to_loopend[lvl]) {
+          if (kv.second > 1) {
+            is_spatial = true;
+            break;
+          }
+        }
         for (const auto& kv : storage_level_intraline_dimid_to_loopend[lvl])
         {
           std::uint32_t dim_id = kv.first;
           std::uint32_t current_value = kv.second;
 
           // Multiply current level value with cumulative product from next level
-          if (cumulatively_intraline_dimval[lvl - 1].find(dim_id) != cumulatively_intraline_dimval[lvl - 1].end())
+          if (is_spatial && cumulatively_intraline_dimval[lvl - 1].find(dim_id) != cumulatively_intraline_dimval[lvl - 1].end())
           {
             cumulatively_intraline_dimval[lvl][dim_id] = current_value * cumulatively_intraline_dimval[lvl - 1][dim_id];
           }
@@ -1234,34 +1246,36 @@
               std::vector<std::vector<std::string>> rank_combinations = GenerateRankCombinations(all_ranks, 4); // Limit to max 4 ranks
 
               for (auto rank_combo = rank_combinations.rbegin(); rank_combo != rank_combinations.rend(); ++rank_combo) {
-                MultiRankPackingOption multi_option;
+                std::vector<MultiRankPackingOption> multi_options;
                 if (TestMultiRankPackingWithCandidates(lvl, ds_idx, *rank_combo, all_candidate_factors_per_rank,
-                                                    intraline_size_per_ds, storage_level_line_capacity[lvl], multi_option)) {
-                  if ((multi_option.total_packing > PACKING_PRUNING_RATIO*max_intraline_to_interline_factor) && ((intraline_size_per_ds[lvl][ds_idx]*multi_option.total_packing) <= storage_level_line_capacity[lvl]) ){// pruning low packing options
-                    multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx].push_back(multi_option);
-                    uint32_t max_possible_factor = (storage_level_line_capacity[lvl] + intraline_size_per_ds[lvl][ds_idx] - 1)/ intraline_size_per_ds[lvl][ds_idx];
-                    if (multi_option.total_packing > max_intraline_to_interline_factor){
-                      max_intraline_to_interline_factor = multi_option.total_packing;
-                      if (max_intraline_to_interline_factor > max_possible_factor)
-                        max_intraline_to_interline_factor = max_possible_factor;
-                    }
-                    #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
-                      uint32_t size_option = multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx].size()-1;
-                      std::cout << "      --> Valid multi-rank packing option: Ranks [";
-                      for (size_t i = 0; i < rank_combo->size(); i++) {
-                        std::cout << (*rank_combo)[i];
-                        if (i < rank_combo->size() - 1) std::cout << ", ";
+                                                    intraline_size_per_ds, storage_level_line_capacity[lvl], multi_options)) {
+                  for (auto multi_option : multi_options) {
+                    if ((multi_option.total_packing > PACKING_PRUNING_RATIO*max_intraline_to_interline_factor) && ((intraline_size_per_ds[lvl][ds_idx]*multi_option.total_packing) <= storage_level_line_capacity[lvl]) ){// pruning low packing options
+                      multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx].push_back(multi_option);
+                      uint32_t max_possible_factor = (storage_level_line_capacity[lvl] + intraline_size_per_ds[lvl][ds_idx] - 1)/ intraline_size_per_ds[lvl][ds_idx];
+                      if (multi_option.total_packing > max_intraline_to_interline_factor){
+                        max_intraline_to_interline_factor = multi_option.total_packing;
+                        if (max_intraline_to_interline_factor > max_possible_factor)
+                          max_intraline_to_interline_factor = max_possible_factor;
                       }
-                      std::cout << "], total_packing=" << multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].total_packing << std::endl;
+                      #ifdef DEBUG_CREATE_INTRALINE_FACTOR_SPACE
+                        uint32_t size_option = multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx].size()-1;
+                        std::cout << "      --> Valid multi-rank packing option: Ranks [";
+                        for (size_t i = 0; i < rank_combo->size(); i++) {
+                          std::cout << (*rank_combo)[i];
+                          if (i < rank_combo->size() - 1) std::cout << ", ";
+                        }
+                        std::cout << "], total_packing=" << multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].total_packing << std::endl;
 
-                      // Print individual packing factors
-                      for (const auto& rank : *rank_combo) {
-                        assert(multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].packing_factors.at(rank) > 0 && "Division by zero in print packing factor");
-                        std::cout << "        " << rank << "(interline): " << multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].original_interline_factors.at(rank)
-                                  << " -> " << (multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].original_interline_factors.at(rank) / multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].packing_factors.at(rank))
-                                  << " (pack by " << multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].packing_factors.at(rank) << ")" << std::endl;
-                      }
-                    #endif
+                        // Print individual packing factors
+                        for (const auto& rank : *rank_combo) {
+                          assert(multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].packing_factors.at(rank) > 0 && "Division by zero in print packing factor");
+                          std::cout << "        " << rank << "(interline): " << multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].original_interline_factors.at(rank)
+                                    << " -> " << (multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].original_interline_factors.at(rank) / multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].packing_factors.at(rank))
+                                    << " (pack by " << multi_rank_packing_options_per_level_per_ds_[lvl][ds_idx][size_option].packing_factors.at(rank) << ")" << std::endl;
+                        }
+                      #endif
+                    }
                   }
                 }
               }

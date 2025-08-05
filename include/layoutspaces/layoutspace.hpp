@@ -239,7 +239,7 @@ class Legal
     bool TestMultiRankPackingWithCandidates(unsigned lvl, unsigned ds_idx, const std::vector<std::string>& rank_combination,
                                           const std::map<std::string, std::vector<uint32_t>>& candidate_factors_per_rank,
                                           const std::vector<std::vector<std::uint64_t>>& intraline_size_per_ds,
-                                          uint64_t line_capacity, MultiRankPackingOption& option);
+                                          uint64_t line_capacity, std::vector<MultiRankPackingOption>& option);
 
   }; // class Legal
 } // namespace layoutspace
