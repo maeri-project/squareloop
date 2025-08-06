@@ -1032,20 +1032,20 @@ def read_crypto_config(crypto_config_path: str = "/home/ubuntu/squareloop/benchm
     """
     auth_cycle_per_datapath = 0
     enc_cycle_per_datapath = 0
-    auth_additional_cycle_per_datapath = 0
+    auth_additional_cycle_per_block = 0
     datapath = 0
     try:
         with open(crypto_config_path, 'r') as f:
             crypto_data = yaml.safe_load(f)
 
         if 'crypto' in crypto_data and 'auth-additional-cycle-per-block' in crypto_data['crypto']:
-            auth_additional_cycle_per_datapath = crypto_data['crypto']['auth-additional-cycle-per-block']
+            auth_additional_cycle_per_block = crypto_data['crypto']['auth-additional-cycle-per-block']
             auth_cycle_per_datapath = crypto_data['crypto']['auth-cycle-per-datapath']
             enc_cycle_per_datapath = crypto_data['crypto']['enc-cycle-per-datapath']
             datapath = crypto_data['crypto']['datapath']
         else:
             print(f"Warning: auth-additional-cycle-per-block not found in {crypto_config_path}, using default value 1")
-        return auth_additional_cycle_per_datapath, auth_cycle_per_datapath, enc_cycle_per_datapath, datapath
+        return auth_additional_cycle_per_block, auth_cycle_per_datapath, enc_cycle_per_datapath, datapath
 
     except FileNotFoundError:
         print(f"Warning: Crypto config file not found: {crypto_config_path}, using default auth_cycle_per_datapath=1")
@@ -1079,8 +1079,8 @@ def calculate_rehash_latency(
     """
     word_bits = 16
     # Read authentication cycle cost per block from crypto config
-    auth_additional_cycle_per_datapath, auth_cycle_per_datapath, enc_cycle_per_datapath, datapath = read_crypto_config(crypto_config_path)
-    print(f"Using auth_additional_cycle_per_datapath = {auth_additional_cycle_per_datapath}, auth_cycle_per_datapath = {auth_cycle_per_datapath}, enc_cycle_per_datapath = {enc_cycle_per_datapath} and datapath = {datapath} from crypto config")
+    auth_additional_cycle_per_block, auth_cycle_per_datapath, enc_cycle_per_datapath, datapath = read_crypto_config(crypto_config_path)
+    print(f"Using auth_additional_cycle_per_datapath = {auth_additional_cycle_per_block}, auth_cycle_per_datapath = {auth_cycle_per_datapath}, enc_cycle_per_datapath = {enc_cycle_per_datapath} and datapath = {datapath} from crypto config")
 
     group_rehash_latencies = {}
 
@@ -1125,9 +1125,9 @@ def calculate_rehash_latency(
                             num_authblock_lines *= interline_factor
                             authblock_lines_size *= authblock_lines_factor * intraline_factor
 
-                    latency_per_authblock = authblock_lines_size * word_bits / datapath * np.max(enc_cycle_per_datapath, auth_cycle_per_datapath)
-                    total_rehash_latency += num_authblock_lines * latency_per_authblock + auth_additional_cycle_per_datapath
-         
+                    latency_per_authblock = authblock_lines_size * word_bits / datapath * np.max(enc_cycle_per_datapath, auth_cycle_per_datapath) + auth_additional_cycle_per_block
+                    total_rehash_latency += num_authblock_lines * latency_per_authblock 
+        
         group_rehash_latencies[group_idx] = int(total_rehash_latency)
 
     return group_rehash_latencies

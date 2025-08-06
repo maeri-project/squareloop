@@ -1226,9 +1226,7 @@
                 std::vector<uint32_t> valid_factors;
 
                 for (uint32_t divisor : divisors) {
-                  if (divisor > 1) {
-                    valid_factors.push_back(divisor);
-                  }
+                  valid_factors.push_back(divisor);
                 }
 
                 if (!valid_factors.empty()) {
@@ -1243,7 +1241,7 @@
                 all_ranks.push_back(entry.first);
               }
 
-              std::vector<std::vector<std::string>> rank_combinations = GenerateRankCombinations(all_ranks, 4); // Limit to max 4 ranks
+              std::vector<std::vector<std::string>> rank_combinations = {all_ranks};
 
               for (auto rank_combo = rank_combinations.rbegin(); rank_combo != rank_combinations.rend(); ++rank_combo) {
                 std::vector<MultiRankPackingOption> multi_options;

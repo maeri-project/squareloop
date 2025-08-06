@@ -713,8 +713,13 @@ void MapperThread::Run()
       // Phase 2: Search PackingSpace (with best SplittingSpace and default AuthSpace=0)
       // Note: authblock_lines clearing from Phase 1 does not affect this phase as layout is reconstructed
       if (layoutspace_->packing_candidates > 1) {
-        for (uint64_t layout_packing_id = 0; layout_packing_id < layoutspace_->packing_candidates; layout_packing_id++)
+        uint64_t visited_candidate_counter = 0;
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<uint64_t> dist(0, layoutspace_->packing_candidates - 1);
+        for (uint64_t i = 0; i < layoutspace_->packing_candidates; i++)
         {
+          uint64_t layout_packing_id = dist(gen);
           auto construction_status = layoutspace_->ConstructLayout(local_best_layout_splitting_id, layout_packing_id, 0,  &layout_, mapping, false);
           bool layout_success = std::accumulate(construction_status.begin(), construction_status.end(), true,
                                       [](bool cur, const layoutspace::Status& status)
@@ -753,12 +758,18 @@ void MapperThread::Run()
           }
 
           if (is_better) {
+            visited_candidate_counter = 0;
             mapping_specific_best_latency = runtime_latency;
             mapping_specific_best_energy_per_compute = energy_per_compute;
             mapping_specific_best_layout = layout_;
             local_best_layout_packing_id = layout_packing_id;
             has_valid_layout = true;
           }
+
+          if (visited_candidate_counter > std::min(std::max(victory_condition_, (uint32_t)1), (uint32_t)50)) {
+            break;
+          }
+          visited_candidate_counter++;
         }
       }
 

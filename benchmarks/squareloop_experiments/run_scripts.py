@@ -462,9 +462,9 @@ def run_Squareloop1Layer_exp():
 
     for arch in arch_path_single:
         for model in model_path:
-            #for layer in unique_layers[model]:
-            num_layers = model_num_layers[model]
-            for layer in range(1, num_layers+1):
+            for layer in unique_layers[model]:
+            #num_layers = model_num_layers[model]
+            #for layer in range(1, num_layers+1):
                 run_squareloop(arch, model, layer, 'Squareloop1Layer', result_dir, csv_file)
 
 
@@ -481,9 +481,9 @@ def run_NumberEngines_exp():
 
     arch = 'eyeriss'
     model = 'mobv3'
-    layer = 2
+    layer = 4
     shared_options = ['false', 'true']
-    number_engines_options = [1, 2, 4, 8, 16, 32]
+    number_engines_options = [1, 2, 4, 8, 16, 32, 64, 128]
     run_squareloop(arch, model, layer, 'TimeLoop', result_dir, csv_file, shared='', number_engines='', use_timeloop=True)
     run_squareloop(arch, model, layer, 'NoCrypto', result_dir, csv_file, shared='', number_engines='', no_crypto=True)
     for shared in shared_options:
@@ -513,11 +513,11 @@ def run_BlockSize_exp():
 
     arch = 'eyeriss'
     model = 'mobv3'
-    layer = 2
-    block_size_options = [4, 8, 16, 32, 64, 128, 256]
-    #block_size_options = [16, 32]
+    layer = 4
+    block_size_options = [4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
     for block_size in block_size_options:
         run_squareloop(arch, model, layer, 'Map', result_dir, csv_file, block_size=block_size)
+    for block_size in block_size_options:
         run_squareloop(arch, model, layer, 'NoCrypto', result_dir, csv_file, block_size=block_size, no_crypto=True)
 
 
@@ -526,6 +526,8 @@ def run_LayerPairs_exp():
 
     result_dir = exp_dir + 'results/LayerPairs/'
 
+    layouts_dir = exp_dir + 'results/Squareloop1Layer/'
+
     csv_file = result_dir + 'stats.csv'
     with open(csv_file, 'w') as f:
         csv_header = "Type, Architecture, Model, Layer, Energy, Latency, Wall time\n"
@@ -533,23 +535,23 @@ def run_LayerPairs_exp():
 
 
     archs = ['eyeriss']
-    #models = ['resnet18']
-    models = ['mobv3']
-    #layers = [(2,2), (6,7), (7,7), (11,12), (12,12), (16,17), (17,17)]
-    layers = [(1, 2), (2, 3), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9), (7, 11), (11, 12), (12, 13), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18), (18, 19), (15, 16), (16, 17), (17, 18), (18, 19), (25, 26), (26, 27), (27, 28), (28, 29), (29, 30), (31, 32), (32, 33), (31, 32), (32, 33), (37, 38), (38, 39), (39, 40), (40, 41), (41, 42), (42, 43), (43, 44), (44, 45), (45, 46), (42, 48), (48, 44), (44, 45), (45, 51), (51, 52), (52, 53), (53, 54), (54, 55), (55, 56), (52, 53), (53, 54), (54, 55), (55, 56)]
-
+    models = ['resnet18', 'mobv3']
+    layers = {
+        'resnet18' : [(2,2), (2,2), (6,7), (7,7), (11,12), (12,12), (16,17), (17,17)],
+        'mobv3' : [(1, 2), (2, 3), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9), (7, 11), (11, 12), (12, 13), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18), (18, 19), (15, 16), (16, 17), (17, 18), (18, 19), (25, 26), (26, 27), (27, 28), (28, 29), (29, 30), (31, 32), (32, 33), (31, 32), (32, 33), (37, 38), (38, 39), (39, 40), (40, 41), (41, 42), (42, 43), (43, 44), (44, 45), (45, 46), (42, 48), (48, 44), (44, 45), (45, 51), (51, 52), (52, 53), (53, 54), (54, 55), (55, 56), (52, 53), (53, 54), (54, 55), (55, 56)],
+    }
 
     for arch in archs:
         for model in models:
-            for layer_in, layer_out in layers:
+            for layer_in, layer_out in layers[model]:
 
                 layout_tmp = 'layout.yaml'
 
-                run_squareloop(arch, model, layer_in, 'MapRehashIn', result_dir, csv_file)
-                layout_in = result_dir + 'layout_' + 'MapRehashIn' + '_' + arch + '_' + model + '_' + str(layer_in) + '.yaml'
+                layout_in = layouts_dir + 'layout_' + 'Squareloop1Layer' + '_' + arch + '_' + model + '_' + str(layer_in) + '.yaml'
+                run_squareloop(arch, model, layer_in, 'MapRehashIn', result_dir, csv_file, layout_file=layout_in)
 
-                run_squareloop(arch, model, layer_out, 'MapRehashOut', result_dir, csv_file)
-                layout_out = result_dir + 'layout_' + 'MapRehashOut' + '_' + arch + '_' + model + '_' + str(layer_out) + '.yaml'
+                layout_out = layouts_dir + 'layout_' + 'Squareloop1Layer' + '_' + arch + '_' + model + '_' + str(layer_out) + '.yaml'
+                run_squareloop(arch, model, layer_out, 'MapRehashOut', result_dir, csv_file, layout_file=layout_out)
 
                 print("Rehash", arch, model, "layer", str(layer_in)+'_'+str(layer_out))
                 rehash_cost = rehash_latency(layout_in, layout_out) 
@@ -577,10 +579,10 @@ def run_LayerPairs_exp():
 
 #run_Timeloop1Layer_exp()
 
-#run_Squareloop1Layer_exp()
+run_Squareloop1Layer_exp()
 
 #run_NumberEngines_exp()
 
-run_BlockSize_exp()
+#run_BlockSize_exp()
 
 #run_LayerPairs_exp()
