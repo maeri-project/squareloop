@@ -1,0 +1,190 @@
+1:
+  dependent_next_layer: []
+  dependent_prev_layer: []
+  layer_id_for_timeloop: 1
+  next_layer:
+  - 2
+  - 4
+  prev_layer: []
+2:
+  dependent_next_layer:
+  - 3
+  dependent_prev_layer: []
+  layer_id_for_timeloop: 2
+  next_layer:
+  - 3
+  prev_layer:
+  - 1
+3:
+  dependent_next_layer: []
+  dependent_prev_layer:
+  - 2
+  layer_id_for_timeloop: 2
+  next_layer:
+  - 4
+  prev_layer:
+  - 2
+4:
+  dependent_next_layer:
+  - 5
+  dependent_prev_layer: []
+  layer_id_for_timeloop: 2
+  next_layer:
+  - 5
+  prev_layer:
+  - 1
+  - 3
+5:
+  dependent_next_layer: []
+  dependent_prev_layer:
+  - 4
+  layer_id_for_timeloop: 2
+  next_layer:
+  - 6
+  - 8
+  prev_layer:
+  - 4
+6:
+  dependent_next_layer:
+  - 7
+  dependent_prev_layer: []
+  layer_id_for_timeloop: 6
+  next_layer:
+  - 7
+  prev_layer:
+  - 5
+7:
+  dependent_next_layer: []
+  dependent_prev_layer:
+  - 6
+  layer_id_for_timeloop: 7
+  next_layer:
+  - 9
+  prev_layer:
+  - 6
+8:
+  dependent_next_layer: []
+  dependent_prev_layer: []
+  layer_id_for_timeloop: 8
+  next_layer:
+  - 9
+  prev_layer:
+  - 5
+9:
+  dependent_next_layer:
+  - 10
+  dependent_prev_layer: []
+  layer_id_for_timeloop: 7
+  next_layer:
+  - 10
+  prev_layer:
+  - 7
+  - 8
+10:
+  dependent_next_layer: []
+  dependent_prev_layer:
+  - 9
+  layer_id_for_timeloop: 7
+  next_layer:
+  - 11
+  - 13
+  prev_layer:
+  - 9
+11:
+  dependent_next_layer:
+  - 12
+  dependent_prev_layer: []
+  layer_id_for_timeloop: 11
+  next_layer:
+  - 12
+  prev_layer:
+  - 10
+12:
+  dependent_next_layer: []
+  dependent_prev_layer:
+  - 11
+  layer_id_for_timeloop: 12
+  next_layer:
+  - 14
+  prev_layer:
+  - 11
+13:
+  dependent_next_layer: []
+  dependent_prev_layer: []
+  layer_id_for_timeloop: 13
+  next_layer:
+  - 14
+  prev_layer:
+  - 10
+14:
+  dependent_next_layer:
+  - 15
+  dependent_prev_layer: []
+  layer_id_for_timeloop: 12
+  next_layer:
+  - 15
+  prev_layer:
+  - 12
+  - 13
+15:
+  dependent_next_layer: []
+  dependent_prev_layer:
+  - 14
+  layer_id_for_timeloop: 12
+  next_layer:
+  - 16
+  - 18
+  prev_layer:
+  - 14
+16:
+  dependent_next_layer:
+  - 17
+  dependent_prev_layer: []
+  layer_id_for_timeloop: 16
+  next_layer:
+  - 17
+  prev_layer:
+  - 15
+17:
+  dependent_next_layer: []
+  dependent_prev_layer:
+  - 16
+  layer_id_for_timeloop: 17
+  next_layer:
+  - 19
+  prev_layer:
+  - 16
+18:
+  dependent_next_layer: []
+  dependent_prev_layer: []
+  layer_id_for_timeloop: 18
+  next_layer:
+  - 19
+  prev_layer:
+  - 15
+19:
+  dependent_next_layer:
+  - 20
+  dependent_prev_layer: []
+  layer_id_for_timeloop: 17
+  next_layer:
+  - 20
+  prev_layer:
+  - 17
+  - 18
+20:
+  dependent_next_layer: []
+  dependent_prev_layer:
+  - 19
+  layer_id_for_timeloop: 17
+  next_layer:
+  - 21
+  prev_layer:
+  - 19
+21:
+  dependent_next_layer: []
+  dependent_prev_layer: []
+  layer_id_for_timeloop: 21
+  next_layer: []
+  prev_layer:
+  - 20
