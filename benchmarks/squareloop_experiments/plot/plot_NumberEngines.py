@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-num_engines = [1, 2, 4, 16, 32]
+num_engines = [2, 4, 8, 16, 32, 64]
 
 df = pd.read_csv('../results/NumberEngines/stats.csv', skipinitialspace=True)
 #df = pd.read_csv('NumberEngines.csv', skipinitialspace=True)
@@ -20,8 +20,8 @@ latencies_norm = [v / global_min for v in latencies_raw]
 
 # Define bar layout
 bar_width = 0.6
-color_list = ["#808080", "#990000"]
-color_list_ext = ["#D0D0D0", "#808080", "#990000"]
+color_list = ["#990000", "#808080"]
+color_list_ext = ["#D0D0D0"] + color_list
 method_labels = ["Baseline", "Searched AuthBlock", "Fixed AuthBlock"]
 group_labels = ["Baseline"] + ["N$_{AES}$="+str(i) for i in num_engines]
 
@@ -40,16 +40,16 @@ group_centers.append(0)
 
 # Remaining crypto groups: 2 bars each
 center = 1.5
-for _ in range(5):
+for _ in range(len(num_engines)):
     x_positions.append(center - bar_width/2)
     x_positions.append(center + bar_width/2)
     group_centers.append(center)
     center += 1.5
 
 # Plot
-fig, ax = plt.subplots(figsize=(12, 7))
+fig, ax = plt.subplots(figsize=(14, 7))
 bars = ax.bar(x_positions, latencies_norm, width=bar_width,
-              color=(["#D0D0D0"]) + color_list * 5,
+              color=(["#D0D0D0"]) + color_list * len(num_engines),
               edgecolor='k')
 
 # X ticks
@@ -64,7 +64,7 @@ ax.tick_params(axis='y', labelsize=26)
 # Annotate bars
 for bar in bars:
     height = bar.get_height()
-    ax.annotate(f'{height:.2f}',
+    ax.annotate(f'{height:.2f}' if height < 10 else f'{height:.0f}',
                 xy=(bar.get_x() + bar.get_width() / 2, height),
                 xytext=(0, 3),
                 textcoords="offset points",

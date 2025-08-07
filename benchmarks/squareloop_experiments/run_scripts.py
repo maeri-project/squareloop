@@ -412,7 +412,7 @@ def run_squareloop(arch, model, layer, csv_type, result_dir, csv_file, layout_fi
     else:
         subprocess.run('cp timeloop-mapper.map.yaml ' + mapping_file_write, capture_output=False, shell=True)
 
-    energy, latency = extract_energy_latency()
+    energy, latency = extract_energy_latency(model=(True if mapping_file else False))
     wall_time = end - start
 
     csv_str = csv_type + ', ' + arch + ', ' + model + ', ' + str(layer) + ', ' 
