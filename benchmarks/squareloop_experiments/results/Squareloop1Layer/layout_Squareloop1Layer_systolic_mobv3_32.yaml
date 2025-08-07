@@ -9,7 +9,7 @@ layout:
     permutation: CRSNVHWLQP
   - target: MainMemory
     type: authblock_lines
-    factors: C=8 R=3 S=3 N=1 V=23 H=1 W=14 L=92 Q=2 P=2
+    factors: C=1 R=1 S=3 N=1 V=23 H=1 W=14 L=92 Q=14 P=2
     permutation: CRSNVHWLQP
   - target: GlobalBuffer
     type: interline

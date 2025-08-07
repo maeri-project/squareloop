@@ -3,16 +3,16 @@ mapping:
     type: datatype
     keep:
       - Inputs
-      - Outputs
     bypass:
       - Weights
+      - Outputs
   - target: GlobalBuffer
     type: datatype
     keep:
-      - Outputs
-    bypass:
       - Weights
+    bypass:
       - Inputs
+      - Outputs
   - target: MainMemory
     type: datatype
     keep:

@@ -1,33 +1,33 @@
 layout:
-- factors: C=8 K=224 R=1 S=1 N=1 V=168 H=1 W=1 L=672 Q=1 P=1
+- factors: C=84 K=21 R=1 S=1 N=1 V=168 H=1 W=1 L=672 Q=1 P=1
   permutation: CKRSNVHWLQP
   target: MainMemory
   type: interline
-- factors: C=21 K=3 R=1 S=1 N=1 V=1 H=1 W=1 L=1 Q=1 P=1
+- factors: C=2 K=32 R=1 S=1 N=1 V=1 H=1 W=1 L=1 Q=1 P=1
   permutation: CKRSNVHWLQP
   target: MainMemory
   type: intraline
-- factors: C=8 K=112 R=1 S=1 N=1 V=84 H=1 W=1 L=96 Q=1 P=1
+- factors: C=14 K=21 R=1 S=1 N=1 V=168 H=1 W=1 L=8 Q=1 P=1
   permutation: CKRSNVHWLQP
   target: MainMemory
   type: authblock_lines
-- factors: C=84 K=3 R=1 S=1 N=1 V=84 H=1 W=1 L=6 Q=1 P=1
+- factors: C=28 K=672 R=1 S=1 N=1 V=4 H=1 W=1 L=24 Q=1 P=1
   permutation: CKRSNVHWLQP
   target: GlobalBuffer
   type: interline
-- factors: C=2 K=112 R=1 S=1 N=1 V=2 H=1 W=1 L=56 Q=1 P=1
+- factors: C=1 K=1 R=1 S=1 N=1 V=7 H=1 W=1 L=28 Q=1 P=1
   permutation: CKRSNVHWLQP
   target: GlobalBuffer
   type: intraline
-- factors: C=12 K=3 R=1 S=1 N=1 V=12 H=1 W=1 L=3 Q=1 P=1
+- factors: C=28 K=12 R=1 S=1 N=1 V=28 H=1 W=1 L=12 Q=1 P=1
   permutation: CKRSNVHWLQP
   target: DummyBuffer
   type: interline
-- factors: C=2 K=8 R=1 S=1 N=1 V=2 H=1 W=1 L=8 Q=1 P=1
+- factors: C=1 K=1 R=1 S=1 N=1 V=1 H=1 W=1 L=1 Q=1 P=1
   permutation: CKRSNVHWLQP
   target: DummyBuffer
   type: intraline
-- factors: C=12 K=3 R=1 S=1 N=1 V=12 H=1 W=1 L=3 Q=1 P=1
+- factors: C=4 K=6 R=1 S=1 N=1 V=4 H=1 W=1 L=6 Q=1 P=1
   permutation: CKRSNVHWLQP
   target: RegisterFile
   type: interline
@@ -35,7 +35,7 @@ layout:
   permutation: CKRSNVHWLQP
   target: RegisterFile
   type: intraline
-- factors: C=12 K=3 R=1 S=1 N=1 V=12 H=1 W=1 L=3 Q=1 P=1
+- factors: C=4 K=6 R=1 S=1 N=1 V=4 H=1 W=1 L=6 Q=1 P=1
   permutation: CKRSNVHWLQP
   target: weights_spad
   type: interline
@@ -43,7 +43,7 @@ layout:
   permutation: CKRSNVHWLQP
   target: weights_spad
   type: intraline
-- factors: C=1 K=3 R=1 S=1 N=1 V=1 H=1 W=1 L=3 Q=1 P=1
+- factors: C=1 K=6 R=1 S=1 N=1 V=1 H=1 W=1 L=6 Q=1 P=1
   permutation: CKRSNVHWLQP
   target: ofmap_spad
   type: interline

@@ -1006,8 +1006,13 @@
           assert(total_intraline > 0 && "Division by zero in total_interline calculation");
           auto total_interline = (total_rank_size + total_intraline - 1) / total_intraline;
 
-          layout_.at(lvl).intraline.at(i).factors.at(rank) = total_intraline;
-          layout_.at(lvl).interline.at(i).factors.at(rank) = total_interline;
+          if (mapping.datatype_bypass_nest.at(i).test(lvl)) {
+            layout_.at(lvl).intraline.at(i).factors.at(rank) = total_intraline;
+            layout_.at(lvl).interline.at(i).factors.at(rank) = total_interline;
+          } else {
+            layout_.at(lvl).intraline.at(i).factors.at(rank) = 1;
+            layout_.at(lvl).interline.at(i).factors.at(rank) = total_rank_size;
+          }
           #ifdef DEBUG_CONCORDANT_LAYOUT
             std::cout << "level=" << lvl << " dataspace=" << i << " rank=" << rank << " intraline = " << total_intraline << " interline = " << total_interline << std::endl;
           #endif

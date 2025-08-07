@@ -10,10 +10,9 @@ mapping:
     type: datatype
     keep:
       - Weights
-      - Inputs
       - Outputs
     bypass:
-      []
+      - Inputs
   - target: MainMemory
     type: datatype
     keep:

@@ -57,7 +57,7 @@ mapping:
     permutation: CRSNPQ
   - target: DummyBuffer
     type: spatial
-    factors: C2 R1 S5 N1 P1 Q1
+    factors: C3 R1 S5 N1 P1 Q1
     permutation: SCRNPQ
     split: 0
   - target: DummyBuffer
@@ -71,9 +71,9 @@ mapping:
     split: 1
   - target: GlobalBuffer
     type: temporal
-    factors: C32 R1 S1 N1 P7 Q1
+    factors: C20 R1 S1 N1 P7 Q1
     permutation: CPRSNQ
   - target: MainMemory
     type: temporal
-    factors: C15 R1 S1 N1 P1 Q1
+    factors: C16 R1 S1 N1 P1 Q1
     permutation: CRSNPQ

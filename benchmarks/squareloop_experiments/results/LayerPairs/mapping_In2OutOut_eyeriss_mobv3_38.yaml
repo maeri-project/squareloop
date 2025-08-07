@@ -49,8 +49,8 @@ mapping:
     permutation: CRSNPQ
   - target: weights_spad
     type: temporal
-    factors: C4 R3 S1 N1 P1 Q1
-    permutation: CRSNPQ
+    factors: C1 R3 S1 N1 P1 Q1
+    permutation: RCSNPQ
   - target: RegisterFile
     type: temporal
     factors: C1 R1 S1 N1 P1 Q1
@@ -75,5 +75,5 @@ mapping:
     permutation: CPRSNQ
   - target: MainMemory
     type: temporal
-    factors: C1 R1 S1 N1 P1 Q1
+    factors: C4 R1 S1 N1 P1 Q1
     permutation: CRSNPQ

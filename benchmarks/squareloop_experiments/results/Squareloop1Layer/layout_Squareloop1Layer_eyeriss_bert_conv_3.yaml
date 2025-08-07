@@ -9,23 +9,23 @@ layout:
     permutation: CKRSNVHWLQP
   - target: MainMemory
     type: authblock_lines
-    factors: C=6 K=384 R=1 S=1 N=1 V=256 H=64 W=1 L=6 Q=1 P=256
+    factors: C=12 K=96 R=1 S=1 N=1 V=768 H=8 W=1 L=3 Q=1 P=32
     permutation: CKRSNVHWLQP
   - target: GlobalBuffer
     type: interline
-    factors: C=48 K=12 R=1 S=1 N=1 V=48 H=128 W=1 L=3 Q=1 P=512
+    factors: C=768 K=192 R=1 S=1 N=1 V=48 H=128 W=1 L=3 Q=1 P=512
     permutation: CKRSNVHWLQP
   - target: GlobalBuffer
     type: intraline
-    factors: C=16 K=16 R=1 S=1 N=1 V=16 H=4 W=1 L=64 Q=1 P=1
+    factors: C=1 K=1 R=1 S=1 N=1 V=16 H=4 W=1 L=64 Q=1 P=1
     permutation: CKRSNVHWLQP
   - target: DummyBuffer
     type: interline
-    factors: C=16 K=1 R=1 S=1 N=1 V=16 H=1 W=1 L=1 Q=1 P=1
+    factors: C=256 K=1 R=1 S=1 N=1 V=256 H=1 W=1 L=1 Q=1 P=1
     permutation: CKRSNVHWLQP
   - target: DummyBuffer
     type: intraline
-    factors: C=16 K=1 R=1 S=1 N=1 V=16 H=1 W=1 L=1 Q=1 P=1
+    factors: C=1 K=1 R=1 S=1 N=1 V=1 H=1 W=1 L=1 Q=1 P=1
     permutation: CKRSNVHWLQP
   - target: RegisterFile
     type: interline
