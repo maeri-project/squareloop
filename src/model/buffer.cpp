@@ -3150,7 +3150,14 @@ namespace model
     // Step 4: Calculate execution cycles.
     //
     stats_.slowdown = overall_slowdown_; // Bank Conflict Analysis
-    stats_.cycles = std::uint64_t(ceil(compute_cycles / stats_.slowdown));
+    if (compute_cycles / stats_.slowdown > 1e18)
+    {
+      stats_.cycles = 1e18;
+    }
+    else
+    {
+      stats_.cycles = std::uint64_t(ceil(compute_cycles / stats_.slowdown));
+    }
 #ifdef DEBUG
     std::cout << std::endl;
     std::cout << "compute_cycles: " << compute_cycles << std::endl;
