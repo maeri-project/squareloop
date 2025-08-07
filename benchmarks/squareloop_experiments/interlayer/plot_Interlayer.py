@@ -111,9 +111,10 @@ for arch in archs:
 
         # X ticks
         ax.set_xlabel("Layer number", fontsize=26)
+        ax.set_xlim([group_centers[0]-1.5, center+1.5])
         ax.set_xticks(group_centers+[center])
         #ax.set_xticklabels(group_labels, fontsize=28, rotation=0)
-        ax.set_xticklabels(group_labels+['Total'], fontsize=16, rotation=0)
+        ax.set_xticklabels(group_labels+['Total'], fontsize=18, rotation=0)
 
         # Labels and limits
         ax.set_ylabel("Latency", fontsize=26)
@@ -139,16 +140,16 @@ for arch in archs:
         ax2.text(
             bar4[0].get_x(), baseline_total, improvement,
             ha='center', va='bottom',
-            fontsize=16, color='black',
+            fontsize=24, color='black',
             fontweight='bold'
         )
 
-        arrow_h = 150000 * max(all_sum_bars)/5e6
+        arrow_h = 200000 * max(all_sum_bars)/5e6
         for i in range(num_groups):
             if (i+1) in forced_rehash_layers:
                 ax.annotate('',
                         xy=(group_centers[i], sum_bars_baseline[i]), 
-                        xytext=(group_centers[i]-0.75, sum_bars_baseline[i]+arrow_h),
+                        xytext=(group_centers[i]-1, sum_bars_baseline[i]+arrow_h),
                         arrowprops=dict(arrowstyle='simple', color='black'),
                         fontsize=12)
 
@@ -156,25 +157,24 @@ for arch in archs:
             if (i+1) in better_rehash_layers:
                 ax.annotate('',
                         xy=(group_centers[i], sum_bars_baseline[i]), 
-                        xytext=(group_centers[i]-0.75, sum_bars_baseline[i]+arrow_h),
+                        xytext=(group_centers[i]-1, sum_bars_baseline[i]+arrow_h),
                         arrowprops=dict(arrowstyle='simple', color='#990000'),
                         fontsize=12)
 
         x_lim = ax.get_xlim()
         y_lim = ax.get_ylim()
-        #x_pos = (x_lim[0]+x_lim[1])/10
-        x_pos = 0
+        x_pos = x_lim[0]+1.5
         y_pos = (y_lim[0]+y_lim[1])*0.95
         ax.annotate('',
            xy=(x_pos, y_pos),
-           xytext=(x_pos-0.75, y_pos+arrow_h),
+           xytext=(x_pos-1, y_pos+arrow_h),
            arrowprops=dict(arrowstyle='simple', color='black'),
            fontsize=12)
         ax.text(x_pos, y_pos+arrow_h/3, r'Forced rehash', fontsize=22, ha='left', va='center')
         y_pos -= 2*arrow_h
         ax.annotate('',
            xy=(x_pos, y_pos),
-           xytext=(x_pos-0.75, y_pos+arrow_h),
+           xytext=(x_pos-1, y_pos+arrow_h),
            arrowprops=dict(arrowstyle='simple', color='#990000'),
            fontsize=12)
         ax.text(x_pos, y_pos+arrow_h/3, r'Rehash is optimal', fontsize=22, ha='left', va='center')
