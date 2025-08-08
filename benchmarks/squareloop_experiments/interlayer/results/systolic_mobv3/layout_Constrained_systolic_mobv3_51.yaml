@@ -1,13 +1,13 @@
 layout:
-- factors: C=168 K=10 R=1 S=1 N=1 V=672 H=7 W=7 L=160 Q=7 P=7
+- factors: C=336 K=5 R=1 S=1 N=1 V=672 H=7 W=7 L=160 Q=7 P=7
   permutation: CKRSNVHWLQP
   target: MainMemory
   type: interline
-- factors: C=4 K=16 R=1 S=1 N=1 V=1 H=1 W=1 L=1 Q=1 P=1
+- factors: C=2 K=32 R=1 S=1 N=1 V=1 H=1 W=1 L=1 Q=1 P=1
   permutation: CKRSNVHWLQP
   target: MainMemory
   type: intraline
-- factors: C=24 K=10 R=1 S=1 N=1 V=42 H=1 W=1 L=80 Q=7 P=1
+- factors: C=48 K=5 R=1 S=1 N=1 V=84 H=7 W=7 L=20 Q=7 P=1
   permutation: CKRSNVHWLQP
   target: MainMemory
   type: authblock_lines

@@ -25,18 +25,18 @@ mapping:
       []
   - target: RegisterFile
     type: temporal
-    factors: C3 M7 R1 S1 N1 P1 Q1
-    permutation: CMRSNPQ
+    factors: C1 M8 R1 S1 N1 P1 Q1
+    permutation: MCRSNPQ
   - target: GlobalBuffer
     type: spatial
-    factors: C14 M1 R1 S1 N1 P1 Q1
+    factors: C12 M1 R1 S1 N1 P1 Q1
     permutation: CMRSNPQ
     split: 1
   - target: GlobalBuffer
     type: temporal
-    factors: C2 M8 R1 S1 N1 P1 Q1
+    factors: C7 M42 R1 S1 N1 P1 Q1
     permutation: CMRSNPQ
   - target: MainMemory
     type: temporal
-    factors: C2 M12 R1 S1 N1 P1 Q1
+    factors: C2 M2 R1 S1 N1 P1 Q1
     permutation: MCRSNPQ
