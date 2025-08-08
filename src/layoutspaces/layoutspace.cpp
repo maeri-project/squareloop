@@ -690,6 +690,7 @@
 
       // Apply the chosen factor to the authblock_lines nest
       auto& authblock_nest = layout_[lvl].authblock_lines[ds_idx];
+      auto& interline_nest = layout_[lvl].interline[ds_idx];
 
       // Check if rank exists in the authblock nest
       auto rank_it = std::find(authblock_nest.ranks.begin(), authblock_nest.ranks.end(), rank);
@@ -702,7 +703,7 @@
       }
 
       // Set the chosen factor value
-      authblock_nest.factors[rank] = chosen_factor;
+      authblock_nest.factors[rank] = std::min(chosen_factor, interline_nest.factors[rank]);
 
       #ifdef DEBUG_CONSTRUCTION_LAYOUT
         // Get the old factor for comparison

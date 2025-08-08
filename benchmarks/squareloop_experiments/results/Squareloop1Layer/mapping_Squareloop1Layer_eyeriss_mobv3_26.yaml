@@ -49,7 +49,7 @@ mapping:
     permutation: CRSNPQ
   - target: weights_spad
     type: temporal
-    factors: C5 R3 S1 N1 P1 Q1
+    factors: C3 R3 S1 N1 P1 Q1
     permutation: CRSNPQ
   - target: RegisterFile
     type: temporal
@@ -57,7 +57,7 @@ mapping:
     permutation: CRSNPQ
   - target: DummyBuffer
     type: spatial
-    factors: C4 R1 S3 N1 P1 Q1
+    factors: C5 R1 S3 N1 P1 Q1
     permutation: SCRNPQ
     split: 0
   - target: DummyBuffer
@@ -71,9 +71,9 @@ mapping:
     split: 1
   - target: GlobalBuffer
     type: temporal
-    factors: C12 R1 S1 N1 P14 Q1
+    factors: C8 R1 S1 N1 P14 Q1
     permutation: CPRSNQ
   - target: MainMemory
     type: temporal
-    factors: C1 R1 S1 N1 P1 Q1
+    factors: C2 R1 S1 N1 P1 Q1
     permutation: CRSNPQ

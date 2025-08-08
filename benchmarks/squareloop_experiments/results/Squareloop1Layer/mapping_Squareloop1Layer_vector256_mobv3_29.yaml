@@ -3,16 +3,16 @@ mapping:
     type: datatype
     keep:
       - Weights
-      - Outputs
-    bypass:
       - Inputs
+    bypass:
+      - Outputs
   - target: GlobalBuffer
     type: datatype
     keep:
-      - Outputs
-    bypass:
       - Weights
+    bypass:
       - Inputs
+      - Outputs
   - target: MainMemory
     type: datatype
     keep:
@@ -33,7 +33,7 @@ mapping:
   - target: GlobalBuffer
     type: temporal
     factors: C20 R3 S3 N1 P1 Q1
-    permutation: RSCNPQ
+    permutation: CSRNPQ
   - target: MainMemory
     type: temporal
     factors: C5 R1 S1 N1 P1 Q1

@@ -45,11 +45,11 @@ mapping:
       []
   - target: ofmap_spad
     type: temporal
-    factors: C1 M12 R1 S1 N1 P1 Q1
+    factors: C1 M2 R1 S1 N1 P1 Q1
     permutation: MCRSNPQ
   - target: weights_spad
     type: temporal
-    factors: C1 M1 R1 S1 N1 P1 Q1
+    factors: C2 M1 R1 S1 N1 P1 Q1
     permutation: CMRSNPQ
   - target: RegisterFile
     type: temporal
@@ -66,14 +66,14 @@ mapping:
     permutation: CMRSNPQ
   - target: GlobalBuffer
     type: spatial
-    factors: C1 M10 R1 S1 N1 P1 Q1
+    factors: C1 M15 R1 S1 N1 P1 Q1
     permutation: MCRSNPQ
     split: 1
   - target: GlobalBuffer
     type: temporal
-    factors: C1 M1 R1 S1 N1 P1 Q1
-    permutation: CMRSNPQ
+    factors: C1 M4 R1 S1 N1 P1 Q1
+    permutation: MCRSNPQ
   - target: MainMemory
     type: temporal
-    factors: C2 M1 R1 S1 N1 P1 Q1
+    factors: C1 M1 R1 S1 N1 P1 Q1
     permutation: CMRSNPQ

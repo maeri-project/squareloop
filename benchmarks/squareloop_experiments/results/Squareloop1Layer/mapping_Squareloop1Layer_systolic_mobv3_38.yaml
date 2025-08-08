@@ -29,13 +29,13 @@ mapping:
     permutation: RCSNPQ
   - target: GlobalBuffer
     type: spatial
-    factors: C16 R1 S1 N1 P2 Q2
+    factors: C12 R1 S1 N1 P2 Q2
     permutation: CPQRSN
     split: 3
   - target: GlobalBuffer
     type: temporal
-    factors: C6 R1 S3 N1 P7 Q7
-    permutation: SCQPRN
+    factors: C8 R1 S3 N1 P7 Q7
+    permutation: QSCPRN
   - target: MainMemory
     type: temporal
     factors: C5 R1 S1 N1 P1 Q1
