@@ -1,21 +1,2 @@
 Type, Architecture, Model, Layer, Block size, Energy, Latency, Wall time
-Map, eyeriss, mobv3, 4, 4, 44.05, 1206016, 100.391
-Map, eyeriss, mobv3, 4, 8, 56.65, 1206464, 106.427
-Map, eyeriss, mobv3, 4, 16, 65.08, 1208704, 85.681
-Map, eyeriss, mobv3, 4, 32, 86.68, 1208144, 82.182
-Map, eyeriss, mobv3, 4, 64, 125.2, 1209344, 139.346
-Map, eyeriss, mobv3, 4, 128, 602.51, 1206400, 90.836
-Map, eyeriss, mobv3, 4, 256, 910.32, 1208288, 185.873
-Map, eyeriss, mobv3, 4, 512, 6276.66, 1209152, 103.455
-Map, eyeriss, mobv3, 4, 1024, 11608.55, 1212064, 149.569
-Map, eyeriss, mobv3, 4, 2048, 98859.35, 1211560, 156.111
-NoCrypto, eyeriss, mobv3, 4, 4, 44.99, 200704, 96.604
-NoCrypto, eyeriss, mobv3, 4, 8, 47.59, 100352, 110.958
-NoCrypto, eyeriss, mobv3, 4, 16, 60.06, 50624, 117.965
-NoCrypto, eyeriss, mobv3, 4, 32, 71.47, 50368, 117.423
-NoCrypto, eyeriss, mobv3, 4, 64, 189.17, 50304, 111.665
-NoCrypto, eyeriss, mobv3, 4, 128, 3846.77, 50232, 218.722
-NoCrypto, eyeriss, mobv3, 4, 256, 1161.37, 50192, 232.156
-NoCrypto, eyeriss, mobv3, 4, 512, 2755.79, 50240, 128.140
-NoCrypto, eyeriss, mobv3, 4, 1024, 10665.07, 50212, 126.025
-NoCrypto, eyeriss, mobv3, 4, 2048, 42475.86, 50216, 133.465
+Map, eyeriss, mobv3, 4, 4, 51.57, 1207360, 121.048

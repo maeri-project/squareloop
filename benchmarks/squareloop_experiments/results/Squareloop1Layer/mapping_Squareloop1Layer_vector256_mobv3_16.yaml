@@ -9,10 +9,10 @@ mapping:
   - target: GlobalBuffer
     type: datatype
     keep:
-      - Outputs
-    bypass:
       - Weights
+    bypass:
       - Inputs
+      - Outputs
   - target: MainMemory
     type: datatype
     keep:

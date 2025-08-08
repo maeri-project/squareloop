@@ -23,11 +23,11 @@ mapping:
       []
   - target: RegisterFile
     type: temporal
-    factors: C4 M168 R1 S1 N1 P1 Q1
+    factors: C3 M168 R1 S1 N1 P1 Q1
     permutation: CMRSNPQ
   - target: GlobalBuffer
     type: spatial
-    factors: C168 M1 R1 S1 N1 P1 Q1
+    factors: C224 M1 R1 S1 N1 P1 Q1
     permutation: CMRSNPQ
     split: 1
   - target: GlobalBuffer

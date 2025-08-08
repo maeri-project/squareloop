@@ -3,17 +3,16 @@ mapping:
     type: datatype
     keep:
       - Weights
-      - Outputs
     bypass:
       - Inputs
+      - Outputs
   - target: GlobalBuffer
     type: datatype
     keep:
-      []
+      - Outputs
     bypass:
       - Weights
       - Inputs
-      - Outputs
   - target: MainMemory
     type: datatype
     keep:
@@ -24,18 +23,18 @@ mapping:
       []
   - target: RegisterFile
     type: temporal
-    factors: C8 M4 R1 S1 N1 P7 Q1
-    permutation: CMPRSNQ
+    factors: C2 M2 R1 S1 N1 P1 Q7
+    permutation: CMQRSNP
   - target: GlobalBuffer
     type: spatial
-    factors: C4 M20 R1 S1 N1 P1 Q1
+    factors: C96 M1 R1 S1 N1 P1 Q1
     permutation: CMRSNPQ
-    split: 2
+    split: 1
   - target: GlobalBuffer
     type: temporal
-    factors: C6 M2 R1 S1 N1 P1 Q1
-    permutation: MCRSNPQ
+    factors: C1 M80 R1 S1 N1 P7 Q1
+    permutation: MPCRSNQ
   - target: MainMemory
     type: temporal
-    factors: C5 M1 R1 S1 N1 P1 Q7
-    permutation: QCMRSNP
+    factors: C5 M1 R1 S1 N1 P1 Q1
+    permutation: CMRSNPQ

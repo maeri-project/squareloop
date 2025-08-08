@@ -34,8 +34,8 @@ mapping:
   - target: GlobalBuffer
     type: temporal
     factors: C1 M16 R1 S1 N1 P14 Q2
-    permutation: MPQCRSN
+    permutation: PMQCRSN
   - target: MainMemory
     type: temporal
     factors: C1 M2 R1 S1 N1 P1 Q56
-    permutation: MQCRSNP
+    permutation: QMCRSNP

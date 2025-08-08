@@ -2,18 +2,18 @@ mapping:
   - target: RegisterFile
     type: datatype
     keep:
-      - Outputs
-    bypass:
-      - Weights
-      - Inputs
-  - target: GlobalBuffer
-    type: datatype
-    keep:
       []
     bypass:
       - Weights
       - Inputs
       - Outputs
+  - target: GlobalBuffer
+    type: datatype
+    keep:
+      - Outputs
+    bypass:
+      - Weights
+      - Inputs
   - target: MainMemory
     type: datatype
     keep:
