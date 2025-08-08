@@ -968,7 +968,8 @@
           uint32_t total_rank_size = 0;
           const auto& coefficient = layout_.at(lvl).rankToCoefficientValue[rank];
           uint32_t zero_padding = 0;
-          if (lvl == cumulatively_intraline_dimval.size()-1) {
+          if (lvl == cumulatively_intraline_dimval.size()-1 && 
+              layout_.at(lvl).rankToZeroPadding.find(rank) != layout_.at(lvl).rankToZeroPadding.end()) {
             zero_padding = layout_.at(lvl).rankToZeroPadding.at(rank);
           }
           for (unsigned idx=0; idx < dim_ids.size(); idx++){

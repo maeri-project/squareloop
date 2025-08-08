@@ -58,6 +58,7 @@ namespace layout
         rankToFactorizedDimensionID = workload.GetShape()->RankNameToFactorizedDimensionID;
     std::map<std::string, std::vector<std::string>> rankToDimensionName = workload.GetShape()->RankNameToDimensionName;
     std::map<std::string, std::vector<std::string>> rankToCoefficient = workload.GetShape()->RankNameToCoefficient;
+    std::map<std::string, std::string> rankToZeroPadding = workload.GetShape()->RankNameToZeroPadding;
     std::map<std::string, std::vector<std::string>> dataSpaceToRank = workload.GetShape()->DataSpaceNameToRankName;
     for (auto [ds, ranks] : dataSpaceToRank)
     {
@@ -93,12 +94,10 @@ namespace layout
       rankToCoefficientValue[map_pair.first] = coefficientValue;
     }
 
-    // ToDo: Read zero padding from layer shape 
-    std::map<std::string, uint32_t> rankToZeroPadding;
-    for (auto &[rank, dimNames] : rankToDimensionName)
+    std::map<std::string, std::uint32_t> rankToZeroPaddingValue;
+    for (auto map_pair : rankToZeroPadding)
     {
-      // Temporary fix, needs to be changed for reading zero padding size from layer shape
-      rankToZeroPadding[rank] = (dimNames.size() > 1 ? 1 : 0);
+      rankToZeroPaddingValue[map_pair.first] = workload.GetPadding(map_pair.second);
     }
 
     std::map<std::string, unsigned> dimensionToDimID = workload.GetShape()->FactorizedDimensionNameToID;
@@ -221,7 +220,7 @@ namespace layout
       layout.rankToFactorizedDimensionID = rankToFactorizedDimensionID;
       layout.dimensionToDimID = dimensionToDimID;
       layout.coefficientToValue = coefficientToValue;
-      layout.rankToZeroPadding = rankToZeroPadding;
+      layout.rankToZeroPadding = rankToZeroPaddingValue;
       layout.dim_order = computedDimOrder;
       layout.rank_list = globalRankList;
 
@@ -344,6 +343,7 @@ namespace layout
         rankToFactorizedDimensionID = workload.GetShape()->RankNameToFactorizedDimensionID;
     std::map<std::string, std::vector<std::string>> rankToDimensionName = workload.GetShape()->RankNameToDimensionName;
     std::map<std::string, std::vector<std::string>> rankToCoefficient = workload.GetShape()->RankNameToCoefficient;
+    std::map<std::string, std::string> rankToZeroPadding = workload.GetShape()->RankNameToZeroPadding;
     std::map<std::string, std::vector<std::string>> dataSpaceToRank = workload.GetShape()->DataSpaceNameToRankName;
     for (auto [ds, ranks] : dataSpaceToRank)
     {
@@ -379,12 +379,10 @@ namespace layout
       rankToCoefficientValue[map_pair.first] = coefficientValue;
     }
 
-    // ToDo: Read zero padding from layer shape 
-    std::map<std::string, uint32_t> rankToZeroPadding;
-    for (auto &[rank, dimNames] : rankToDimensionName)
+    std::map<std::string, std::uint32_t> rankToZeroPaddingValue;
+    for (auto map_pair : rankToZeroPadding)
     {
-      // Temporary fix, needs to be changed for reading zero padding size from layer shape
-      rankToZeroPadding[rank] = (dimNames.size() > 1 ? 1 : 0);
+      rankToZeroPaddingValue[map_pair.first] = workload.GetPadding(map_pair.second);
     }
 
     std::map<std::string, unsigned> dimensionToDimID = workload.GetShape()->FactorizedDimensionNameToID;
@@ -463,7 +461,7 @@ namespace layout
       layout.rankToFactorizedDimensionID = rankToFactorizedDimensionID;
       layout.dimensionToDimID = dimensionToDimID;
       layout.coefficientToValue = coefficientToValue;
-      layout.rankToZeroPadding = rankToZeroPadding;
+      layout.rankToZeroPadding = rankToZeroPaddingValue;
       layout.dim_order = computedDimOrder;
       layout.rank_list = globalRankList;
 

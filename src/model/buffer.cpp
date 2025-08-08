@@ -1046,7 +1046,8 @@ namespace model
       int mapping_parallelism = std::max(rank_id_to_mapping_parallelism[ranks[r]], 1);
 
       int zero_padding = 0;
-      if (assume_zero_padding && specs_.technology.Get() == Technology::DRAM && layout.rankToZeroPadding.at(ranks[r]) > 0)
+      if (assume_zero_padding && specs_.technology.Get() == Technology::DRAM && 
+          layout.rankToZeroPadding.find(ranks[r]) != layout.rankToZeroPadding.end())
       { // rank has zero padding
         zero_padding = layout.rankToZeroPadding.at(ranks[r]);
       }
