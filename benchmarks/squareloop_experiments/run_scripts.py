@@ -460,7 +460,7 @@ def run_Squareloop1Layer_exp():
         csv_header = "Type, Architecture, Model, Layer, Energy, Latency, Wall time\n"
         f.write(csv_header)
 
-    archs = ['vector256', 'eyeriss', 'systolic']
+    archs = ['eyeriss', 'systolic', 'vector256']
     for arch in archs:
         for model in model_path:
             for layer in unique_layers[model]:

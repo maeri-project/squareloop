@@ -38,4 +38,4 @@ mapping:
   - target: MainMemory
     type: temporal
     factors: C1 M2 R1 S1 N1 P1 Q56
-    permutation: MQCRSNP
+    permutation: QMCRSNP

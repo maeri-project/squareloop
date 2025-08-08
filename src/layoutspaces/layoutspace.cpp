@@ -967,6 +967,10 @@
           uint32_t total_intraline = 0;
           uint32_t total_rank_size = 0;
           const auto& coefficient = layout_.at(lvl).rankToCoefficientValue[rank];
+          uint32_t zero_padding = 0;
+          if (lvl == cumulatively_intraline_dimval.size()-1) {
+            zero_padding = layout_.at(lvl).rankToZeroPadding.at(rank);
+          }
           for (unsigned idx=0; idx < dim_ids.size(); idx++){
             auto dim_intraline_value = cumulatively_intraline_dimval[lvl][dim_ids[idx]];
             auto dim_total_value = cumulatively_product_dimval[lvl][dim_ids[idx]];
@@ -1005,7 +1009,7 @@
             }
           }
           assert(total_intraline > 0 && "Division by zero in total_interline calculation");
-          auto total_interline = (total_rank_size + total_intraline - 1) / total_intraline;
+          auto total_interline = (total_rank_size - 2*zero_padding + total_intraline - 1) / total_intraline;
 
           if (mapping.datatype_bypass_nest.at(i).test(lvl)) {
             layout_.at(lvl).intraline.at(i).factors.at(rank) = total_intraline;
@@ -1407,6 +1411,7 @@
         for (unsigned ds_idx = 0; ds_idx < num_data_spaces; ds_idx++)
         {
           const auto& authblock_nest = layout_.at(lvl).authblock_lines.at(ds_idx);
+          const auto& inter_nest = layout_.at(lvl).interline.at(ds_idx);
 
           // Check if this nest has non-empty factors
           if (!authblock_nest.factors.empty())
@@ -1419,31 +1424,33 @@
               // Get dimension IDs for this rank
               auto dims = layout_.at(lvl).rankToFactorizedDimensionID.at(rank);
 
-              // Calculate product of ratios for all dimensions of this rank
-              // Only proceed if we have at least 2 levels for comparison
-              if (lvl >= 2)
-              {
-                for (uint32_t dim_id : dims)
-                {
-                  auto cumulative_it_lvl = cumulatively_product_dimval[lvl].find(dim_id);
-                  auto cumulative_it_lvl_minus_1 = cumulatively_intraline_dimval[lvl].find(dim_id);
+              max_factor = (inter_nest.factors.find(rank) != inter_nest.factors.end()
+                                                  ? inter_nest.factors.at(rank) : 1);
+              //// Calculate product of ratios for all dimensions of this rank
+              //// Only proceed if we have at least 2 levels for comparison
+              //if (lvl >= 2)
+              //{
+              //  for (uint32_t dim_id : dims)
+              //  {
+              //    auto cumulative_it_lvl = cumulatively_product_dimval[lvl].find(dim_id);
+              //    auto cumulative_it_lvl_minus_1 = cumulatively_intraline_dimval[lvl].find(dim_id);
 
-                  if (cumulative_it_lvl != cumulatively_product_dimval[lvl].end() &&
-                      cumulative_it_lvl_minus_1 != cumulatively_intraline_dimval[lvl].end() &&
-                      cumulative_it_lvl_minus_1->second != 0)
-                  {
-                    assert(cumulative_it_lvl_minus_1->second > 0 && "Division by zero in ratio calculation");
-                    uint32_t ratio = cumulative_it_lvl->second / cumulative_it_lvl_minus_1->second;
-                    max_factor *= ratio;
-                  }
-                  else
-                  {
-                    #ifdef DEBUG_CREATE_AUTH_SPACE
-                      std::cout << "Warning: dimension ID " << dim_id << " not found or zero division in cumulatively_product_dimval for level " << lvl << " or cumulatively_intraline_dimval for level " << lvl << std::endl;
-                    #endif
-                  }
-                }
-              }
+              //    if (cumulative_it_lvl != cumulatively_product_dimval[lvl].end() &&
+              //        cumulative_it_lvl_minus_1 != cumulatively_intraline_dimval[lvl].end() &&
+              //        cumulative_it_lvl_minus_1->second != 0)
+              //    {
+              //      assert(cumulative_it_lvl_minus_1->second > 0 && "Division by zero in ratio calculation");
+              //      uint32_t ratio = cumulative_it_lvl->second / cumulative_it_lvl_minus_1->second;
+              //      max_factor *= ratio;
+              //    }
+              //    else
+              //    {
+              //      #ifdef DEBUG_CREATE_AUTH_SPACE
+              //        std::cout << "Warning: dimension ID " << dim_id << " not found or zero division in cumulatively_product_dimval for level " << lvl << " or cumulatively_intraline_dimval for level " << lvl << std::endl;
+              //      #endif
+              //    }
+              //  }
+              //}
 
               #ifdef DEBUG_CREATE_AUTH_SPACE
                 std::cout << " lvl=" << lvl << " ds_idx=" << ds_idx << " rank=" << rank << " dims=[";
