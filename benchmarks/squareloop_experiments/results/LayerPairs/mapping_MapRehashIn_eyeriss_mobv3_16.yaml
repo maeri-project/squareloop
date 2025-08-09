@@ -71,9 +71,9 @@ mapping:
     split: 1
   - target: GlobalBuffer
     type: temporal
-    factors: C40 R1 S1 N1 P28 Q1
+    factors: C4 R1 S1 N1 P28 Q1
     permutation: CPRSNQ
   - target: MainMemory
     type: temporal
-    factors: C1 R1 S1 N1 P1 Q2
-    permutation: QCRSNP
+    factors: C10 R1 S1 N1 P1 Q2
+    permutation: CQRSNP
