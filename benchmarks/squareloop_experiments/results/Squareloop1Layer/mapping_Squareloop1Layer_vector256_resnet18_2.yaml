@@ -28,12 +28,12 @@ mapping:
     permutation: CMRQSNP
   - target: GlobalBuffer
     type: spatial
-    factors: C2 M1 R1 S3 N1 P8 Q2
+    factors: C4 M1 R1 S3 N1 P8 Q2
     permutation: CSPQMRN
     split: 4
   - target: GlobalBuffer
     type: temporal
-    factors: C4 M1 R1 S1 N1 P1 Q2
+    factors: C2 M1 R1 S1 N1 P1 Q2
     permutation: QCMRSNP
   - target: MainMemory
     type: temporal
