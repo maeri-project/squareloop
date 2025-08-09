@@ -32,9 +32,9 @@ mapping:
     split: 1
   - target: GlobalBuffer
     type: temporal
-    factors: C4 R1 S1 N1 P1 Q1
+    factors: C1 R1 S1 N1 P1 Q1
     permutation: CRSNPQ
   - target: MainMemory
     type: temporal
-    factors: C4 R1 S1 N1 P1 Q1
+    factors: C16 R1 S1 N1 P1 Q1
     permutation: CRSNPQ

@@ -92,7 +92,7 @@ for arch in archs:
 
         # Plot
         #fig, ax = plt.subplots(figsize=(12, 7))
-        fig, ax = plt.subplots(figsize=(num_groups/2, 7))
+        fig, ax = plt.subplots(figsize=(num_groups/2, 9))
         bars1 = ax.bar(x_positions, all_layer_bars, width=bar_width,
                     color=color_list[0],
                     edgecolor='k', bottom=0)
@@ -118,7 +118,7 @@ for arch in archs:
 
         # Labels and limits
         ax.set_ylabel("Latency", fontsize=26)
-        ax.set_ylim([0, max(all_sum_bars) * 1.3])
+        ax.set_ylim([0, max(all_sum_bars) * 1.05])
         ax.tick_params(axis='y', labelsize=20)
 
         ax2.set_ylabel('Total latency', fontsize=26)
@@ -129,7 +129,14 @@ for arch in archs:
         handles = [plt.Rectangle((0, 0), 1, 1, color=c, edgecolor='k') for c in color_list]
         #ax.legend(handles, method_labels, fontsize=24,
         #        loc='best', ncol=3, handletextpad=0.4, columnspacing=0.3, borderpad=0.2)
-        ax.legend(handles, method_labels, fontsize=22)
+        legend = ax.legend(handles, method_labels, fontsize=22, loc='upper right',
+                  handletextpad=0.4, columnspacing=0.3, borderpad=0.2)
+
+        # Get legend x-coordinate
+        bbox = legend.get_window_extent()
+        inv = ax.transData.inverted()
+        data_bbox = bbox.transformed(inv)
+        legend_x = data_bbox.x0
 
         # Draw horizontal lines using ax2
         ax2.axhline(y=baseline_total, xmin=(bar3[0].get_x()+bar3[0].get_width())/ax2.get_xlim()[1], color='black', linestyle='--')
@@ -145,11 +152,12 @@ for arch in archs:
         )
 
         arrow_h = 200000 * max(all_sum_bars)/5e6
+        arrow_w = 0.65
         for i in range(num_groups):
             if (i+1) in forced_rehash_layers:
                 ax.annotate('',
-                        xy=(group_centers[i], sum_bars_baseline[i]), 
-                        xytext=(group_centers[i]-1, sum_bars_baseline[i]+arrow_h),
+                        xy=(group_centers[i], sum_bars_constrained[i]), 
+                        xytext=(group_centers[i]+arrow_w, sum_bars_constrained[i]+arrow_h),
                         arrowprops=dict(arrowstyle='simple', color='black'),
                         fontsize=12)
 
@@ -157,24 +165,26 @@ for arch in archs:
             if (i+1) in better_rehash_layers:
                 ax.annotate('',
                         xy=(group_centers[i], sum_bars_baseline[i]), 
-                        xytext=(group_centers[i]-1, sum_bars_baseline[i]+arrow_h),
+                        xytext=(group_centers[i]-arrow_w, sum_bars_baseline[i]+arrow_h),
                         arrowprops=dict(arrowstyle='simple', color='#990000'),
                         fontsize=12)
 
         x_lim = ax.get_xlim()
         y_lim = ax.get_ylim()
-        x_pos = x_lim[0]+1.5
+        #x_pos = x_lim[0]+1.5
+        #x_pos = x_lim[1]-25
+        x_pos = legend_x-10
         y_pos = (y_lim[0]+y_lim[1])*0.95
         ax.annotate('',
-           xy=(x_pos, y_pos),
-           xytext=(x_pos-1, y_pos+arrow_h),
+           xy=(x_pos-arrow_w, y_pos),
+           xytext=(x_pos, y_pos+arrow_h),
            arrowprops=dict(arrowstyle='simple', color='black'),
            fontsize=12)
         ax.text(x_pos, y_pos+arrow_h/3, r'Forced rehash', fontsize=22, ha='left', va='center')
         y_pos -= 2*arrow_h
         ax.annotate('',
            xy=(x_pos, y_pos),
-           xytext=(x_pos-1, y_pos+arrow_h),
+           xytext=(x_pos-arrow_w, y_pos+arrow_h),
            arrowprops=dict(arrowstyle='simple', color='#990000'),
            fontsize=12)
         ax.text(x_pos, y_pos+arrow_h/3, r'Rehash is optimal', fontsize=22, ha='left', va='center')
