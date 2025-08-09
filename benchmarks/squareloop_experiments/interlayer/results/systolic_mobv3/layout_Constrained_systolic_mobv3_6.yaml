@@ -3,7 +3,7 @@ layout:
   permutation: CKRSNVHWLQP
   target: MainMemory
   type: interline
-- factors: C=16 K=4 R=1 S=1 N=1 V=2 H=8 W=4 L=8 Q=4 P=2
+- factors: C=16 K=4 R=1 S=1 N=1 V=2 H=8 W=4 L=8 Q=2 P=4
   permutation: CKRSNVHWLQP
   target: MainMemory
   type: intraline

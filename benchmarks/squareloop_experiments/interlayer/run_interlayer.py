@@ -192,8 +192,8 @@ def proposed_layouts(layout_in_file, layout_out_file):
     layout_in = read_layout(layout_in_file)
     layout_out = read_layout(layout_out_file)
     layouts = [
-        layout_assign_perm(layout_in, layout_out, [('out','N','N'), ('out','V','L'), ('out','H','Q'), ('out','W','P')]),
-        layout_assign_perm(layout_in, layout_out, [('in','N','N'), ('in','L','V'), ('in','Q','H'), ('in','P','W')]),
+        layout_assign_perm(layout_in, layout_out, [('out','N','N'), ('out','V','L'), ('out','H','P'), ('out','W','Q')]),
+        layout_assign_perm(layout_in, layout_out, [('in','N','N'), ('in','L','V'), ('in','P','H'), ('in','Q','W')]),
     ]
     csv_names = [
         'In2Out',

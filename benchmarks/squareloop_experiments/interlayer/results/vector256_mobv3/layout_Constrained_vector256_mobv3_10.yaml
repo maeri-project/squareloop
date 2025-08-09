@@ -3,11 +3,11 @@ layout:
   permutation: CKRSNVHWLQP
   target: MainMemory
   type: interline
-- factors: C=8 K=8 R=1 S=1 N=1 V=8 H=1 W=8 L=8 Q=1 P=8
+- factors: C=8 K=8 R=1 S=1 N=1 V=8 H=1 W=8 L=8 Q=8 P=1
   permutation: CKRSNVHWLQP
   target: MainMemory
   type: intraline
-- factors: C=3 K=9 R=1 S=1 N=1 V=3 H=14 W=7 L=9 Q=1 P=7
+- factors: C=3 K=9 R=1 S=1 N=1 V=3 H=14 W=7 L=9 Q=7 P=1
   permutation: CKRSNVHWLQP
   target: MainMemory
   type: authblock_lines
