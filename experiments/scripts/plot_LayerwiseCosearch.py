@@ -7,57 +7,83 @@ import os
 import utils as util_script  # noqa: E402
 from utils import squareloop_dir
 sys.path.append(os.path.dirname(__file__))
+import os
+import re
+from pathlib import Path
+
+def extract_cycles_from_stats(stats_file_path):
+    """
+    Extract cycle count from timeloop-mapper.stats.txt file.
+    
+    Args:
+        stats_file_path (str): Path to the stats file
+        
+    Returns:
+        int: Cycle count, or None if not found
+    """
+    try:
+        with open(stats_file_path, 'r') as f:
+            for line in f:
+                if line.strip().startswith('Cycles:'):
+                    # Extract the number after "Cycles:"
+                    cycle_match = re.search(r'Cycles:\s*(\d+)', line)
+                    if cycle_match:
+                        return int(cycle_match.group(1))
+        return None
+    except FileNotFoundError:
+        print(f"Warning: Stats file not found: {stats_file_path}")
+        return None
+    except Exception as e:
+        print(f"Error reading {stats_file_path}: {e}")
+        return None
+
+def collect_all_layer_cycles(base_path):
+    """
+    Collect cycle counts for all ResNet18 layers.
+    
+    Args:
+        base_path (str): Base path to the benchmark directory
+        
+    Returns:
+        dict: Dictionary mapping layer ID to cycle count
+    """
+    layer_cycles = {}
+    base_path = Path(base_path)
+    
+    # Find all layer directories
+    layer_dirs = []
+    for item in base_path.iterdir():
+        if item.is_dir() and item.name.startswith('resnet18_layer'):
+            layer_dirs.append(item)
+    
+    # Sort by layer number
+    layer_dirs.sort(key=lambda x: int(x.name.replace('resnet18_layer', '')))
+    
+    print(f"Found {len(layer_dirs)} layer directories")
+    
+    for layer_dir in layer_dirs:
+        layer_name = layer_dir.name
+        layer_id = int(layer_name.replace('resnet18_layer', ''))
+        
+        stats_file = layer_dir / 'timeloop-mapper.stats.txt'
+        cycles = extract_cycles_from_stats(stats_file)
+        
+        if cycles is not None:
+            layer_cycles[layer_id] = cycles
+            print(f"Layer {layer_id}: {cycles:,} cycles")
+        else:
+            print(f"Layer {layer_id}: Could not extract cycle count")
+    
+    return layer_cycles
+
+########################
+# configurations
+########################
 
 arch = 'eyeriss'
 model = 'resnet18'
 
 result_folder = squareloop_dir+'experiments/results/LayerwiseCosearch/' + model + '/'
-
-
-########################
-# Compute rehash latencies for s2loop from search_script
-########################
-
-# Paths for dependency graph and layer layouts
-dependency_file = util_script.squareloop_dir + 'benchmarks/script/crosslayer_search/test/resnet18/resnet18_dependent.yaml'
-base_path = util_script.squareloop_dir + 'experiments/results/LayerwiseCosearch/resnet18'
-problem_path = util_script.squareloop_dir + 'benchmarks/layer_shapes/resnet18'
-
-# Build dependency groups and read layouts
-dataspace_deps, _ = util_script.parse_dataspace_dependencies(dependency_file)
-layer_dataspace_layouts = util_script.read_all_layer_dataspace_layouts(base_path, problem_path)
-
-# Calculate per-group rehash latencies and map to 21 layers (default 0 if missing)
-group_rehash_latencies = util_script.calculate_rehash_latency(dataspace_deps, layer_dataspace_layouts, util_script.crypto_file)
-rehash_latencies_s2loop = [group_rehash_latencies.get(i, 0) for i in range(1, 22)]
-
-########################
-# Plot the results
-########################
-
-latencies_s2loop = [
-    1204280,    # 1
-    688264,     # 2
-    688264,     # 3
-    688264,     # 4
-    688264,     # 5
-    344222,     # 6
-    688336,     # 7
-    57398,      # 8
-    688336,     # 9
-    688336,     # 10
-    344220,     # 11
-    688336,     # 12
-    57398,      # 13
-    688336,     # 14
-    688448,     # 15
-    344360,     # 16
-    688177,     # 17
-    57382,      # 18
-    688324,     # 19
-    688324,     # 20
-    769536      # 21
-]
 
 latencies_sloop = [
     1204416,  # Layer 1
@@ -105,6 +131,37 @@ rehash_latencies_sloop = [
     0,          # 19
     19212       # 20-21
 ]
+
+########################
+# Compute rehash latencies for s2loop from search_script
+########################
+
+# Paths for dependency graph and layer layouts
+dependency_file = util_script.squareloop_dir + 'benchmarks/script/crosslayer_search/test/resnet18/resnet18_dependent.yaml'
+base_path = util_script.squareloop_dir + 'experiments/results/LayerwiseCosearch/resnet18'
+problem_path = util_script.squareloop_dir + 'benchmarks/layer_shapes/resnet18'
+
+# Build dependency groups and read layouts
+dataspace_deps, _ = util_script.parse_dataspace_dependencies(dependency_file)
+layer_dataspace_layouts = util_script.read_all_layer_dataspace_layouts(base_path, problem_path)
+
+# Calculate per-group rehash latencies and map to 21 layers (default 0 if missing)
+group_rehash_latencies = util_script.calculate_rehash_latency(dataspace_deps, layer_dataspace_layouts, util_script.crypto_file)
+rehash_latencies_s2loop = [group_rehash_latencies.get(i, 0) for i in range(1, 22)]
+
+########################
+# Read S2loop results
+########################
+
+# Collect compute latencies directly from the results folder
+_layer_cycles_dict = collect_all_layer_cycles(base_path)
+latencies_s2loop = [_layer_cycles_dict.get(i, 0) for i in range(1, 21)]
+latencies_s2loop += [latencies_sloop[-1]] # Layer 21 is fully connected layer takes the same latency as SecureLoop.
+
+########################
+# Plot the results
+########################
+
 # Calculate total latencies
 sloop_total = sum(latencies_sloop) + sum(rehash_latencies_sloop)
 s2loop_total = sum(latencies_s2loop) + sum(rehash_latencies_s2loop)

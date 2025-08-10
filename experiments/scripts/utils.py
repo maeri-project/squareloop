@@ -733,7 +733,6 @@ def run_squareloop(arch, model, layer, csv_type, result_dir, csv_file, layout_fi
     exe_tmp = squareloop_exe
     
     mapper_command = ld_path_tmp + ' ' + exe_tmp + ' ' + mapper_file_tmp + ' ' + arch_file + ' ' + workload_file + ' ' + crypto_file_tmp + ' ' + layout_file + ' ' + mapping_file
-    #print(mapper_command)
 
     start = time.time()
     result = subprocess.run(mapper_command, capture_output=True, text=True, shell=True)
