@@ -10,9 +10,11 @@ def run_Squareloop1Layer_exp():
     result_dir = exp_dir + 'results/Squareloop1Layer/'
 
     csv_file = result_dir + 'stats.csv'
-    with open(csv_file, 'w') as f:
-        csv_header = "Type, Architecture, Model, Layer, Energy, Latency, Wall time\n"
-        f.write(csv_header)
+    if not os.path.exists(csv_file):
+        os.makedirs(os.path.dirname(csv_file), exist_ok=True)
+        with open(csv_file, 'w') as f:
+            csv_header = "Type, Architecture, Model, Layer, Energy, Latency, Wall time\n"
+            f.write(csv_header)
 
     archs = ['eyeriss', 'systolic', 'vector256']
     for arch in archs:

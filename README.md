@@ -50,8 +50,6 @@ Most changes introduced by SquareLoop are to the following files:
 
 
 
-
-
 ## Experiment setup
 
 We use the following files in the experiments:
@@ -83,26 +81,16 @@ Additionally `benchmarks/rtl-validation/` contains the experiment setup for the 
 
 
 
-
-
-
 ## Running experiments
 
-Before running the experiments adjust `squareloop_dir` in `experiments/scripts/utils.py` to contain the path to the squareloop repository. (Note: Some runs might produce slightly different results due to the restrictive mapper used. Rerunning the experiment should help reproduce the original result).
+Before running the experiments adjust `squareloop_dir` in `experiments/scripts/utils.py` to contain the path (`squareloop_dir`) to the squareloop repository. (Note: Some runs might produce slightly different results due to the restrictive mapper used. Rerunning the experiment should help reproduce the original result).
 
 ### Single Layer (Fig. 10)
 
-TODO
+Run `python3 experiments/scripts/run_LayerwiseCosearch.py` to fill `experiments/results/LayerwiseCosearch/` with results.
+Then use `python3 experiments/scripts/plot_LayerwiseCosearch.py` to generate the plot in `experiments/results/LayerwiseCosearch/layerwise_cosearch.pdf`.
 
-### Number of engines (Fig. 12a)
-
-Run `python3 experiments/scripts/run_NumberEngines.py` to fill `experiments/results/NumberEngines/` with results.
-Then use `python3 experiments/scripts/plot_NumberEngines.py` to generate the plot in `experiments/results/NumberEngines/NumberEngines.pdf`.
-
-### RTL validation (Fig. 12b)
-
-Run `python3 experiments/scripts/run_RTLValidation.py` to print the results for SquareLoop.
-Then use `python3 experiments/scripts/plot_RTLValidation.py` to generate the plot in `experiments/results/RTLValidation/RTLValidation.pdf` (note: the latencies are hardcoded in the `plot_RTLValidation.py` script and need to be manually adjusted).
+Note: this only runs for ResNet18 under Eyeriss as this is the test case for in-house accelerator (Golden Result), so that we could make apple-to-apple comparison with SecureLoop.
 
 ### Interlayer search (Fig. 11)
 
@@ -111,9 +99,16 @@ Next, run `python3 experiments/scripts/run_Interlayer.py` to execute the layout 
 Lastly, use `python3 experiments/scripts/plot_Interlayer.py` to draw the plots in respective folders in `experiments/results/Interlayer/` and print the wall clock times of the constraint search.
 The wall clock times for single layer search can be derived from summing wall times of all layers for a respective (architecture, model) combination in `experiments/results/Squareloop1Layer/stats.csv`.
 
+### Number of engines (Fig. 12a)
 
+Run `python3 experiments/scripts/run_NumberEngines.py` to fill `experiments/results/NumberEngines/` with results.
+Then use `python3 experiments/scripts/plot_NumberEngines.py` to generate the plot in `experiments/results/NumberEngines/NumberEngines.pdf`.
 
+Note:  one could change `num_engines` in the `experiments/scripts/run_NumberEngines.py` to study the impact of different value of `num_engines` on the overall performance.
 
+### RTL validation (Fig. 12b)
 
+Run `python3 experiments/scripts/run_RTLValidation.py` to print the results for SquareLoop.
+Then use `python3 experiments/scripts/plot_RTLValidation.py` to generate the plot in `experiments/results/RTLValidation/RTLValidation.pdf` (note: the latencies are hardcoded in the `plot_RTLValidation.py` script and need to be manually adjusted).
 
-#### Enjoy!
+Enjoy! XD
