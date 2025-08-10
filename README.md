@@ -17,7 +17,12 @@ The key contributions of SquareLoop over previous tools are:
 
 ## Usage
 
-The repository can be built using `scons` in the root directory.
+It is recommended to clone this repository inside the docker available [here](https://github.com/Accelergy-Project/accelergy-timeloop-infrastructure/tree/master), which has all required packages for building squareloop.
+Running the experiments will require installing the following python packages in a virtual environment:
+
+`pip install torch torchlens pyyaml torchvision pandas`
+
+To build SquareLoop use the `scons` command in the root directory of the repository.
 
 SquareLoop interface is based on that of TimeLoop with some additions.
 Use `build/timeloop-model` to evaluate a workload on a given architecture provided a mapping.
