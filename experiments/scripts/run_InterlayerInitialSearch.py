@@ -5,9 +5,9 @@ sys.path.append(os.path.dirname(__file__))
 from utils import *
 
 def run_Squareloop1Layer_exp():
-    print("Squareloop1Layer")
+    print("InterlayerInitialSearch")
 
-    result_dir = exp_dir + 'results/Squareloop1Layer/'
+    result_dir = exp_dir + 'results/InterlayerInitialSearch/'
 
     csv_file = result_dir + 'stats.csv'
     if not os.path.exists(csv_file):

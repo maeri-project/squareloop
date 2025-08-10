@@ -379,7 +379,7 @@ def run_Interlayer_exp(arch, model):
     result_dir = exp_dir + 'results/Interlayer/'+arch+'_'+model+'/'
     os.makedirs(result_dir, exist_ok=True)
 
-    baseline_layouts_dir = exp_dir + 'results/Squareloop1Layer/'
+    baseline_layouts_dir = exp_dir + 'results/InterlayerInitialSearch/'
 
     csv_file = result_dir + 'stats.csv'
     with open(csv_file, 'w') as f:

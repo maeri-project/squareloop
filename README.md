@@ -94,10 +94,10 @@ Note: this only runs for ResNet18 under Eyeriss as this is the test case for in-
 
 ### Interlayer search (Fig. 11)
 
-First run `python3 experiments/scripts/run_Squareloop1Layer.py` to find the single layer optimal layouts and fill results in `experiments/results/Squareloop1Layer/`.
+First run `python3 experiments/scripts/run_InterlayerInitialSearch.py` to find the single layer optimal layouts and fill results in `experiments/results/InterlayerInitialSearch/`.
 Next, run `python3 experiments/scripts/run_Interlayer.py` to execute the layout constraint search and fill results in `experiments/results/Interlayer/`.
 Lastly, use `python3 experiments/scripts/plot_Interlayer.py` to draw the plots in respective folders in `experiments/results/Interlayer/` and print the wall clock times of the constraint search.
-The wall clock times for single layer search can be derived from summing wall times of all layers for a respective (architecture, model) combination in `experiments/results/Squareloop1Layer/stats.csv`.
+The wall clock times for single layer search can be derived from summing wall times of all layers for a respective (architecture, model) combination in `experiments/results/InterlayerInitialSearch/stats.csv`.
 
 ### Number of engines (Fig. 12a)
 
