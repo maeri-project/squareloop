@@ -9,6 +9,7 @@ archs = ['eyeriss', 'systolic', 'vector256']
 models = ['resnet18', 'mobv3']
 
 
+wall_times = []
 
 
 for arch in archs:
@@ -43,6 +44,9 @@ for arch in archs:
 
         better_rehash_layers = df[df['Type'] == 'ConstrainedRehash']['Layer'].tolist()
         better_rehash_layers = [int(i.split('_')[0]) for i in better_rehash_layers]
+
+        total_time = df[df['Type'] == 'TotalTime']['Wall time'].item()
+        wall_times.append(arch + "," + model + "," + str(total_time))
 
         #print(baseline)
         #print(baseline_rehash)
@@ -196,3 +200,7 @@ for arch in archs:
         plt.tight_layout()
         plt.savefig(result_folder+"rehash.pdf", bbox_inches="tight", transparent=True)
         #plt.show()
+
+
+for s in wall_times:
+    print(s)

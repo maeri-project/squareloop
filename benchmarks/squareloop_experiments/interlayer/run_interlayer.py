@@ -376,6 +376,7 @@ def run_squareloop(arch, model, layer, csv_type, result_dir, csv_file='', layout
 
 
 def run_Interlayer_exp(arch, model):
+    startInterlayer = time.time()
     print("LayerPairs")
 
     result_dir = exp_dir + 'interlayer/results/'+arch+'_'+model+'/'
@@ -510,6 +511,11 @@ def run_Interlayer_exp(arch, model):
     with open(csv_file, 'a') as f:
         f.write(csv_str)
 
+    endInterlayer = time.time()
+    wall_time = endInterlayer - startInterlayer
+    csv_str = 'TotalTime' + ', ' + arch + ', ' + model + ', ' + 'N/A' + ', ' + 'N/A' + ', ' + 'N/A' + ', ' + f"{wall_time:.3f}" + '\n'
+    with open(csv_file, 'a') as f:
+        f.write(csv_str)
 
 
 
@@ -526,8 +532,8 @@ def run_Interlayer_exp(arch, model):
 
 
 
-archs = ['eyeriss', 'systolic', 'vector256']
-models = ['resnet18', 'mobv3']
+archs = ['eyeriss']
+models = ['resnet18']
 for arch in archs:
     for model in models:
         run_Interlayer_exp(arch, model)
