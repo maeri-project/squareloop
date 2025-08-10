@@ -9,6 +9,7 @@ archs = ['eyeriss', 'systolic', 'vector256']
 models = ['resnet18', 'mobv3']
 
 
+wall_times = []
 
 
 for arch in archs:
@@ -43,6 +44,9 @@ for arch in archs:
 
         better_rehash_layers = df[df['Type'] == 'ConstrainedRehash']['Layer'].tolist()
         better_rehash_layers = [int(i.split('_')[0]) for i in better_rehash_layers]
+
+        total_time = df[df['Type'] == 'TotalTime']['Wall time'].item()
+        wall_times.append(arch + "," + model + "," + str(total_time))
 
         #print(baseline)
         #print(baseline_rehash)
@@ -92,7 +96,7 @@ for arch in archs:
 
         # Plot
         #fig, ax = plt.subplots(figsize=(12, 7))
-        fig, ax = plt.subplots(figsize=(num_groups/2, 9))
+        fig, ax = plt.subplots(figsize=(num_groups*0.6, 10))
         bars1 = ax.bar(x_positions, all_layer_bars, width=bar_width,
                     color=color_list[0],
                     edgecolor='k', bottom=0)
@@ -117,11 +121,11 @@ for arch in archs:
         ax.set_xticklabels(group_labels+['Total'], fontsize=18, rotation=0)
 
         # Labels and limits
-        ax.set_ylabel("Latency", fontsize=26)
-        ax.set_ylim([0, max(all_sum_bars) * 1.05])
+        ax.set_ylabel("Latency (cycles)", fontsize=26)
+        ax.set_ylim([0, max(all_sum_bars) * 1.3])
         ax.tick_params(axis='y', labelsize=20)
 
-        ax2.set_ylabel('Total latency', fontsize=26)
+        ax2.set_ylabel('Total latency (cycles)', fontsize=26)
         ax2.set_ylim([0, max(baseline_total, constrained_total) * 1.4])
         ax2.tick_params(axis='y', labelsize=20)
 
@@ -129,7 +133,8 @@ for arch in archs:
         handles = [plt.Rectangle((0, 0), 1, 1, color=c, edgecolor='k') for c in color_list]
         #ax.legend(handles, method_labels, fontsize=24,
         #        loc='best', ncol=3, handletextpad=0.4, columnspacing=0.3, borderpad=0.2)
-        legend = ax.legend(handles, method_labels, fontsize=22, loc='upper right',
+        legend_font = 28 if model == 'mobv3' else 26
+        legend = ax.legend(handles, method_labels, fontsize=legend_font, loc='upper right',
                   handletextpad=0.4, columnspacing=0.3, borderpad=0.2)
 
         # Get legend x-coordinate
@@ -173,23 +178,29 @@ for arch in archs:
         y_lim = ax.get_ylim()
         #x_pos = x_lim[0]+1.5
         #x_pos = x_lim[1]-25
-        x_pos = legend_x-10
+        x_pos = legend_x-21.5
         y_pos = (y_lim[0]+y_lim[1])*0.95
         ax.annotate('',
            xy=(x_pos-arrow_w, y_pos),
            xytext=(x_pos, y_pos+arrow_h),
            arrowprops=dict(arrowstyle='simple', color='black'),
            fontsize=12)
-        ax.text(x_pos, y_pos+arrow_h/3, r'Forced rehash', fontsize=22, ha='left', va='center')
+        ax.text(x_pos, y_pos+arrow_h/3, r'Forced rehash due to', fontsize=legend_font, ha='left', va='center')
         y_pos -= 2*arrow_h
-        ax.annotate('',
-           xy=(x_pos, y_pos),
-           xytext=(x_pos-arrow_w, y_pos+arrow_h),
-           arrowprops=dict(arrowstyle='simple', color='#990000'),
-           fontsize=12)
-        ax.text(x_pos, y_pos+arrow_h/3, r'Rehash is optimal', fontsize=22, ha='left', va='center')
+        ax.text(x_pos-arrow_w, y_pos+arrow_h/3, r'dependency breaker (MaxPooling)', fontsize=legend_font, ha='left', va='center')
+        #y_pos -= 2*arrow_h
+        #ax.annotate('',
+        #   xy=(x_pos, y_pos),
+        #   xytext=(x_pos-arrow_w, y_pos+arrow_h),
+        #   arrowprops=dict(arrowstyle='simple', color='#990000'),
+        #   fontsize=12)
+        #ax.text(x_pos, y_pos+arrow_h/3, r'Breaking dependency with rehash is optimal', fontsize=legend_font, ha='left', va='center')
 
         # Save and show
         plt.tight_layout()
         plt.savefig(result_folder+"rehash.pdf", bbox_inches="tight", transparent=True)
         #plt.show()
+
+
+for s in wall_times:
+    print(s)

@@ -7,7 +7,7 @@ layout:
   permutation: CKRSNVHWLQP
   target: MainMemory
   type: intraline
-- factors: C=5 K=10 R=1 S=1 N=1 V=5 H=14 W=7 L=5 Q=1 P=7
+- factors: C=5 K=10 R=1 S=1 N=1 V=5 H=14 W=7 L=5 Q=7 P=1
   permutation: CKRSNVHWLQP
   target: MainMemory
   type: authblock_lines
