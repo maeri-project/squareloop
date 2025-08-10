@@ -83,7 +83,7 @@ Additionally `benchmarks/rtl-validation/` contains the experiment setup for the 
 
 ## Running experiments
 
-Before running the experiments adjust `squareloop_dir` and `timeloop_dir` in `experiments/scripts/utils.py` to contain the path to the squareloop repository and timeloop repository respectively. (Note: Some runs might produce slightly different results due to the restrictive mapper used. Rerunning the experiment should help reproduce the original result).
+Before running the experiments adjust `squareloop_dir` in `experiments/scripts/utils.py` to contain the path to the squareloop repository. (Note: Some runs might produce slightly different results due to the restrictive mapper used. Rerunning the experiment should help reproduce the original result).
 
 ### Single Layer (Fig. 10)
 
