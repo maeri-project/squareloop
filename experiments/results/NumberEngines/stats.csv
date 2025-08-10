@@ -1,0 +1,16 @@
+Type, Architecture, Model, Layer, Shared crypto engine, Number of crypto engines, Energy, Latency, Wall time
+NoCrypto, eyeriss, mobv3, 4, , , 177.56, 50232, 128.482
+Map, eyeriss, mobv3, 4, false, 1, 156.89, 1206760, 87.447
+Map, eyeriss, mobv3, 4, false, 2, 128.66, 604276, 175.405
+Map, eyeriss, mobv3, 4, false, 4, 158.57, 302848, 110.459
+Map, eyeriss, mobv3, 4, false, 8, 160.2, 152668, 110.864
+Map, eyeriss, mobv3, 4, false, 16, 467.04, 77728, 114.114
+Map, eyeriss, mobv3, 4, false, 32, 297.72, 51736, 121.544
+Map, eyeriss, mobv3, 4, false, 64, 156.79, 51544, 76.842
+RestrictLayout, eyeriss, mobv3, 4, false, 1, 155.95, 1206760, 1.037
+RestrictLayout, eyeriss, mobv3, 4, false, 2, 155.95, 604276, 1.029
+RestrictLayout, eyeriss, mobv3, 4, false, 4, 163.61, 304808, 1.290
+RestrictLayout, eyeriss, mobv3, 4, false, 8, 132.65, 157780, 1.740
+RestrictLayout, eyeriss, mobv3, 4, false, 16, 132.65, 157780, 1.565
+RestrictLayout, eyeriss, mobv3, 4, false, 32, 132.65, 157780, 1.605
+RestrictLayout, eyeriss, mobv3, 4, false, 64, 132.65, 157780, 1.633

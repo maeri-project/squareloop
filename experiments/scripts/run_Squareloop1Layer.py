@@ -1,0 +1,24 @@
+import sys
+import os
+
+sys.path.append(os.path.dirname(__file__))
+from utils import *
+
+def run_Squareloop1Layer_exp():
+    print("Squareloop1Layer")
+
+    result_dir = exp_dir + 'results/Squareloop1Layer/'
+
+    csv_file = result_dir + 'stats.csv'
+    with open(csv_file, 'w') as f:
+        csv_header = "Type, Architecture, Model, Layer, Energy, Latency, Wall time\n"
+        f.write(csv_header)
+
+    archs = ['eyeriss', 'systolic', 'vector256']
+    for arch in archs:
+        for model in model_path:
+            for layer in unique_layers[model]:
+                run_squareloop(arch, model, layer, 'Squareloop1Layer', result_dir, csv_file)
+
+
+run_Squareloop1Layer_exp()

@@ -1,1 +1,0 @@
-LD_LIBRARY_PATH=/home/workspace/squareloop/build:$LD_LIBRARY_PATH /home/workspace/squareloop/build/timeloop-model arch/baseline.yaml arch/components/* conv_2_batch1/layer2/mapping.yaml workloads/conv_2_batch1_layer2.yaml layout/layer2.yaml ASCON-128a.yaml
