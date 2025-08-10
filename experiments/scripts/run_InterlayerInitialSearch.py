@@ -17,8 +17,9 @@ def run_Squareloop1Layer_exp():
             f.write(csv_header)
 
     archs = ['eyeriss', 'systolic', 'vector256']
+    models = ['resnet18', 'mobv3']
     for arch in archs:
-        for model in model_path:
+        for model in models:
             for layer in unique_layers[model]:
                 run_squareloop(arch, model, layer, 'Squareloop1Layer', result_dir, csv_file)
 

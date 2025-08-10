@@ -99,12 +99,16 @@ Next, run `python3 experiments/scripts/run_Interlayer.py` to execute the layout 
 Lastly, use `python3 experiments/scripts/plot_Interlayer.py` to draw the plots in respective folders in `experiments/results/Interlayer/` and print the wall clock times of the constraint search.
 The wall clock times for single layer search can be derived from summing wall times of all layers for a respective (architecture, model) combination in `experiments/results/InterlayerInitialSearch/stats.csv`.
 
+Note: one could change `archs` and/or `models` in either `run_InterlayerInitialSearch.py` or `run_Interlayer.py` to only run the experiment for a subset of architectures and models.
+
 ### Number of engines (Fig. 12a)
 
 Run `python3 experiments/scripts/run_NumberEngines.py` to fill `experiments/results/NumberEngines/` with results.
 Then use `python3 experiments/scripts/plot_NumberEngines.py` to generate the plot in `experiments/results/NumberEngines/NumberEngines.pdf`.
 
-Note:  one could change `num_engines` in the `experiments/scripts/run_NumberEngines.py` to study the impact of different value of `num_engines` on the overall performance.
+Note:  one could change `num_engines_options` and/or `shared_options` in the `run_NumberEngines.py` to study the impact of different value of `num_engines` and using engines shared between dataspaces on the overall performance.  
+Additionally, changing `arch`, `model` and `layer` in that same file will help run the experiment for a different architecture and workload. 
+Changing `num_engines` in `plot_NumberEngines.py` will plot a different subset of `num_engines` values for which the experiment was performed.
 
 ### RTL validation (Fig. 12b)
 
