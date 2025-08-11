@@ -2,9 +2,10 @@ import os
 import sys
 
 sys.path.append(os.path.dirname(__file__))
+from utils import squareloop_dir
 # Configure a path prefix. Defaults to absolute workspace path; can be overridden
 # by env var PATH_PREFIX or the first CLI argument.
-path_prefix = os.environ.get("PATH_PREFIX", "/home/ubuntu/squareloop/")
+path_prefix = os.environ.get("PATH_PREFIX", squareloop_dir)
 if len(sys.argv) > 1:
   path_prefix = sys.argv[1]
 if path_prefix and not path_prefix.endswith("/"):
