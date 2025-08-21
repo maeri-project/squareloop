@@ -90,6 +90,8 @@ class Shape
   std::vector<std::set<FlattenedDimensionID>> DataSpaceIDToDimensionIDVector;
 
   // --- NEW MEMBERS ---
+  // Vector of all ranks across all dataspaces
+  std::vector<std::string> Ranks;
   // Map dataspace name to its rank names (as specified in the YAML "ranks" field)
   std::map<std::string, std::vector<std::string>> DataSpaceNameToRankName;
   // Map a rank name to the factorized dimensions that appear in the corresponding projection expression.

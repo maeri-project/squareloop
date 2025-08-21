@@ -262,6 +262,15 @@ void Shape::Parse(config::CompoundConfigNode shape)
     // Save mapping from dataspace name to its rank names.
     DataSpaceNameToRankName[name] = rank_names;
 
+    // Append to all ranks vector
+    for (auto rank : rank_names)
+    {
+      if (std::find(Ranks.begin(), Ranks.end(), rank) == Ranks.end())
+      {
+        Ranks.push_back(rank);
+      }
+    }
+
     // --- Build the RankNameToFactorizedDimensionID mapping ---
     // For each rank, record the factorized dimension IDs that appear in its projection expression.
     for (std::size_t i = 0; i < rank_names.size(); i++)
@@ -279,10 +288,7 @@ void Shape::Parse(config::CompoundConfigNode shape)
       }
       RankNameToFactorizedDimensionID[rank] = dims;
       RankNameToDimensionName[ rank_names[i] ] = dimNames;
-      if (rank == "H" || rank == "W")
-      {
-        RankNameToZeroPadding[rank] = (rank == "H") ? "Hpadding" : "Wpadding";
-      }
+      RankNameToZeroPadding[rank] = rank + "padding";
 
     }
     

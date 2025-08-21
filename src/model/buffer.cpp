@@ -1205,8 +1205,8 @@ namespace model
       if (!first_tile)
         lines /= ds.access_frequency; // if the access does not happen on every tile
 
-      // TODO: this shouldnt hardcode the dataspace id for writes
-      if (data_space_id == 2)
+      auto pv = problem::Shape::DataSpaceID(data_space_id);
+      if (workload_->GetShape()->IsReadWriteDataSpace.at(pv))
       {
         memory_latency_write += std::ceil(lines * (double)ds.auth_block_size / ds.memory_line)
                               + std::ceil(ds.crypto_hash_reads_per_line * lines);
@@ -3151,9 +3151,9 @@ namespace model
     // Step 4: Calculate execution cycles.
     //
     stats_.slowdown = overall_slowdown_; // Bank Conflict Analysis
-    if (compute_cycles / stats_.slowdown > 1e18)
+    if (compute_cycles / stats_.slowdown > std::numeric_limits<uint64_t>::max())
     {
-      stats_.cycles = 1e18;
+      stats_.cycles = std::numeric_limits<uint64_t>::max();
     }
     else
     {
