@@ -27,7 +27,7 @@ bar_width = 0.6
 color_list = ["#990000", "#808080"]
 color_list_ext = ["#D0D0D0"] + color_list
 method_labels = ["Baseline", "Searched AuthBlock", "Fixed AuthBlock"]
-group_labels = ["Baseline"] + ["N$_{AES}$="+str(i) for i in num_engines]
+group_labels = ["Baseline"] + [str(i) for i in num_engines]
 
 # Font sizes (reduced)
 SMALL_SIZE = 10
@@ -57,27 +57,30 @@ bars = ax.bar(x_positions, latencies_norm, width=bar_width,
               edgecolor='k')
 
 # X ticks
+ft_size = 36
+
+ax.set_xlabel("N$_{AES}$", fontsize=ft_size)
 ax.set_xticks(group_centers)
-ax.set_xticklabels(group_labels, fontsize=28, rotation=0)
+ax.set_xticklabels(group_labels, fontsize=ft_size, rotation=0)
 
 # Labels and limits
-ax.set_ylabel("Normalized latency", fontsize=26)
+ax.set_ylabel("Normalized latency", fontsize=ft_size)
 ax.set_ylim([0, max(latencies_norm) * 1.2])
-ax.tick_params(axis='y', labelsize=26)
+ax.tick_params(axis='y', labelsize=ft_size)
 
 # Annotate bars
-for bar in bars:
+for i,bar in enumerate(bars):
     height = bar.get_height()
-    ax.annotate(f'{height:.2f}' if height < 10 else f'{height:.0f}',
-                xy=(bar.get_x() + bar.get_width() / 2, height),
+    ax.annotate(f'{height:.1f}' if height < 10 else f'{height:.0f}',
+                xy=(bar.get_x() + bar.get_width() * (0.5 if i==0 else (0.6 if i%2==0 else 0.4)), height),
                 xytext=(0, 3),
                 textcoords="offset points",
-                ha='center', va='bottom', fontsize=20, fontweight='bold')
+                ha='center', va='bottom', fontsize=28, fontweight='bold')
 
 # Legend
 handles = [plt.Rectangle((0, 0), 1, 1, color=c, edgecolor='k') for c in color_list_ext]
-ax.legend(handles, method_labels, fontsize=24,
-          loc='best', ncol=3, handletextpad=0.4, columnspacing=0.3, borderpad=0.2)
+ax.legend(handles, method_labels, fontsize=ft_size,
+          loc='best', ncol=1, handletextpad=0.4, columnspacing=0.3, borderpad=0.2)
 
 # Horizontal reference line at y=1
 ax.axhline(y=1, color='black', linestyle='dotted', linewidth=1)

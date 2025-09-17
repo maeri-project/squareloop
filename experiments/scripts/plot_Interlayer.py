@@ -117,34 +117,43 @@ for arch in archs:
             edgecolor='k')
 
         # X ticks
-        ax.set_xlabel("Layer number", fontsize=26)
+        ax.set_xlabel("Layer number", fontsize=34)
         ax.set_xlim([group_centers[0]-1.5, center+1.5])
         ax.set_xticks(group_centers+[center])
         #ax.set_xticklabels(group_labels, fontsize=28, rotation=0)
-        ax.set_xticklabels(group_labels+['Total'], fontsize=18, rotation=0)
+        ax.set_xticklabels(group_labels+['Total'], fontsize=34, rotation=0)
+
+        for i, label in enumerate(ax.get_xticklabels()[:-1]):
+            if i % 2 != 1:  
+                label.set_visible(False)
 
         # Labels and limits
-        ax.set_ylabel("Latency (cycles)", fontsize=26)
-        ax.set_ylim([0, max(all_sum_bars) * 1.3])
-        ax.tick_params(axis='y', labelsize=20)
+        ft_size = 40
 
-        ax2.set_ylabel('Total latency (cycles)', fontsize=26)
-        ax2.set_ylim([0, max(baseline_total, constrained_total) * 1.4])
-        ax2.tick_params(axis='y', labelsize=20)
+        ax.set_ylabel("Latency (cycles)", fontsize=ft_size)
+        ax.set_ylim([0, max(all_sum_bars) * 1.2])
+        ax.tick_params(axis='y', labelsize=ft_size)
+        ax.yaxis.get_offset_text().set_fontsize(30)
+
+        ax2.set_ylabel('Total latency (cycles)', fontsize=ft_size)
+        ax2.set_ylim([0, max(baseline_total, constrained_total) * 1.1])
+        ax2.tick_params(axis='y', labelsize=ft_size)
+        ax2.yaxis.get_offset_text().set_fontsize(30)
 
         # Legend
         handles = [plt.Rectangle((0, 0), 1, 1, color=c, edgecolor='k') for c in color_list]
         #ax.legend(handles, method_labels, fontsize=24,
         #        loc='best', ncol=3, handletextpad=0.4, columnspacing=0.3, borderpad=0.2)
-        legend_font = 28 if model == 'mobv3' else 26
-        legend = ax.legend(handles, method_labels, fontsize=legend_font, loc='upper right',
-                  handletextpad=0.4, columnspacing=0.3, borderpad=0.2)
+        legend_font = 36 if model == 'mobv3' else 34
+        legend = ax.legend(handles, method_labels, fontsize=legend_font, loc='upper center',
+                  handletextpad=0.4, columnspacing=0.3, borderpad=0.2, bbox_to_anchor=(0.37, 1.0))
 
         # Get legend x-coordinate
         bbox = legend.get_window_extent()
         inv = ax.transData.inverted()
         data_bbox = bbox.transformed(inv)
         legend_x = data_bbox.x0
+        legend_y = data_bbox.y0
 
         # Draw horizontal lines using ax2
         ax2.axhline(y=baseline_total, xmin=(bar3[0].get_x()+bar3[0].get_width())/ax2.get_xlim()[1], color='black', linestyle='--')
@@ -153,21 +162,22 @@ for arch in archs:
         improvement = 100 * (constrained_total - baseline_total ) / baseline_total
         improvement = ('-' if round(improvement)==0 and improvement<0 else '' if improvement<0 else '+')+str(round(improvement))+'%'
         ax2.text(
-            bar4[0].get_x(), baseline_total, improvement,
+            bar4[0].get_x()-0.5, baseline_total, improvement,
             ha='center', va='bottom',
-            fontsize=24, color='black',
+            fontsize=34, color='black',
             fontweight='bold'
         )
 
-        arrow_h = 200000 * max(all_sum_bars)/5e6
-        arrow_w = 0.65
+        arrow_h = 400000 * max(all_sum_bars)/5e6
+        arrow_w = 0.70
+        arrow_font = 30
         for i in range(num_groups):
             if (i+1) in forced_rehash_layers:
                 ax.annotate('',
                         xy=(group_centers[i], sum_bars_constrained[i]), 
                         xytext=(group_centers[i]+arrow_w, sum_bars_constrained[i]+arrow_h),
                         arrowprops=dict(arrowstyle='simple', color='black'),
-                        fontsize=12)
+                        fontsize=arrow_font)
 
         for i in range(num_groups):
             if (i+1) in better_rehash_layers:
@@ -175,22 +185,28 @@ for arch in archs:
                         xy=(group_centers[i], sum_bars_baseline[i]), 
                         xytext=(group_centers[i]-arrow_w, sum_bars_baseline[i]+arrow_h),
                         arrowprops=dict(arrowstyle='simple', color='#990000'),
-                        fontsize=12)
+                        fontsize=arrow_font)
 
         x_lim = ax.get_xlim()
         y_lim = ax.get_ylim()
         #x_pos = x_lim[0]+1.5
         #x_pos = x_lim[1]-25
-        x_pos = legend_x-21.5
-        y_pos = (y_lim[0]+y_lim[1])*0.95
+        if model == 'mobv3':
+            x_pos = legend_x-17
+            y_pos = (y_lim[0]+y_lim[1])*0.95 - arrow_h/2
+        else:
+            x_pos = legend_x
+            y_pos = legend_y - arrow_h*1.5
         ax.annotate('',
            xy=(x_pos-arrow_w, y_pos),
            xytext=(x_pos, y_pos+arrow_h),
            arrowprops=dict(arrowstyle='simple', color='black'),
-           fontsize=12)
-        ax.text(x_pos, y_pos+arrow_h/3, r'Forced rehash due to', fontsize=legend_font, ha='left', va='center')
-        y_pos -= 2*arrow_h
-        ax.text(x_pos-arrow_w, y_pos+arrow_h/3, r'dependency breaker (MaxPooling)', fontsize=legend_font, ha='left', va='center')
+           fontsize=arrow_font)
+        ax.text(x_pos+arrow_w/4, y_pos+arrow_h/3, r'Forced rehash due to', fontsize=legend_font, ha='left', va='center')
+        y_pos -= arrow_h
+        ax.text(x_pos-arrow_w, y_pos+arrow_h/3, r'dependency breaker', fontsize=legend_font, ha='left', va='center')
+        y_pos -= arrow_h
+        ax.text(x_pos-arrow_w, y_pos+arrow_h/3, r'(MaxPooling)', fontsize=legend_font, ha='left', va='center')
         #y_pos -= 2*arrow_h
         #ax.annotate('',
         #   xy=(x_pos, y_pos),
