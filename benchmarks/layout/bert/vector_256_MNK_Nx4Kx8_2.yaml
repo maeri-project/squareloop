@@ -1,31 +1,31 @@
 layout:
   - target: MainMemory
     type: interline
-    factors: M=103 N=128 K=308
-    permutation: MNK
+    factors: M=103 N=128 K=308 P=103 Q=128 J=308
+    permutation: MPNQKJ
 
   - target: MainMemory
     type: intraline
-    factors: M=5 N=6 K=10
-    permutation: MNK
+    factors: M=5 N=6 K=10 P=5 Q=6 J=10
+    permutation: MPNQKJ
 
   - target: GlobalBuffer
     type: interline
-    factors: M=103 N=9 K=1
-    permutation: MNK
+    factors: M=103 N=9 K=1 P=103 Q=9 J=1
+    permutation: MPNQKJ
 
   - target: GlobalBuffer
     type: intraline
-    factors: M=5 N=6 K=10
-    permutation: MNK
+    factors: M=5 N=6 K=10 P=5 Q=6 J=10
+    permutation: MPNQKJ
 
   - target: RegisterFile
     type: interline
-    factors: M=1 N=1 K=1
-    permutation: MNK
+    factors: M=1 N=1 K=1 P=1 Q=1 J=1
+    permutation: MPNQKJ
 
   - target: RegisterFile
     type: intraline
-    factors: M=1 N=1 K=1
-    permutation: MNK
+    factors: M=1 N=1 K=1 P=1 Q=1 J=1
+    permutation: MPNQKJ
 

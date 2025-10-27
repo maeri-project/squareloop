@@ -1,45 +1,45 @@
 layout:
   - target: MainMemory
     type: interline
-    factors: R=3 S=3 P=2 Q=1 C=16 M=512 N=1 H=14 W=14
-    permutation: SRCQPMNHW
+    factors: R=3 S=3 P=2 Q=1 C=16 M=512 N=1 H=14 W=14 V=16 K=512 L=512
+    permutation: SRCVQPMKLNHW
   - target: MainMemory
     type: intraline
-    factors: R=1 S=1 P=4 Q=7 C=32 M=1 N=1 H=1 W=1
-    permutation: SRCQPMNHW
+    factors: R=1 S=1 P=4 Q=7 C=32 M=1 N=1 H=1 W=1 V=32 K=1 L=1
+    permutation: SRCVQPMKLNHW
 
   - target: GlobalBuffer
     type: interline
-    factors: R=3 S=3 P=2 Q=1 C=16 M=3 N=1 H=1 W=1
-    permutation: SRCQPMNHW
+    factors: R=3 S=3 P=2 Q=1 C=16 M=3 N=1 H=1 W=1 V=16 K=3 L=3
+    permutation: SRCVQPMKLNHW
 
   - target: GlobalBuffer
     type: intraline
-    factors: R=1 S=1 P=4 Q=7 C=32 M=1 N=1 H=1 W=1
-    permutation: SRCQPMNHW
+    factors: R=1 S=1 P=4 Q=7 C=32 M=1 N=1 H=1 W=1 V=32 K=1 L=1
+    permutation: SRCVQPMKLNHW
 
   - target: DummyBuffer
     type: interline
-    factors: R=3 S=3 P=2 Q=1 C=16 M=3 N=1 H=1 W=1
-    permutation: SRCQPMNHW
+    factors: R=3 S=3 P=2 Q=1 C=16 M=3 N=1 H=1 W=1 V=16 K=3 L=3
+    permutation: SRCVQPMKLNHW
 
   - target: DummyBuffer
     type: intraline
-    factors: R=1 S=1 P=4 Q=7 C=32 M=1 N=1 H=1 W=1
-    permutation: SRCQPMNHW
+    factors: R=1 S=1 P=4 Q=7 C=32 M=1 N=1 H=1 W=1 V=32 K=1 L=1
+    permutation: SRCVQPMKLNHW
 
   - target: RegisterFile
     type: interline
-    factors: R=1 S=1 P=1 Q=1 C=1 M=1 N=1 H=1 W=1
-    permutation: SRCQPMNHW
+    factors: R=1 S=1 P=1 Q=1 C=1 M=1 N=1 H=1 W=1 V=1 K=1 L=1
+    permutation: SRCVQPMKLNHW
 
   - target: weights_spad
     type: interline
-    factors: R=1 S=1 P=1 Q=1 C=1 M=1 N=1 H=1 W=1
-    permutation: SRCQPMNHW
+    factors: R=1 S=1 P=1 Q=1 C=1 M=1 N=1 H=1 W=1 V=1 K=1 L=1
+    permutation: SRCVQPMKLNHW
 
   - target: ofmap_spad
     type: interline
-    factors: R=1 S=1 P=1 Q=1 C=1 M=1 N=1 H=1 W=1
-    permutation: SRCQPMNHW
+    factors: R=1 S=1 P=1 Q=1 C=1 M=1 N=1 H=1 W=1 V=1 K=1 L=1
+    permutation: SRCVQPMKLNHW
 

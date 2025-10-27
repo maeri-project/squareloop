@@ -1,61 +1,61 @@
 layout:
   - target: MainMemory
     type: interline
-    factors: M=128 N=384 K=96
-    permutation: MNK
+    factors: M=128 N=384 K=96 P=128 Q=384 J=96
+    permutation: MPNQKJ
 
   - target: MainMemory
     type: intraline
-    factors: M=4 N=8 K=8
-    permutation: MNK
+    factors: M=4 N=8 K=8 P=4 Q=8 J=8
+    permutation: MPNQKJ
 
   - target: GlobalBuffer
     type: interline
-    factors: M=128 N=8 K=1
-    permutation: MNK
+    factors: M=128 N=8 K=1 P=128 Q=8 J=1
+    permutation: MPNQKJ
 
   - target: GlobalBuffer
     type: intraline
-    factors: M=4 N=8 K=8
-    permutation: MNK
+    factors: M=4 N=8 K=8 P=4 Q=8 J=8
+    permutation: MPNQKJ
 
   - target: RegisterFile
     type: interline
-    factors: M=1 N=1 K=1
-    permutation: MNK
+    factors: M=1 N=1 K=1 P=1 Q=1 J=1
+    permutation: MPNQKJ
 
   - target: RegisterFile
     type: intraline
-    factors: M=1 N=1 K=1
-    permutation: MNK
+    factors: M=1 N=1 K=1 P=1 Q=1 J=1
+    permutation: MPNQKJ
 
   - target: PEWeightBuffer
     type: interline
-    factors: M=1 N=1 K=1
-    permutation: MNK
+    factors: M=1 N=1 K=1 P=1 Q=1 J=1
+    permutation: MPNQKJ
 
   - target: PEWeightBuffer
     type: intraline
-    factors: M=1 N=1 K=1
-    permutation: MNK
+    factors: M=1 N=1 K=1 P=1 Q=1 J=1
+    permutation: MPNQKJ
 
   - target: PEAccuBuffer
     type: interline
-    factors: M=1 N=1 K=1
-    permutation: MNK
+    factors: M=1 N=1 K=1 P=1 Q=1 J=1
+    permutation: MPNQKJ
 
   - target: PEAccuBuffer
     type: intraline
-    factors: M=1 N=1 K=1
-    permutation: MNK
+    factors: M=1 N=1 K=1 P=1 Q=1 J=1
+    permutation: MPNQKJ
 
   - target: PEWeightRegs
     type: interline
-    factors: M=1 N=1 K=1
-    permutation: MNK
+    factors: M=1 N=1 K=1 P=1 Q=1 J=1
+    permutation: MPNQKJ
 
   - target: PEWeightRegs
     type: intraline
-    factors: M=1 N=1 K=1
-    permutation: MNK
+    factors: M=1 N=1 K=1 P=1 Q=1 J=1
+    permutation: MPNQKJ
 
