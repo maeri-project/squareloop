@@ -55,7 +55,7 @@ arch_path_single = {
 }
 
 model_path = {
-    'resnet18' : benchmarks_dir + 'layer_shapes/resnet18/resnet18_batch1_layer',
+    'resnet18' : benchmarks_dir + 'layer_shapes/resnet18/resnet18_',
     'mobv3' : benchmarks_dir + 'layer_shapes/mobv3/mobilenet_v3_large_',
     'bert_conv' : benchmarks_dir + 'layer_shapes/bert_conv/bert_conv_layer',
 }

@@ -53,17 +53,17 @@ def collect_all_layer_cycles(base_path):
     # Find all layer directories
     layer_dirs = []
     for item in base_path.iterdir():
-        if item.is_dir() and item.name.startswith('resnet18_layer'):
+        if item.is_dir() and item.name.startswith('resnet18_'):
             layer_dirs.append(item)
     
     # Sort by layer number
-    layer_dirs.sort(key=lambda x: int(x.name.replace('resnet18_layer', '')))
+    layer_dirs.sort(key=lambda x: int(x.name.replace('resnet18_', '')))
     
     print(f"Found {len(layer_dirs)} layer directories")
     
     for layer_dir in layer_dirs:
         layer_name = layer_dir.name
-        layer_id = int(layer_name.replace('resnet18_layer', ''))
+        layer_id = int(layer_name.replace('resnet18_', ''))
         
         stats_file = layer_dir / 'timeloop-mapper.stats.txt'
         cycles = extract_cycles_from_stats(stats_file)

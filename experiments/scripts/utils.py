@@ -60,7 +60,7 @@ arch_path_single = {
 }
 
 model_path = {
-    'resnet18' : benchmarks_dir + 'layer_shapes/resnet18/resnet18_batch1_layer',
+    'resnet18' : benchmarks_dir + 'layer_shapes/resnet18/resnet18_',
     'mobv3' : benchmarks_dir + 'layer_shapes/mobv3/mobilenet_v3_large_',
     'bert_conv' : benchmarks_dir + 'layer_shapes/bert_conv/bert_conv_layer',
 }
@@ -293,15 +293,15 @@ def read_all_layer_dataspace_layouts(
     try:
         for item in os.listdir(base_path):
             item_path = os.path.join(base_path, item)
-            if not (os.path.isdir(item_path) and item.startswith('resnet18_layer')):
+            if not (os.path.isdir(item_path) and item.startswith('resnet18_')):
                 continue
 
-            layer_match = re.search(r'resnet18_layer(\d+)', item)
+            layer_match = re.search(r'resnet18_(\d+)', item)
             if not layer_match:
                 continue
             layer_id = int(layer_match.group(1))
 
-            problem_file_path = os.path.join(problem_path, f'resnet18_batch1_layer{layer_id}.yaml')
+            problem_file_path = os.path.join(problem_path, f'resnet18_{layer_id}.yaml')
             dataspace_to_ranks = read_layer_problem_definition(problem_file_path)
             if not dataspace_to_ranks:
                 continue

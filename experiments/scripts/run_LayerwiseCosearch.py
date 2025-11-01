@@ -24,16 +24,16 @@ def run_LayerwiseCosearch():
   result_dir = path_prefix + 'results/LayerwiseCosearch/'
 
   csv_file = result_dir + 'stats.csv'
-    
+
   arch_path = path_prefix + "benchmarks/arch_designs/eyeriss_like/arch/eyeriss_like.yaml"
   arch_name_component = path_prefix + "benchmarks/arch_designs/eyeriss_like/arch/components/*"
   arch_search_constraint = path_prefix + "benchmarks/arch_designs/eyeriss_like/constraints/eyeriss_like_arch_constraints.yaml"
   map_search_constraint = path_prefix + "benchmarks/arch_designs/eyeriss_like/constraints/eyeriss_like_map_constraints.yaml"
   mapper_path = path_prefix + "benchmarks/mapper/mapper_squareloop.yaml"
 
-  for layer_idx in range(1, 21):
-    layer_path = f"{path_prefix}benchmarks/layer_shapes/resnet18/resnet18_batch1_layer{layer_idx}.yaml"
-    layer_name_prefix = f"resnet18_layer{layer_idx}"
+  for layer_idx in range(1, 2):
+    layer_path = f"{path_prefix}benchmarks/layer_shapes/resnet18/resnet18_{layer_idx}.yaml"
+    layer_name_prefix = f"resnet18_{layer_idx}"
     result_path = f"{path_prefix}experiments/results/LayerwiseCosearch/resnet18/{layer_name_prefix}"
     run_timeloop_mapper(arch_path, arch_name_component, layer_path, layer_name_prefix, mapper_path, arch_search_constraint, map_search_constraint, result_path)
 

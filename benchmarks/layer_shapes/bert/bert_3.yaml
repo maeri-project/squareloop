@@ -8,7 +8,7 @@ problem:
     - name: Inputs
       ranks:
       - M
-      - J
+      - N
       projection:
       - - - M
       - - - K
@@ -21,8 +21,8 @@ problem:
       - - - K
     - name: Outputs
       ranks:
-      - P
-      - Q
+      - M
+      - N
       projection:
       - - - M
       - - - N
