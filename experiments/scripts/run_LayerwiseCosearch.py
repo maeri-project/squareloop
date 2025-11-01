@@ -31,7 +31,7 @@ def run_LayerwiseCosearch():
   map_search_constraint = path_prefix + "benchmarks/arch_designs/eyeriss_like/constraints/eyeriss_like_map_constraints.yaml"
   mapper_path = path_prefix + "benchmarks/mapper/mapper_squareloop.yaml"
 
-  for layer_idx in range(1, 2):
+  for layer_idx in range(1, 21):
     layer_path = f"{path_prefix}benchmarks/layer_shapes/resnet18/resnet18_{layer_idx}.yaml"
     layer_name_prefix = f"resnet18_{layer_idx}"
     result_path = f"{path_prefix}experiments/results/LayerwiseCosearch/resnet18/{layer_name_prefix}"
