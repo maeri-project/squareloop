@@ -50,10 +50,11 @@ namespace layout
   // containing one Layout per unique target.
   Layouts
   ParseAndConstruct(
-      config::CompoundConfigNode layoutArray, problem::Workload &workload,
+      config::CompoundConfigNode layoutArray, 
+      config::CompoundConfigNode knobsArray, 
+      problem::Workload &workload,
       std::vector<std::pair<std::string, std::pair<uint32_t, uint32_t>>> &targetToPortValue)
   {
-    // ToDo: Current memory logic only supports 3 levels, need to directly support more levels defined by architecture file.
     std::map<std::string, std::vector<std::uint32_t>>
         rankToFactorizedDimensionID = workload.GetShape()->RankNameToFactorizedDimensionID;
     std::map<std::string, std::vector<std::string>> rankToDimensionName = workload.GetShape()->RankNameToDimensionName;
@@ -224,10 +225,29 @@ namespace layout
       layout.dim_order = computedDimOrder;
       layout.rank_list = globalRankList;
 
-      // ToDo: make these configurable, and also separately configurable per memory level
+      // Extract Knobs values
       layout.assume_zero_padding = true;
       layout.assume_row_buffer = true;
-      layout.assume_reuse = true;
+      layout.assume_warmup = true;
+
+      int knobsCount = knobsArray.getLength();
+      for (int i = 0; i < knobsCount; i++)
+      {
+        config::CompoundConfigNode entry = knobsArray[i];
+        if (entry.exists("knob") && entry.exists("value"))
+        {
+          std::string knob;
+          bool value;
+          entry.lookupValue("knob", knob);
+          entry.lookupValue("value", value);
+          if (knob == "zero_padding")
+            layout.assume_zero_padding = value;
+          else if (knob == "row_buffer")
+            layout.assume_row_buffer = value;
+          else if (knob == "warmup")
+            layout.assume_warmup = value;
+        }
+      }
 
       // For each data space, create loop nests.
       for (const auto &ds : layout.data_space)
@@ -335,6 +355,7 @@ namespace layout
   // recorded and max_dim_perline is computed from the intraline nest.
   Layouts
   InitializeDummyLayout(
+      config::CompoundConfigNode knobsArray,
       problem::Workload &workload,
       std::vector<std::pair<std::string, std::pair<uint32_t, uint32_t>>> &targetToPortValue)
   {
@@ -465,10 +486,29 @@ namespace layout
       layout.dim_order = computedDimOrder;
       layout.rank_list = globalRankList;
 
-      // ToDo: make these configurable, and also separately configurable per memory level
+      // Extract Knobs values
       layout.assume_zero_padding = true;
       layout.assume_row_buffer = true;
-      layout.assume_reuse = true;
+      layout.assume_warmup = true;
+
+      int knobsCount = knobsArray.getLength();
+      for (int i = 0; i < knobsCount; i++)
+      {
+        config::CompoundConfigNode entry = knobsArray[i];
+        if (entry.exists("knob") && entry.exists("value"))
+        {
+          std::string knob;
+          bool value;
+          entry.lookupValue("knob", knob);
+          entry.lookupValue("value", value);
+          if (knob == "zero_padding")
+            layout.assume_zero_padding = value;
+          else if (knob == "row_buffer")
+            layout.assume_row_buffer = value;
+          else if (knob == "warmup")
+            layout.assume_warmup = value;
+        }
+      }
 
       // For each data space, create loop nests with dummy values (all factors = 1).
       for (const auto &ds : layout.data_space)

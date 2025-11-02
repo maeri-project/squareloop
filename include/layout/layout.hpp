@@ -49,9 +49,9 @@ struct Layout {
 
   std::map<std::string, std::uint32_t> rankToZeroPadding;
 
-  bool assume_zero_padding;
-  bool assume_row_buffer;
-  bool assume_reuse;
+  bool assume_zero_padding;                  // assume existance of zero padding, which is not stored in memory
+  bool assume_row_buffer;                    // assume the existance off a row buffer in offchip memory
+  bool assume_warmup;                        // consider the added warmup latency for the first tile
 
   bool initialize = false;                   // True if external YAML provided layout for this target
 };
@@ -79,9 +79,10 @@ struct LayoutConstraint {
 
   std::map<std::string, std::uint32_t> rankToZeroPadding;
 
-  bool assume_zero_padding;
-  bool assume_row_buffer;
-  bool assume_reuse;
+  bool assume_zero_padding;                  // assume existance of zero padding, which is not stored in memory
+  bool assume_row_buffer;                    // assume the existance off a row buffer in offchip memory
+  bool assume_reuse;                         // allow reused part of the tile to stay in memory instead of refetching
+  bool assume_warmup;                        // consider the added warmup latency for the first tile
 
   bool initialize = false;                   // True if external YAML provided layout for this target
 };
@@ -111,12 +112,14 @@ std::map<std::string, unsigned> parseOrderMapping(const std::string &mappingStri
 // Finally, max_dim_perline is computed from the intraline nest.
 
 std::vector<Layout> ParseAndConstruct(config::CompoundConfigNode layoutArray,
-                                                 problem::Workload& workload,
-                                              std::vector<std::pair<std::string, std::pair<uint32_t, uint32_t>>> &targetToPortValue);
+                                      config::CompoundConfigNode knobsArray,
+                                      problem::Workload& workload,
+                                      std::vector<std::pair<std::string, std::pair<uint32_t, uint32_t>>> &targetToPortValue);
 
 
-std::vector<Layout> InitializeDummyLayout(problem::Workload& workload,
-  std::vector<std::pair<std::string, std::pair<uint32_t, uint32_t>>> &targetToPortValue);
+std::vector<Layout> InitializeDummyLayout(config::CompoundConfigNode knobsArray,
+                                          problem::Workload& workload,
+                                          std::vector<std::pair<std::string, std::pair<uint32_t, uint32_t>>> &targetToPortValue);
 
 //------------------------------------------------------------------------------
 // Helper function to print a Nest's loop order.

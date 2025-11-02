@@ -269,13 +269,15 @@ Model::Model(config::CompoundConfig* config,
   std::cout << "Start Parsering Layout" << std::endl;
   config::CompoundConfigNode compound_config_node_layout;
   bool existing_layout = rootNode.lookup("layout", compound_config_node_layout);
+  config::CompoundConfigNode compound_config_node_knobs;
+  rootNode.lookup("knobs", compound_config_node_knobs);
   
   if (existing_layout){
     std::vector<std::pair<std::string, std::pair<uint32_t, uint32_t>>> externalPortMapping;
     for (auto i: arch_specs_.topology.StorageLevelNames())
         externalPortMapping.push_back({i, {arch_specs_.topology.GetStorageLevel(i)->num_ports.Get(), arch_specs_.topology.GetStorageLevel(i)->num_ports.Get()}});
 
-    layout_ = layout::ParseAndConstruct(compound_config_node_layout, workload_, externalPortMapping);
+    layout_ = layout::ParseAndConstruct(compound_config_node_layout, compound_config_node_knobs, workload_, externalPortMapping);
     
     layout_initialized_ = true;
 

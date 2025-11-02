@@ -626,24 +626,28 @@ void MapperThread::Run()
       layoutspace_ = new layoutspace::Legal(arch_specs_, mapping, layout_);
 
       // --- Add AuthBlock nest with dummy values for DRAM and MainMemory ---
-      for(unsigned lvl = 0; lvl < layout_.size(); lvl++){
-        for (const auto &ds : layout_[lvl].data_space){
-          if (layout_[lvl].target == "DRAM" or layout_[lvl].target == "MainMemory"){
-            layout::LayoutNest authblock_nest;
-            authblock_nest.data_space = ds;
-            authblock_nest.type = "authblock_lines";
-            authblock_nest.ranks = layout_[lvl].dataSpaceToRank[ds];
-            // Set all factors to 1 for dummy layout
-            for (const auto &r : authblock_nest.ranks)
-            {
-              authblock_nest.factors[r] = 1;
+      bool skip_authblock = (crypto_ == nullptr);
+      if (!skip_authblock)
+      {
+        for(unsigned lvl = 0; lvl < layout_.size(); lvl++){
+          for (const auto &ds : layout_[lvl].data_space){
+            if (layout_[lvl].target == "DRAM" or layout_[lvl].target == "MainMemory"){
+              layout::LayoutNest authblock_nest;
+              authblock_nest.data_space = ds;
+              authblock_nest.type = "authblock_lines";
+              authblock_nest.ranks = layout_[lvl].dataSpaceToRank[ds];
+              // Set all factors to 1 for dummy layout
+              for (const auto &r : authblock_nest.ranks)
+              {
+                authblock_nest.factors[r] = 1;
+              }
+              layout_[lvl].authblock_lines.push_back(authblock_nest);
             }
-            layout_[lvl].authblock_lines.push_back(authblock_nest);
           }
         }
       }
 
-      layoutspace_->Init(arch_specs_, mapping, layout_, false); // need the layout for architecture information.
+      layoutspace_->Init(arch_specs_, mapping, layout_, (crypto_ == nullptr)); // need the layout for architecture information.
       auto concordant_layout = layoutspace_->GetLayout();
       // Initialize global optimal tracking variables
       std::uint64_t mapping_specific_best_latency = UINT64_MAX;
@@ -657,7 +661,7 @@ void MapperThread::Run()
       // Phase 1: Search SplittingSpace (with cleared authblock_lines and default PackingSpace=0)
       for (uint64_t layout_splitting_id = 0; layout_splitting_id < layoutspace_->splitting_candidates; layout_splitting_id++)
       {
-        auto construction_status = layoutspace_->ConstructLayout(layout_splitting_id, 0, 0, &layout_, mapping, false);
+        auto construction_status = layoutspace_->ConstructLayout(layout_splitting_id, 0, 0, &layout_, mapping, skip_authblock, false);
         bool layout_success = std::accumulate(construction_status.begin(), construction_status.end(), true,
                                     [](bool cur, const layoutspace::Status& status)
                                     { return cur && status.success; });
@@ -720,7 +724,7 @@ void MapperThread::Run()
         for (uint64_t i = 0; i < layoutspace_->packing_candidates; i++)
         {
           uint64_t layout_packing_id = dist(gen);
-          auto construction_status = layoutspace_->ConstructLayout(local_best_layout_splitting_id, layout_packing_id, 0,  &layout_, mapping, false);
+          auto construction_status = layoutspace_->ConstructLayout(local_best_layout_splitting_id, layout_packing_id, 0,  &layout_, mapping, skip_authblock, false);
           bool layout_success = std::accumulate(construction_status.begin(), construction_status.end(), true,
                                       [](bool cur, const layoutspace::Status& status)
                                       { return cur && status.success; });
@@ -776,7 +780,7 @@ void MapperThread::Run()
       // Phase 3: Search AuthSpace (with best SplittingSpace and best PackingSpace)
       // Note: authblock_lines are fully functional in this phase
       uint64_t layout_auth_id = 0;
-      if (layoutspace_->authblock_candidates > 1) {
+      if (crypto_ != nullptr && layoutspace_->authblock_candidates > 1) {
         mapping_specific_best_latency = UINT64_MAX;
         mapping_specific_best_energy_per_compute = std::numeric_limits<double>::max();
         uint32_t less_improvement_counter = 0;
@@ -788,7 +792,7 @@ void MapperThread::Run()
         for (uint64_t i = 0; i < layoutspace_->authblock_candidates; i++)
         {
           layout_auth_id = dist(gen);
-          auto construction_status = layoutspace_->ConstructLayout(local_best_layout_splitting_id, local_best_layout_packing_id, layout_auth_id, &layout_, mapping, false);
+          auto construction_status = layoutspace_->ConstructLayout(local_best_layout_splitting_id, local_best_layout_packing_id, layout_auth_id, &layout_, mapping, skip_authblock, false);
           bool layout_success = std::accumulate(construction_status.begin(), construction_status.end(), true,
                                       [](bool cur, const layoutspace::Status& status)
                                       { return cur && status.success; });

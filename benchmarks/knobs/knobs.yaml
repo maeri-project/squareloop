@@ -1,0 +1,7 @@
+knobs:
+  - knob: zero_padding
+    value: true
+  - knob: row_buffer
+    value: true
+  - knob: warmup
+    value: true

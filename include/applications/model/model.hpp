@@ -76,9 +76,8 @@ class Model
   // we can only instantiate them after certain config files have
   // been parsed.
 
-  // The layout modeling
+  // The crypto engine 
   crypto::CryptoConfig* crypto_; 
-  bool crypto_initialized_ = false;
 
   // The layout modeling
   layout::Layouts layout_; 

@@ -367,7 +367,7 @@
   //
   // ConstructLayout() - Three-parameter version with separate layout_splitting_id, layout_auth_id, and layout_packing_id
   //
-  std::vector<Status> Legal::ConstructLayout(uint64_t layout_splitting_id, uint64_t layout_packing_id, uint64_t layout_auth_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure)
+  std::vector<Status> Legal::ConstructLayout(uint64_t layout_splitting_id, uint64_t layout_packing_id, uint64_t layout_auth_id, layout::Layouts* layouts, Mapping mapping, bool skip_authblock, bool break_on_failure)
   {
     (void)break_on_failure; // Suppress unused parameter warning
 
@@ -680,40 +680,43 @@
     }
 
     // Apply AuthSpace factor choices (using layout_auth_id)
-    for (size_t i = 0; i < variable_authblock_factors_.size(); i++)
+    if (!skip_authblock) 
     {
-      auto& var_factor = variable_authblock_factors_[i];
-      unsigned lvl = std::get<0>(var_factor);
-      unsigned ds_idx = std::get<1>(var_factor);
-      std::string rank = std::get<2>(var_factor);
-      uint32_t chosen_factor = authblock_choices[i];
-
-      // Apply the chosen factor to the authblock_lines nest
-      auto& authblock_nest = layout_[lvl].authblock_lines[ds_idx];
-      auto& interline_nest = layout_[lvl].interline[ds_idx];
-
-      // Check if rank exists in the authblock nest
-      auto rank_it = std::find(authblock_nest.ranks.begin(), authblock_nest.ranks.end(), rank);
-      if (rank_it == authblock_nest.ranks.end())
+      for (size_t i = 0; i < variable_authblock_factors_.size(); i++)
       {
-        Status error_status;
-        error_status.success = false;
-        error_status.fail_reason = "Rank " + rank + " not found in authblock_lines nest for level " + std::to_string(lvl) + ", dataspace " + std::to_string(ds_idx);
-        return {error_status};
+        auto& var_factor = variable_authblock_factors_[i];
+        unsigned lvl = std::get<0>(var_factor);
+        unsigned ds_idx = std::get<1>(var_factor);
+        std::string rank = std::get<2>(var_factor);
+        uint32_t chosen_factor = authblock_choices[i];
+
+        // Apply the chosen factor to the authblock_lines nest
+        auto& authblock_nest = layout_[lvl].authblock_lines[ds_idx];
+        auto& interline_nest = layout_[lvl].interline[ds_idx];
+
+        // Check if rank exists in the authblock nest
+        auto rank_it = std::find(authblock_nest.ranks.begin(), authblock_nest.ranks.end(), rank);
+        if (rank_it == authblock_nest.ranks.end())
+        {
+          Status error_status;
+          error_status.success = false;
+          error_status.fail_reason = "Rank " + rank + " not found in authblock_lines nest for level " + std::to_string(lvl) + ", dataspace " + std::to_string(ds_idx);
+          return {error_status};
+        }
+
+        // Set the chosen factor value
+        authblock_nest.factors[rank] = std::min(chosen_factor, interline_nest.factors[rank]);
+
+        #ifdef DEBUG_CONSTRUCTION_LAYOUT
+          // Get the old factor for comparison
+          uint32_t old_authblock_factor = (authblock_nest.factors.find(rank) != authblock_nest.factors.end()
+                                          ? authblock_nest.factors.at(rank) : 1);
+
+          std::cout << "[AuthSpace] Storage storage level " << lvl << ", DataSpace " << ds_idx
+                    << ", Rank '" << rank << "': authblock_lines factor "
+                    << old_authblock_factor << " -> " << chosen_factor << std::endl;
+        #endif
       }
-
-      // Set the chosen factor value
-      authblock_nest.factors[rank] = std::min(chosen_factor, interline_nest.factors[rank]);
-
-      #ifdef DEBUG_CONSTRUCTION_LAYOUT
-        // Get the old factor for comparison
-        uint32_t old_authblock_factor = (authblock_nest.factors.find(rank) != authblock_nest.factors.end()
-                                        ? authblock_nest.factors.at(rank) : 1);
-
-        std::cout << "[AuthSpace] Storage storage level " << lvl << ", DataSpace " << ds_idx
-                  << ", Rank '" << rank << "': authblock_lines factor "
-                  << old_authblock_factor << " -> " << chosen_factor << std::endl;
-      #endif
     }
 
     // Copy the modified layout to the output parameter

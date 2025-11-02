@@ -971,9 +971,7 @@ namespace model
                                       std::unordered_map<std::string, int>& rank_id_to_binding_parallelism,
                                       std::unordered_map<std::string, std::vector<int>>& rank_id_to_dim_jumps,
                                       std::unordered_map<problem::Shape::FlattenedDimensionID, int>& dim_id_to_number_of_tiles,
-                                      std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
-                                      bool assume_zero_padding,
-                                      bool assume_row_buffer)
+                                      std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace)
   {
     std::map<TileTypeDescriptor, int> cnt_tile_types;
     std::vector<unsigned> dims_it(dims.size(), 0);
@@ -983,7 +981,7 @@ namespace model
       dim_it_idx[dims[i]] = i;
     }
     CountPerGroupTileTypesRecursive(layout, ranks, dims, rank_id_to_mapping_parallelism, rank_id_to_binding_parallelism,
-                                    rank_id_to_dim_jumps, dim_id_to_number_of_tiles, per_dataspace, assume_zero_padding, assume_row_buffer,
+                                    rank_id_to_dim_jumps, dim_id_to_number_of_tiles, per_dataspace,
                                     dim_it_idx, dims_it, 0, cnt_tile_types);
     return cnt_tile_types;
   }
@@ -997,8 +995,6 @@ namespace model
                                                std::unordered_map<std::string, std::vector<int>>& rank_id_to_dim_jumps,
                                                std::unordered_map<problem::Shape::FlattenedDimensionID, int>& dim_id_to_number_of_tiles,
                                                std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
-                                               bool assume_zero_padding,
-                                               bool assume_row_buffer,
                                                std::unordered_map<problem::Shape::FlattenedDimensionID, unsigned>& dim_it_idx,
                                                std::vector<unsigned>& dims_it,
                                                unsigned dim_idx,
@@ -1009,13 +1005,13 @@ namespace model
       if (dim_idx+1 < dims.size())
       {
         CountPerGroupTileTypesRecursive(layout, ranks, dims, rank_id_to_mapping_parallelism, rank_id_to_binding_parallelism,
-                                        rank_id_to_dim_jumps, dim_id_to_number_of_tiles, per_dataspace, assume_zero_padding, assume_row_buffer,
+                                        rank_id_to_dim_jumps, dim_id_to_number_of_tiles, per_dataspace,
                                         dim_it_idx, dims_it, dim_idx+1, cnt_tile_types);
       }
       else
       {
         CountPerGroupTileTypesBase(layout, ranks, dims, rank_id_to_mapping_parallelism, rank_id_to_binding_parallelism,
-                                   rank_id_to_dim_jumps, dim_id_to_number_of_tiles, per_dataspace, assume_zero_padding, assume_row_buffer,
+                                   rank_id_to_dim_jumps, dim_id_to_number_of_tiles, per_dataspace,
                                    dim_it_idx, dims_it, cnt_tile_types);
       }
     }
@@ -1030,8 +1026,6 @@ namespace model
                                           std::unordered_map<std::string, std::vector<int>>& rank_id_to_dim_jumps,
                                           std::unordered_map<problem::Shape::FlattenedDimensionID, int>& dim_id_to_number_of_tiles,
                                           std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
-                                          bool assume_zero_padding,
-                                          bool assume_row_buffer,
                                           std::unordered_map<problem::Shape::FlattenedDimensionID, unsigned>& dim_it_idx,
                                           std::vector<unsigned>& dims_it,
                                           std::map<TileTypeDescriptor, int>& cnt_tile_types)
@@ -1046,7 +1040,7 @@ namespace model
       int mapping_parallelism = std::max(rank_id_to_mapping_parallelism[ranks[r]], 1);
 
       int zero_padding = 0;
-      if (assume_zero_padding && specs_.technology.Get() == Technology::DRAM && 
+      if (layout.assume_zero_padding && specs_.technology.Get() == Technology::DRAM && 
           layout.rankToZeroPadding.find(ranks[r]) != layout.rankToZeroPadding.end())
       { // rank has zero padding
         zero_padding = layout.rankToZeroPadding.at(ranks[r]);
@@ -1065,7 +1059,7 @@ namespace model
       tile_type_desc.num_lines.push_back((std::min(rank_pos + mapping_parallelism, total_size - zero_padding) - zero_padding + binding_parallelism-1) / binding_parallelism
                           - std::max(rank_pos - zero_padding, 0) / binding_parallelism);
 
-      if (assume_row_buffer)
+      if (layout.assume_row_buffer)
       {
         for (auto &[data_space_id, ds] : per_dataspace)
         {
@@ -1107,7 +1101,7 @@ namespace model
   {
     std::unordered_map<std::string, int> rank_id_to_lines;
     std::vector<bool> dataspace_rb(per_dataspace.size(), false);
-    bool first_tile_possible = (specs_.technology.Get() == Technology::DRAM);
+    bool first_tile_possible = (specs_.technology.Get() == Technology::DRAM && layout.assume_warmup);
     auto latency_stats = CheckTileTypesRecursive(layout, crypto_config, mask, rank_groups, cnt_tile_types, per_dataspace, compute_cycles,
                                    rank_id_to_lines, dataspace_rb, 1, first_tile_possible, 0);
     if (first_tile_possible)
@@ -1230,7 +1224,7 @@ namespace model
           remainder_lines_left += remainder_lines;
         }
       }
-      latency_stats.overall_lines += lines * cur_cnt;
+      latency_stats.overall_lines += lines * (double)ds.auth_block_size / ds.memory_line * cur_cnt;
 #ifdef DEBUG
       std::cout << "DS " << data_space_id << " num_lines " << lines << " cnt " << cur_cnt << std::endl;
       std::cout << "CRYPTO_LAT " << data_space_id << " " << crypto_latency*cur_cnt << std::endl;
@@ -1293,13 +1287,8 @@ namespace model
                                                        std::unordered_map<problem::Shape::FlattenedDimensionID, std::pair<int, int>> dim_id_to_mapping_parallelism,
                                                        std::unordered_map<problem::Shape::FlattenedDimensionID, int> dim_id_to_number_of_tiles,
                                                        std::unordered_map<problem::Shape::FlattenedDimensionID, std::uint64_t> dim_id_to_outer_size,
-                                                       std::unordered_map<unsigned, SlowdownIntermediateData> per_dataspace_base,
-                                                       const bool assume_row_buffer,
-                                                       const bool assume_reuse,
-                                                       const bool assume_zero_padding)
+                                                       std::unordered_map<unsigned, SlowdownIntermediateData> per_dataspace_base)
   {
-    (void)assume_zero_padding;
-
     // ****************************************************************
     // Step 0: Find All Ranks With Imperfect Factorization
     // ****************************************************************
@@ -1424,7 +1413,7 @@ namespace model
       }
       imperfect_weights[bitmask] = weight;
 
-      uint64_t total_data_requested = 0;
+      double total_data_requested = 0;
       std::vector<std::string> rank_list;
       std::unordered_map<std::string, int> rank_id_to_rank_list_index;
       std::unordered_map<std::string, int> rank_id_to_number_of_tiles;
@@ -1510,7 +1499,7 @@ namespace model
               }
               mapping_parallelism += cur_mapping_parallelism;
               rank_id_to_dim_jumps[r].push_back(cur_mapping_parallelism + int(coefficientValue[index]));
-              number_of_tiles *= std::max(dim_id_to_number_of_tiles[dimsID[index]], 1); // ToDo: Is this number of tiles calculation ok?
+              number_of_tiles *= std::max(dim_id_to_number_of_tiles[dimsID[index]], 1); 
 #ifdef DEBUG
               std::cout << dimsID[index] << " ";
 #endif
@@ -1525,8 +1514,10 @@ namespace model
             rank_list.push_back(r);
           }
         }
-        // TODO: should total_data_requested be divided between read/write ?
-        total_data_requested += data_requested_ds;
+        if (mask[data_space_id])
+        {
+          total_data_requested += (double)data_requested_ds / ds.access_frequency;
+        }
       }
 
       std::pair<double, double> result = ComputeBankConflictSlowdownIndividual(
@@ -1535,8 +1526,7 @@ namespace model
         total_data_requested,
         dim_id_to_number_of_tiles,
         rank_id_to_mapping_parallelism, rank_id_to_binding_parallelism,
-        rank_id_to_dim_jumps, per_dataspace,
-        assume_row_buffer, assume_reuse, assume_zero_padding);
+        rank_id_to_dim_jumps, per_dataspace);
       all_slowdowns[bitmask] = result.first;
       all_correction_ratios[bitmask] = result.second;
 #ifdef DEBUG
@@ -1557,7 +1547,7 @@ namespace model
               << std::endl;
 #endif
 
-    assert(assume_reuse || assume_row_buffer || final_correction_ratio <= 1);
+    assert(layout.assume_row_buffer || final_correction_ratio <= 1);
 
     return std::pair<double, double>{final_slowdown, final_correction_ratio};
   }
@@ -1567,18 +1557,13 @@ namespace model
       const tiling::CompoundMask &mask,
       const crypto::CryptoConfig *crypto_config,
       uint64_t compute_cycles,
-      uint64_t total_data_requested,
+      double total_data_requested,
       std::unordered_map<problem::Shape::FlattenedDimensionID, int> dim_id_to_number_of_tiles,
       std::unordered_map<std::string, int> &rank_id_to_mapping_parallelism,
       std::unordered_map<std::string, int> &rank_id_to_binding_parallelism,
       std::unordered_map<std::string, std::vector<int>> &rank_id_to_dim_jumps,
-      std::unordered_map<unsigned, SlowdownIntermediateData> per_dataspace,
-      const bool assume_row_buffer,
-      const bool assume_reuse,
-      const bool assume_zero_padding)
+      std::unordered_map<unsigned, SlowdownIntermediateData> per_dataspace)
   {
-    (void)assume_reuse;
-
     // ****************************************************************
     // Step 3: Analyze "Average" Number of Lines Accessed Per Cycle
     // ****************************************************************
@@ -1618,8 +1603,7 @@ namespace model
     {
       cnt_tile_types.emplace_back(CountPerGroupTileTypes(layout, rank_groups[gid], dim_groups[gid],
                                                          rank_id_to_mapping_parallelism, rank_id_to_binding_parallelism,
-                                                         rank_id_to_dim_jumps, dim_id_to_number_of_tiles, per_dataspace,
-                                                         assume_zero_padding, assume_row_buffer));
+                                                         rank_id_to_dim_jumps, dim_id_to_number_of_tiles, per_dataspace));
 #ifdef DEBUG
       std::cout << "Group gid=" << gid << std::endl;
       for (auto &[vec_pair, cnt] : cnt_tile_types.back())
@@ -1647,7 +1631,6 @@ namespace model
     // ****************************************************************
     // Step 3.5: Calculate latencies associated with the crypto engine
     // ****************************************************************
-    // TODO: is crypto latrency different for read/write?
     for (auto &[data_space_id, ds] : per_dataspace)
     {
       double crypto_blocks_per_line = 0;
@@ -1729,7 +1712,12 @@ namespace model
               << " bw/layout = " << num_lines_correction_ratio << std::endl;
 #endif
 
-    assert(assume_reuse || assume_row_buffer || num_lines_correction_ratio <= 1);
+    assert(layout.assume_row_buffer || total_data_requested == 0 || num_lines_correction_ratio <= 1);
+
+    if (total_data_requested == 0) 
+    {
+      num_lines_correction_ratio = 0;
+    }
 
     return std::pair<double, double>{slowdown_current_dataspace,
                                    num_lines_correction_ratio};
@@ -1844,11 +1832,6 @@ namespace model
       std::cout << "compute_cycles=" << compute_cycles << std::endl;
 #endif
 
-    // ToDo: move this to a better place and make configurable
-    bool assume_zero_padding = layout.assume_zero_padding;
-    bool assume_row_buffer = layout.assume_row_buffer;
-    bool assume_reuse = layout.assume_reuse;
-
     std::unordered_map<unsigned, SlowdownIntermediateData> per_dataspace;
 
     // Bank Conflict Check Start!
@@ -1945,8 +1928,7 @@ namespace model
       spatial_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(
         layout, mask, crypto_config, 1.0,
         dim_id_to_mapping_parallelism, dim_id_to_number_of_tiles,
-        dim_id_to_outer_size, per_dataspace,
-        assume_row_buffer, assume_reuse, assume_zero_padding);
+        dim_id_to_outer_size, per_dataspace);
 
       slowdown_spatial_check = spatial_bc_analysis_result.first;
       spatial_check_num_access_ratio_bw_over_layout = spatial_bc_analysis_result.second;
@@ -1969,8 +1951,7 @@ namespace model
       subtile_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(
         layout, mask, crypto_config, compute_cycles,
         dim_id_to_subtile_shape, dim_id_to_number_of_tiles,
-        dim_id_to_outer_size, per_dataspace,
-        assume_row_buffer, assume_reuse, assume_zero_padding);
+        dim_id_to_outer_size, per_dataspace);
 
       slowdown_subtile_check = subtile_bc_analysis_result.first;
       subtile_check_num_access_ratio_bw_over_layout = subtile_bc_analysis_result.second;

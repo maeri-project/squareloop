@@ -31,6 +31,11 @@ To also anable cryptographic overhead evaluation include a cryptographic engine 
 
 `build/timeloop-mapper` with provided layout will search for the best mapping using that layout. If layout is not provided the algorithm will co-search the mapping and layout (and AuthBlock if crypto is included).
 
+There are several controllable knobs to tweak the behavior of both evaluation and search. They can be modified by including an optional knob file in the command,
+for example `benchmarks/knob/knob.yaml`. If the knob file is not included the knobs will take their default values. The knobs available are:
+* zero_padding (default: true) - include zero padding in the input tensor
+* row_buffer (default: true) - include a row buffer in off-chip memory
+* warmup (default: true) - include the warmup time of fetching the first tile (which cannot be pipelined with compute)
 
 
 

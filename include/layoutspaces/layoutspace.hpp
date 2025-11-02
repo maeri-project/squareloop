@@ -218,7 +218,7 @@ class Legal
     void ParseArchSpecs(model::Engine::Specs arch_specs, const Mapping& mapping);
 
     // Construct a specific layout using separate IDs for all three design spaces.
-    std::vector<Status> ConstructLayout(uint64_t layout_splitting_id, uint64_t layout_packing_id, uint64_t layout_auth_id, layout::Layouts* layouts, Mapping mapping, bool break_on_failure = true);
+    std::vector<Status> ConstructLayout(uint64_t layout_splitting_id, uint64_t layout_packing_id, uint64_t layout_auth_id, layout::Layouts* layouts, Mapping mapping, bool skip_authblock, bool break_on_failure = true);
 
     // Layout constraint methods
     void CreateConcordantLayout(const Mapping& mapping);
