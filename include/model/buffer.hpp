@@ -550,6 +550,7 @@ class BufferLevel : public Level
                                                                   std::unordered_map<unsigned, SlowdownIntermediateData> per_dataspace_base);
   std::pair<double, double> ComputeBankConflictSlowdownPerDataSpace(const layout::Layout layout,
                                                                     const tiling::CompoundMask &mask,
+                                                                    std::vector<loop::Descriptor> &current_level_loopnest,
                                                                     const crypto::CryptoConfig *crypto_config,
                                                                     uint64_t compute_cycles,
                                                                     std::unordered_map<problem::Shape::FlattenedDimensionID, std::pair<int, int>> dim_id_to_mapping_parallelism,
@@ -568,6 +569,43 @@ class BufferLevel : public Level
   double TemporalReductionEnergy(problem::Shape::DataSpaceID pv = problem::GetShape()->NumDataSpaces) const;
   double AddrGenEnergy(problem::Shape::DataSpaceID pv = problem::GetShape()->NumDataSpaces) const;
   double LeakageEnergy(problem::Shape::DataSpaceID pv = problem::GetShape()->NumDataSpaces) const;
+
+  void PrintTileAccessSequence(const unsigned dataspace_id,
+                               const layout::Layout& layout,
+                               std::unordered_map<std::string, int>& rank_id_to_mapping_parallelism,
+                               std::unordered_map<std::string, int>& rank_id_to_binding_parallelism,
+                               const layout::LayoutNest& interline_nest);
+  void PrintTileAccessSequenceRecursive(const unsigned dataspace_id,
+                                        const layout::Layout& layout,
+                                        std::unordered_map<std::string, int>& rank_id_to_mapping_parallelism,
+                                        std::unordered_map<std::string, int>& rank_id_to_binding_parallelism,
+                                        const layout::LayoutNest& interline_nest,
+                                        std::vector<unsigned>& ranks_it,
+                                        unsigned rank_idx,
+                                        unsigned authblock_idx);
+
+  void PrintElementAccessSequence(std::vector<loop::Descriptor> current_level_loopnest,
+                                  std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
+                                  const layout::Layout& layout,
+                                  std::unordered_map<std::string, int>& rank_id_to_binding_parallelism,
+                                  std::unordered_map<std::string, std::vector<int>>& rank_id_to_dim_jumps,
+                                  std::unordered_map<problem::Shape::FlattenedDimensionID, int>& dim_id_to_number_of_tiles);
+  void PrintElementAccessSequenceRecursive(std::vector<loop::Descriptor> &current_level_loopnest,
+                                           std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
+                                           const layout::Layout& layout,
+                                           std::unordered_map<std::string, int>& rank_id_to_binding_parallelism,
+                                           std::unordered_map<std::string, std::vector<int>>& rank_id_to_dim_jumps,
+                                           std::unordered_map<problem::Shape::FlattenedDimensionID, int>& dim_id_to_number_of_tiles,
+                                           std::unordered_map<problem::Shape::FlattenedDimensionID, unsigned>& dim_it_idx,
+                                           std::vector<unsigned>& dims_it,
+                                           unsigned dim_idx,
+                                           std::unordered_map<unsigned, bool> dataspace_done);
+  void PrintElementAccessSequenceBase(const unsigned dataspace_id,
+                                      const layout::Layout& layout,
+                                      std::unordered_map<std::string, int>& rank_id_to_binding_parallelism,
+                                      std::unordered_map<std::string, std::vector<int>>& rank_id_to_dim_jumps,
+                                      std::unordered_map<problem::Shape::FlattenedDimensionID, unsigned>& dim_it_idx,
+                                      std::vector<unsigned>& dims_it);
 
   //
   // API

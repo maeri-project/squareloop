@@ -38,6 +38,8 @@ namespace layout
   //   whitespace and then reversed,
   // so that left-to-right order is interpreted as outer-most to inner-most.
   //  e.g., "SR CQP MN" will become "SRCQPMN" with all spaces being ignored
+  // 
+  // TODO: the permutation order is different for layout (outer-inner) than for mapping (inner-outer), should unify
   //
   // For interline entries, optional fields "num_read_ports" and
   // "num_write_ports" are parsed. For each unique target, a Layout is created

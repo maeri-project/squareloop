@@ -43,6 +43,8 @@ BOOST_CLASS_EXPORT(model::BufferLevel)
 #include "util/numeric.hpp"
 
 // #define DEBUG
+// #define PRINT_ACCESS_SEQUENCE_INF
+#define PRINT_ACCESS_SEQUENCE_ZERO
 
 namespace model
 {
@@ -1039,6 +1041,7 @@ namespace model
       int binding_parallelism = std::max(rank_id_to_binding_parallelism[ranks[r]], 1);
       int mapping_parallelism = std::max(rank_id_to_mapping_parallelism[ranks[r]], 1);
 
+      // DRAM and zp check
       int zero_padding = 0;
       if (layout.assume_zero_padding && specs_.technology.Get() == Technology::DRAM && 
           layout.rankToZeroPadding.find(ranks[r]) != layout.rankToZeroPadding.end())
@@ -1056,6 +1059,7 @@ namespace model
         rank_pos += rank_id_to_dim_jumps[ranks[r]][d] * dims_it[dim_it_idx[dimsID[d]]];
         total_size += rank_id_to_dim_jumps[ranks[r]][d] * (std::max(dim_id_to_number_of_tiles[dimsID[d]], 1) - 1);
       }
+      // rank to num_lines
       tile_type_desc.num_lines.push_back((std::min(rank_pos + mapping_parallelism, total_size - zero_padding) - zero_padding + binding_parallelism-1) / binding_parallelism
                           - std::max(rank_pos - zero_padding, 0) / binding_parallelism);
 
@@ -1282,6 +1286,7 @@ namespace model
   std::pair<double, double>
   BufferLevel::ComputeBankConflictSlowdownPerDataSpace(const layout::Layout layout,
                                                        const tiling::CompoundMask &mask,
+                                                       std::vector<loop::Descriptor> &current_level_loopnest,
                                                        const crypto::CryptoConfig *crypto_config,
                                                        uint64_t compute_cycles,
                                                        std::unordered_map<problem::Shape::FlattenedDimensionID, std::pair<int, int>> dim_id_to_mapping_parallelism,
@@ -1298,6 +1303,7 @@ namespace model
     std::vector<std::string> imperfect_ranks;
     for (auto &[data_space_id, ds] : per_dataspace_base)
     {
+      // layout nest
       auto nest = layout.intraline[data_space_id];
       for (const auto &r : nest.ranks)
       {
@@ -1348,6 +1354,7 @@ namespace model
 #ifdef DEBUG
       std::cout << "DATASPACE_ID " << data_space_id << std::endl;
 #endif
+      // authblock size
       ds.auth_block_size = 1;
       ds.memory_line = 1;
       auto intra_nest = layout.intraline[data_space_id];
@@ -1365,6 +1372,7 @@ namespace model
         // auth_nest.factors is left empty, so the .find() calls below will return .end()
       }
 
+      // rank to authblock size (of rank)
       for (const auto &r : intra_nest.ranks) // Analyze slowdown per rank
       {
         int factor = (intra_nest.factors.find(r) != intra_nest.factors.end() ? intra_nest.factors.at(r) : 1);
@@ -1422,6 +1430,11 @@ namespace model
 
       // Per dataspace arrays for current imperfect factorization bitmask
       std::unordered_map<unsigned, SlowdownIntermediateData> per_dataspace = per_dataspace_base;
+
+#if defined(PRINT_ACCESS_SEQUENCE_INF) || defined(PRINT_ACCESS_SEQUENCE_ZERO)
+      if (specs_.technology.Get() == Technology::DRAM)
+        std::cout << "BEGIN_ACCESS_SEQUENCE" << std::endl;
+#endif
 
       for (auto &[data_space_id, ds] : per_dataspace)
       {
@@ -1514,11 +1527,44 @@ namespace model
             rank_list.push_back(r);
           }
         }
+
+#ifdef PRINT_ACCESS_SEQUENCE_INF
+        if (specs_.technology.Get() == Technology::DRAM)
+        {
+          PrintTileAccessSequence(
+            data_space_id,
+            layout,
+            rank_id_to_mapping_parallelism,
+            rank_id_to_binding_parallelism,
+            layout.interline[data_space_id]);
+          // Here im in a loop per imperfect type, per_dataspace
+          // should call the recursive iterator function here that goes over interline nest
+          // shape of authblock available in rank_id_to_binding_parallelism
+          // shape of tile available in rank_id_to_mapping_parallelism
+        }
+#endif
         if (mask[data_space_id])
         {
           total_data_requested += (double)data_requested_ds / ds.access_frequency;
         }
       }
+
+#ifdef PRINT_ACCESS_SEQUENCE_ZERO
+      if (specs_.technology.Get() == Technology::DRAM)
+      {
+        PrintElementAccessSequence(
+          current_level_loopnest,
+          per_dataspace,
+          layout,
+          rank_id_to_binding_parallelism,
+          rank_id_to_dim_jumps,
+          dim_id_to_number_of_tiles);
+      }
+#endif
+#if defined(PRINT_ACCESS_SEQUENCE_INF) || defined(PRINT_ACCESS_SEQUENCE_ZERO)
+      if (specs_.technology.Get() == Technology::DRAM)
+        std::cout << "END_ACCESS_SEQUENCE" << std::endl;
+#endif
 
       std::pair<double, double> result = ComputeBankConflictSlowdownIndividual(
         layout, mask,
@@ -1723,6 +1769,207 @@ namespace model
                                    num_lines_correction_ratio};
   }
 
+  // Print memory access sequence for tile = tensor
+  void BufferLevel::PrintTileAccessSequence(
+    const unsigned dataspace_id,
+    const layout::Layout& layout,
+    std::unordered_map<std::string, int>& rank_id_to_mapping_parallelism,
+    std::unordered_map<std::string, int>& rank_id_to_binding_parallelism,
+    const layout::LayoutNest& interline_nest)
+  {
+    std::vector<unsigned> ranks_it(interline_nest.ranks.size(), 0);
+    PrintTileAccessSequenceRecursive(dataspace_id,
+                                     layout,
+                                     rank_id_to_mapping_parallelism,
+                                     rank_id_to_binding_parallelism,
+                                     interline_nest,
+                                     ranks_it,
+                                     0, 0);
+  }
+
+  void BufferLevel::PrintTileAccessSequenceRecursive(
+    const unsigned dataspace_id,
+    const layout::Layout& layout,
+    std::unordered_map<std::string, int>& rank_id_to_mapping_parallelism,
+    std::unordered_map<std::string, int>& rank_id_to_binding_parallelism,
+    const layout::LayoutNest& interline_nest,
+    std::vector<unsigned>& ranks_it,
+    unsigned rank_idx,
+    unsigned authblock_idx)
+  {
+    if (rank_idx >= interline_nest.ranks.size()) 
+    {
+      std::cout << problem::GetShape()->DataSpaceIDToName.at(dataspace_id)[0] << "_" << authblock_idx << std::endl;
+      return;
+    }
+    // interline_nest is ordered inner-outer
+    auto current_rank = interline_nest.ranks[interline_nest.ranks.size()-rank_idx-1];
+    unsigned binding_parallelism = rank_id_to_binding_parallelism[current_rank];
+    unsigned mapping_parallelism = rank_id_to_mapping_parallelism[current_rank];
+    unsigned zero_padding = 0;
+    if (layout.assume_zero_padding && 
+        layout.rankToZeroPadding.find(current_rank) != layout.rankToZeroPadding.end())
+    { // rank has zero padding
+      zero_padding = layout.rankToZeroPadding.at(current_rank);
+    }
+    unsigned interline_size = (interline_nest.factors.find(current_rank) != interline_nest.factors.end() ? interline_nest.factors.at(current_rank) : 1);
+    //std::cout << "rank_idx=" << rank_idx << " binding=" << binding_parallelism << " mapping=" << mapping_parallelism << " zp=" << zero_padding << std::endl;
+    for (ranks_it[rank_idx] = 0; ranks_it[rank_idx] * binding_parallelism + 2*zero_padding < mapping_parallelism; ranks_it[rank_idx]++)
+    {
+      PrintTileAccessSequenceRecursive(dataspace_id,
+                                       layout,
+                                       rank_id_to_mapping_parallelism,
+                                       rank_id_to_binding_parallelism,
+                                       interline_nest,
+                                       ranks_it,
+                                       rank_idx+1,
+                                       authblock_idx*interline_size + ranks_it[rank_idx]);
+    }
+  }
+
+  // Print memory access sequence for tile = single element
+  void BufferLevel::PrintElementAccessSequence(
+    std::vector<loop::Descriptor> current_level_loopnest,
+    std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
+    const layout::Layout& layout,
+    std::unordered_map<std::string, int>& rank_id_to_binding_parallelism,
+    std::unordered_map<std::string, std::vector<int>>& rank_id_to_dim_jumps,
+    std::unordered_map<problem::Shape::FlattenedDimensionID, int>& dim_id_to_number_of_tiles)
+  {
+    // Original current_level_loopnest is inner-outer, we need outer-inner
+    std::reverse(current_level_loopnest.begin(), current_level_loopnest.end());
+    //std::cout << "PRINT_LOOPNEST" << std::endl;
+    //for (auto i : current_level_loopnest)
+    //  std::cout << i.dimension << std::endl;
+    //std::cout << "PRINT_LOOPNEST_END" << std::endl;
+
+    std::vector<unsigned> dims_it(current_level_loopnest.size(), 0);
+    std::unordered_map<problem::Shape::FlattenedDimensionID, unsigned> dim_it_idx;
+    for (unsigned i = 0; i < current_level_loopnest.size(); i++)
+    {
+      dim_it_idx[current_level_loopnest[i].dimension] = i;
+    }
+    std::unordered_map<unsigned, bool> dataspace_done;
+    for (auto &[data_space_id, ds] : per_dataspace)
+    {
+      dataspace_done[data_space_id] = false;
+    }
+    PrintElementAccessSequenceRecursive(current_level_loopnest,
+                                        per_dataspace,
+                                        layout,
+                                        rank_id_to_binding_parallelism,
+                                        rank_id_to_dim_jumps,
+                                        dim_id_to_number_of_tiles,
+                                        dim_it_idx,
+                                        dims_it,
+                                        0,
+                                        dataspace_done);
+  }
+
+  void BufferLevel::PrintElementAccessSequenceRecursive(
+    std::vector<loop::Descriptor> &current_level_loopnest,
+    std::unordered_map<unsigned, SlowdownIntermediateData>& per_dataspace,
+    const layout::Layout& layout,
+    std::unordered_map<std::string, int>& rank_id_to_binding_parallelism,
+    std::unordered_map<std::string, std::vector<int>>& rank_id_to_dim_jumps,
+    std::unordered_map<problem::Shape::FlattenedDimensionID, int>& dim_id_to_number_of_tiles,
+    std::unordered_map<problem::Shape::FlattenedDimensionID, unsigned>& dim_it_idx,
+    std::vector<unsigned>& dims_it,
+    unsigned dim_idx,
+    std::unordered_map<unsigned, bool> dataspace_done)
+  {
+    //std::cout<< "REC " << (dim_idx < dims_it.size() ? (int)current_level_loopnest[dim_idx].dimension : -1) << std::endl;
+    // Assume output has dataspace_id=2
+    bool output_done = dataspace_done[2];
+    for (auto &[data_space_id, ds] : per_dataspace)
+    {
+      // Check if the current level of the loop is terminal for the given dimension 
+      // ineffective dimensions for a dataspace are a contiguous range of innermost loops
+      if (!dataspace_done[data_space_id] &&
+          (dim_idx >= current_level_loopnest.size() || ds.ineffective_dims.count(current_level_loopnest[dim_idx].dimension)))
+      {
+        if (data_space_id != 2)
+        {
+          PrintElementAccessSequenceBase(data_space_id,
+                                         layout,
+                                         rank_id_to_binding_parallelism,
+                                         rank_id_to_dim_jumps,
+                                         dim_it_idx,
+                                         dims_it);
+        }
+        dataspace_done[data_space_id] = true;
+      }
+    }
+    if (dim_idx < dims_it.size())
+    {
+      for (dims_it[dim_idx] = 0; dims_it[dim_idx] < (unsigned)std::max(dim_id_to_number_of_tiles[current_level_loopnest[dim_idx].dimension], 1); dims_it[dim_idx]++)
+      {
+        PrintElementAccessSequenceRecursive(current_level_loopnest,
+                                            per_dataspace,
+                                            layout,
+                                            rank_id_to_binding_parallelism,
+                                            rank_id_to_dim_jumps,
+                                            dim_id_to_number_of_tiles,
+                                            dim_it_idx,
+                                            dims_it,
+                                            dim_idx+1,
+                                            dataspace_done);
+      }
+    }
+    if (!output_done &&
+        (dim_idx >= current_level_loopnest.size() || per_dataspace[2].ineffective_dims.count(current_level_loopnest[dim_idx].dimension)))
+    {
+      PrintElementAccessSequenceBase(2,
+                                     layout,
+                                     rank_id_to_binding_parallelism,
+                                     rank_id_to_dim_jumps,
+                                     dim_it_idx,
+                                     dims_it);
+    }
+    //std::cout<< "REC_OUT " << (dim_idx < dims_it.size() ? (int)current_level_loopnest[dim_idx].dimension : -1) << std::endl;
+  }
+
+  void BufferLevel::PrintElementAccessSequenceBase(
+    const unsigned dataspace_id,
+    const layout::Layout& layout,
+    std::unordered_map<std::string, int>& rank_id_to_binding_parallelism,
+    std::unordered_map<std::string, std::vector<int>>& rank_id_to_dim_jumps,
+    std::unordered_map<problem::Shape::FlattenedDimensionID, unsigned>& dim_it_idx,
+    std::vector<unsigned>& dims_it)
+  {
+    unsigned authblock_idx = 0;
+    auto interline_nest = layout.interline[dataspace_id];
+    // Iterate interline nest outer-inner
+    for (auto r_it = interline_nest.ranks.rbegin(); r_it != interline_nest.ranks.rend(); r_it++) 
+    {
+      const auto &r = *r_it;
+      int binding_parallelism = std::max(rank_id_to_binding_parallelism[r], 1);
+
+      // zp check
+      int zero_padding = 0;
+      if (layout.assume_zero_padding && 
+          layout.rankToZeroPadding.find(r) != layout.rankToZeroPadding.end())
+      { // rank has zero padding
+        zero_padding = layout.rankToZeroPadding.at(r);
+      }
+
+      auto& dimsID = layout.rankToFactorizedDimensionID.at(r);
+      int rank_pos = 0;
+      for (unsigned d = 0; d < dimsID.size(); d++)
+      {
+        rank_pos += rank_id_to_dim_jumps[r][d] * dims_it[dim_it_idx[dimsID[d]]];
+        //std::cout << "D" << dimsID[d] << " it=" << dims_it[dim_it_idx[dimsID[d]]] << " jmp=" << rank_id_to_dim_jumps[r][d] << std::endl;
+      }
+      
+      unsigned authblock_rank_pos = (rank_pos - zero_padding) / binding_parallelism;
+      unsigned interline_size = (interline_nest.factors.find(r) != interline_nest.factors.end() ? interline_nest.factors.at(r) : 1);
+      authblock_idx = authblock_idx * interline_size + authblock_rank_pos;
+      //std::cout << "rank " << r << " rank_pos=" << rank_pos << " inter=" << interline_size << std::endl;
+    }
+    std::cout << problem::GetShape()->DataSpaceIDToName.at(dataspace_id)[0] << "_" << authblock_idx << std::endl;
+  }
+
+
   tiling::CompoundTile BufferLevel::ComputeBankConflictSlowdown(
     const tiling::CompoundTile &tile, layout::Layout layout,
     const tiling::CompoundMask &mask, const analysis::NestAnalysis *analysis,
@@ -1869,6 +2116,8 @@ namespace model
         }
       }
 
+      // whats dim_id_to_number_of_tiles vs dim_id_to_outer_size -> i think outer size only applies to spatial dimensions
+
       // Find number of tiles per dimension
       for (size_t i = 0; i < tile.subnest.size(); i++)
       {
@@ -1889,9 +2138,13 @@ namespace model
           used_dimensions.insert(i.second);
         }
       }
+      // Go through current level loopnest starting from innermost
+      // some number of inner loops are over dimensions not present in current dataspace
+      // those loops are ineffective in that dataspace i.e., do not require fetching a new tile
       per_dataspace[data_space_id].access_frequency = 1;
       for (size_t i = 0; i < current_level_loopnest.size(); i++)
       {
+        // iterating current loopnest
         auto j = current_level_loopnest[i];
         if (used_dimensions.find(j.dimension) != used_dimensions.end())
         {
@@ -1926,7 +2179,7 @@ namespace model
 
     if (dim_id_to_mapping_parallelism.size() > 0) {
       spatial_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(
-        layout, mask, crypto_config, 1.0,
+        layout, mask, current_level_loopnest, crypto_config, 1.0,
         dim_id_to_mapping_parallelism, dim_id_to_number_of_tiles,
         dim_id_to_outer_size, per_dataspace);
 
@@ -1949,7 +2202,7 @@ namespace model
     std::pair<double, double> subtile_bc_analysis_result;
     if (dim_id_to_subtile_shape.size() > 0 && dim_id_to_mapping_parallelism.size() == 0) {
       subtile_bc_analysis_result = ComputeBankConflictSlowdownPerDataSpace(
-        layout, mask, crypto_config, compute_cycles,
+        layout, mask, current_level_loopnest, crypto_config, compute_cycles,
         dim_id_to_subtile_shape, dim_id_to_number_of_tiles,
         dim_id_to_outer_size, per_dataspace);
 
